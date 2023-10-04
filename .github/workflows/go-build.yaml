@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: build
     runs-on: ubuntu-latest
     defaults:
       run:
