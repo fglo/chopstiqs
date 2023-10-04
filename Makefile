@@ -1,11 +1,8 @@
-VERSION?=0.0.1
-
 GOCMD=go
 GOTEST=$(GOCMD) test
 GOVET=$(GOCMD) vet
 BINARY_NAME=chopstiqs
-PATH_TO_MAIN_GO=_demo/chopstiqs/main.go
-EXPORT_RESULT?=false # for CI please set EXPORT_RESULT to true
+PATH_TO_MAIN_GO=examples/demo/main.go
 
 GREEN  := $(shell tput -Txterm setaf 2)
 YELLOW := $(shell tput -Txterm setaf 3)
