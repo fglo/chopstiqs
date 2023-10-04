@@ -8,33 +8,35 @@ import (
 )
 
 type Gui struct {
-	components []widget.Widget
+	image *ebiten.Image
+
+	containers []*widget.Container
 }
 
 func New() *Gui {
 	return &Gui{
-		components: make([]widget.Widget, 0),
+		containers: make([]*widget.Container, 0),
 	}
 }
 
-func (gui *Gui) AddComponent(component widget.Widget) {
-	gui.components = append(gui.components, component)
+func (gui *Gui) AddContainer(container *widget.Container) {
+	gui.containers = append(gui.containers, container)
 }
 
 func (gui *Gui) Update(mouse *input.Mouse) {
-	for _, component := range gui.components {
-		component.FireEvents(mouse)
+	for _, component := range gui.containers {
+		component.Update(mouse)
 	}
 }
 
 func (gui *Gui) Draw(guiImage *ebiten.Image, mouse *input.Mouse) {
 	event.ExecuteDeferred()
 
-	for _, component := range gui.components {
-		component.FireEvents(mouse)
+	for _, component := range gui.containers {
+		component.Update(mouse)
 
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(component.Position())
-		guiImage.DrawImage(component.Draw(), op)
+		guiImage.DrawImage(component.Draw(mouse), op)
 	}
 }

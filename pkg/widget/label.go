@@ -10,12 +10,6 @@ import (
 	"golang.org/x/image/font"
 )
 
-const (
-	fontRegular = "pkg/fontutils/fonts/Minecraftia-Regular.ttf"
-)
-
-var defaultFontFace, _ = fontutils.LoadFont(fontRegular, 8)
-
 type position int
 
 const (
@@ -46,7 +40,7 @@ type LabelOptions struct {
 
 func NewLabel(posX, posY float64, labelText string, color color.RGBA, options *LabelOptions) *Label {
 	// TODO: change deprecated function
-	bounds := text.BoundString(defaultFontFace, labelText) // nolint
+	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
 
 	width := bounds.Dx()
 	height := bounds.Dy()
@@ -54,7 +48,7 @@ func NewLabel(posX, posY float64, labelText string, color color.RGBA, options *L
 	lbl := &Label{
 		text:       labelText,
 		color:      color,
-		font:       defaultFontFace,
+		font:       fontutils.DefaultFontFace,
 		position:   left,
 		textPosX:   0,
 		textPosY:   -bounds.Min.Y,

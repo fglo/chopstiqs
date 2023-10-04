@@ -27,13 +27,10 @@ func main() {
 
 // Game encapsulates game logic
 type Game struct {
-	guiImage *ebiten.Image
-
 	gui   *chopstiqs.Gui
 	mouse *input.Mouse
 
-	backgroundColor imgColor.RGBA
-	bgColorToggled  bool
+	bgColorToggled bool
 
 	screenWidth  int
 	screenHeight int
@@ -44,31 +41,47 @@ type Game struct {
 // New generates a new Game object.
 func NewGame() *Game {
 	g := &Game{
-		gui:             &chopstiqs.Gui{},
-		mouse:           input.NewMouse(),
-		screenWidth:     200,
-		screenHeight:    200,
-		backgroundColor: imgColor.RGBA{9, 32, 42, 255},
+		gui:          &chopstiqs.Gui{},
+		mouse:        input.NewMouse(),
+		screenWidth:  200,
+		screenHeight: 200,
 	}
 
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
 
+	container := widget.NewContainer(0, 0, 200, 200, imgColor.RGBA{9, 32, 42, 255})
+
 	btnOpts := &widget.ButtonOptions{}
 	btn := widget.NewButton(5, 20, btnOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
-		g.toggleBgColor()
+		if !g.bgColorToggled {
+			container.SetBackgroundColor(imgColor.RGBA{32, 32, 32, 255})
+		} else {
+			container.SetBackgroundColor(imgColor.RGBA{9, 32, 42, 255})
+		}
+
+		g.bgColorToggled = !g.bgColorToggled
 	}).Text(5, 20, "toggle background", color.RGBA{25, 25, 25, 255}))
-	g.gui.AddComponent(btn)
+	container.AddComponent(btn)
 
 	cbOpts := &widget.CheckBoxOptions{}
 	cb := widget.NewCheckBox(5, 5, cbOpts.ToggledHandler(func(args *widget.CheckBoxToggledEventArgs) {
 		btn.SetDisabled(args.CheckBox.Checked)
 	}))
-	g.gui.AddComponent(cb)
+	container.AddComponent(cb)
+
+	cb2 := widget.NewCheckBox(25, 5, nil)
+	cb2.Toggle()
+	container.AddComponent(cb2)
 
 	lblOpts := &widget.LabelOptions{}
 	lbl := widget.NewLabel(5, 40, "label", color.RGBA{230, 230, 230, 255}, lblOpts.Left())
-	g.gui.AddComponent(lbl)
+	container.AddComponent(lbl)
+
+	btn2 := widget.NewButton(5, 52, nil)
+	container.AddComponent(btn2)
+
+	g.gui.AddContainer(container)
 
 	return g
 }
@@ -101,29 +114,10 @@ func (g *Game) checkQuitButton() error {
 	return nil
 }
 
-func (g *Game) toggleBgColor() {
-	if !g.bgColorToggled {
-		g.backgroundColor = imgColor.RGBA{32, 32, 32, 255}
-	} else {
-		g.backgroundColor = imgColor.RGBA{9, 32, 42, 255}
-	}
-
-	g.bgColorToggled = !g.bgColorToggled
-}
-
 // Draw draws the current game to the given screen.
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.mouse.Draw()
 
-	if g.guiImage == nil {
-		g.guiImage = ebiten.NewImage(g.screenWidth, g.screenHeight)
-	}
-
-	screen.Fill(g.backgroundColor)
-
 	g.gui.Update(g.mouse)
-	g.gui.Draw(g.guiImage, g.mouse)
-
-	op := &ebiten.DrawImageOptions{}
-	screen.DrawImage(g.guiImage, op)
+	g.gui.Draw(screen, g.mouse)
 }

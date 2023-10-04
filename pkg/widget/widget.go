@@ -15,9 +15,12 @@ type Widget interface {
 	FireEvents(mouse *input.Mouse)
 	Disable()
 	Enable()
+	setContainer(*Container)
 }
 
 type widget struct {
+	container *Container
+
 	image *ebiten.Image
 
 	Rect image.Rectangle
@@ -84,6 +87,10 @@ func (o *WidgetOptions) Disabled() *WidgetOptions {
 	})
 
 	return o
+}
+
+func (w *widget) setContainer(container *Container) {
+	w.container = container
 }
 
 func (w *widget) setWidth(width int) {

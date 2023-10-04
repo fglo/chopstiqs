@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"github.com/fglo/chopstiqs/pkg/event"
+	"github.com/fglo/chopstiqs/pkg/fontutils"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
@@ -65,7 +66,7 @@ func NewButton(posX, posY float64, options *ButtonOptions) *Button {
 
 func (o *ButtonOptions) Text(posX, posY float64, labelText string, color color.RGBA) *ButtonOptions {
 	// TODO: change deprecated function
-	bounds := text.BoundString(defaultFontFace, labelText) // nolint
+	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
 
 	lblOpts := &LabelOptions{}
 	label := NewLabel(float64(bounds.Dx())/2+5, 7.5, labelText, color, lblOpts.Centered())
@@ -151,15 +152,16 @@ func (b *Button) draw() []byte {
 				arr[j+b.pixelCols*i] = 230
 				arr[j+1+b.pixelCols*i] = 230
 				arr[j+2+b.pixelCols*i] = 230
-				arr[j+3+b.pixelCols*i] = 255
 			} else if j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId {
 				arr[j+b.pixelCols*i] = 230
 				arr[j+1+b.pixelCols*i] = 230
 				arr[j+2+b.pixelCols*i] = 230
-				arr[j+3+b.pixelCols*i] = 255
 			} else {
-				arr[j+3+b.pixelCols*i] = 0
+				arr[j+b.pixelCols*i] = b.container.backgroundColor.R
+				arr[j+1+b.pixelCols*i] = b.container.backgroundColor.G
+				arr[j+2+b.pixelCols*i] = b.container.backgroundColor.B
 			}
+			arr[j+3+b.pixelCols*i] = 255
 		}
 	}
 
@@ -177,10 +179,12 @@ func (b *Button) drawPressed() []byte {
 				arr[j+b.pixelCols*i] = 200
 				arr[j+1+b.pixelCols*i] = 200
 				arr[j+2+b.pixelCols*i] = 200
-				arr[j+3+b.pixelCols*i] = 255
 			} else {
-				arr[j+3+b.pixelCols*i] = 0
+				arr[j+b.pixelCols*i] = b.container.backgroundColor.R
+				arr[j+1+b.pixelCols*i] = b.container.backgroundColor.G
+				arr[j+2+b.pixelCols*i] = b.container.backgroundColor.B
 			}
+			arr[j+3+b.pixelCols*i] = 255
 		}
 	}
 
@@ -198,15 +202,16 @@ func (b *Button) drawHovered() []byte {
 				arr[j+b.pixelCols*i] = 220
 				arr[j+1+b.pixelCols*i] = 220
 				arr[j+2+b.pixelCols*i] = 220
-				arr[j+3+b.pixelCols*i] = 255
 			} else if j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId {
 				arr[j+b.pixelCols*i] = 200
 				arr[j+1+b.pixelCols*i] = 200
 				arr[j+2+b.pixelCols*i] = 200
-				arr[j+3+b.pixelCols*i] = 255
 			} else {
-				arr[j+3+b.pixelCols*i] = 0
+				arr[j+b.pixelCols*i] = b.container.backgroundColor.R
+				arr[j+1+b.pixelCols*i] = b.container.backgroundColor.G
+				arr[j+2+b.pixelCols*i] = b.container.backgroundColor.B
 			}
+			arr[j+3+b.pixelCols*i] = 255
 		}
 	}
 
@@ -229,6 +234,7 @@ func (b *Button) drawDisabled() []byte {
 			} else {
 				arr[j+3+b.pixelCols*i] = 0
 			}
+			arr[j+3+b.pixelCols*i] = 255
 		}
 	}
 

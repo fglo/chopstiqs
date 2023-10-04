@@ -80,10 +80,12 @@ func (cb *CheckBox) drawUnchecked() []byte {
 				arr[j+cb.pixelCols*i] = 230
 				arr[j+1+cb.pixelCols*i] = 230
 				arr[j+2+cb.pixelCols*i] = 230
-				arr[j+3+cb.pixelCols*i] = 255
 			} else {
-				arr[j+3+cb.pixelCols*i] = 0
+				arr[j+cb.pixelCols*i] = cb.container.backgroundColor.R
+				arr[j+1+cb.pixelCols*i] = cb.container.backgroundColor.G
+				arr[j+2+cb.pixelCols*i] = cb.container.backgroundColor.B
 			}
+			arr[j+3+cb.pixelCols*i] = 255
 		}
 	}
 
@@ -99,10 +101,12 @@ func (cb *CheckBox) drawChecked() []byte {
 				arr[j+cb.pixelCols*i] = 230
 				arr[j+1+cb.pixelCols*i] = 230
 				arr[j+2+cb.pixelCols*i] = 230
-				arr[j+3+cb.pixelCols*i] = 255
 			} else {
-				arr[j+3+cb.pixelCols*i] = 0
+				arr[j+cb.pixelCols*i] = cb.container.backgroundColor.R
+				arr[j+1+cb.pixelCols*i] = cb.container.backgroundColor.G
+				arr[j+2+cb.pixelCols*i] = cb.container.backgroundColor.B
 			}
+			arr[j+3+cb.pixelCols*i] = 255
 		}
 	}
 
