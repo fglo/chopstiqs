@@ -14,6 +14,8 @@ const (
 	fontRegular = "pkg/fontutils/fonts/Minecraftia-Regular.ttf"
 )
 
+var defaultFontFace, _ = fontutils.LoadFont(fontRegular, 8)
+
 type position int
 
 const (
@@ -43,10 +45,8 @@ type LabelOptions struct {
 }
 
 func NewLabel(posX, posY float64, labelText string, color color.RGBA, options *LabelOptions) *Label {
-	fontFace, _ := fontutils.LoadFont(fontRegular, 8)
-
 	// TODO: change deprecated function
-	bounds := text.BoundString(fontFace, labelText) // nolint
+	bounds := text.BoundString(defaultFontFace, labelText) // nolint
 
 	width := bounds.Dx()
 	height := bounds.Dy()
@@ -54,7 +54,7 @@ func NewLabel(posX, posY float64, labelText string, color color.RGBA, options *L
 	lbl := &Label{
 		text:       labelText,
 		color:      color,
-		font:       fontFace,
+		font:       defaultFontFace,
 		position:   left,
 		textPosX:   0,
 		textPosY:   -bounds.Min.Y,
@@ -73,11 +73,11 @@ func NewLabel(posX, posY float64, labelText string, color color.RGBA, options *L
 	return lbl
 }
 
-func (o *LabelOptions) Centered(cx, cy int) *LabelOptions {
+func (o *LabelOptions) Centered() *LabelOptions {
 	o.opts = append(o.opts, func(l *Label) {
 		l.position = centered
 		l.posX = l.posX - float64(l.textBounds.Dx())/2
-		l.posY = l.posY + float64(l.textBounds.Dy())/2
+		l.posY = l.posY - float64(l.textBounds.Dy())/2
 	})
 
 	return o
@@ -95,7 +95,7 @@ func (o *LabelOptions) CenteredHorizontally() *LabelOptions {
 func (o *LabelOptions) CenteredVertically() *LabelOptions {
 	o.opts = append(o.opts, func(l *Label) {
 		l.position = centered
-		l.posY = l.posY + float64(l.textBounds.Dy())/2
+		l.posY = l.posY - float64(l.textBounds.Dy())/2
 	})
 
 	return o
@@ -132,7 +132,7 @@ func (l *Label) Draw() *ebiten.Image {
 	return l.image
 }
 
-func (l *Label) DrawCentered(image *ebiten.Image, cx, cy int) {
+func (l *Label) drawCentered(image *ebiten.Image, cx, cy int) {
 	// TODO: change deprecated function
 	bounds := text.BoundString(l.font, l.text) // nolint
 	x, y := cx-bounds.Min.X-bounds.Dx()/2, cy-bounds.Min.Y-bounds.Dy()/2

@@ -13,9 +13,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
-var (
-	Terminated = errors.New("terminated")
-)
+var Terminated = errors.New("terminated")
 
 func main() {
 	if err := ebiten.RunGame(NewGame()); err != nil {
@@ -59,7 +57,7 @@ func NewGame() *Game {
 	btnOpts := &widget.ButtonOptions{}
 	btn := widget.NewButton(5, 20, btnOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
 		g.toggleBgColor()
-	}).Text(5, 20, "toggle", color.RGBA{25, 25, 25, 255}))
+	}).Text(5, 20, "toggle background", color.RGBA{25, 25, 25, 255}))
 	g.gui.AddComponent(btn)
 
 	cbOpts := &widget.CheckBoxOptions{}
@@ -69,7 +67,7 @@ func NewGame() *Game {
 	g.gui.AddComponent(cb)
 
 	lblOpts := &widget.LabelOptions{}
-	lbl := widget.NewLabel(5, 35, "label", color.RGBA{230, 230, 230, 255}, lblOpts.CenteredVertically())
+	lbl := widget.NewLabel(5, 40, "label", color.RGBA{230, 230, 230, 255}, lblOpts.Left())
 	g.gui.AddComponent(lbl)
 
 	return g

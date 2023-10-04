@@ -63,11 +63,12 @@ func NewWidget(posX, posY float64, width, height int, options *WidgetOptions) *w
 		Rect:   image.Rectangle{Min: image.Point{int(posX), int(posY)}, Max: image.Point{int(posX) + width, int(posY) + height}},
 
 		pixelCols:             width * 4,
+		lastPixelColId:        width*4 - 4,
+		penultimatePixelColId: width*4 - 8,
+
 		pixelRows:             height,
 		lastPixelRowId:        height - 1,
 		penultimatePixelRowId: height - 2,
-		lastPixelColId:        width*4 - 4,
-		penultimatePixelColId: width*4 - 8,
 	}
 
 	for _, o := range options.opts {
@@ -83,6 +84,41 @@ func (o *WidgetOptions) Disabled() *WidgetOptions {
 	})
 
 	return o
+}
+
+func (w *widget) setWidth(width int) {
+	w.width = width
+	w.pixelCols = width * 4
+	w.lastPixelColId = width*4 - 4
+	w.penultimatePixelColId = width*4 - 8
+
+	w.image = ebiten.NewImage(width, w.height)
+	w.Rect = image.Rectangle{Min: image.Point{int(w.posX), int(w.posY)}, Max: image.Point{int(w.posX) + w.width, int(w.posY) + w.height}}
+}
+
+func (w *widget) setHeight(height int) {
+	w.height = height
+	w.pixelRows = height * 4
+	w.lastPixelRowId = height*4 - 4
+	w.penultimatePixelRowId = height*4 - 8
+
+	w.image = ebiten.NewImage(w.width, height)
+	w.Rect = image.Rectangle{Min: image.Point{int(w.posX), int(w.posY)}, Max: image.Point{int(w.posX) + w.width, int(w.posY) + w.height}}
+}
+
+func (w *widget) setDimensions(width, height int) {
+	w.width = width
+	w.pixelCols = width * 4
+	w.lastPixelColId = width*4 - 4
+	w.penultimatePixelColId = width*4 - 8
+
+	w.height = height
+	w.pixelRows = height * 4
+	w.lastPixelRowId = height*4 - 4
+	w.penultimatePixelRowId = height*4 - 8
+
+	w.image = ebiten.NewImage(width, height)
+	w.Rect = image.Rectangle{Min: image.Point{int(w.posX), int(w.posY)}, Max: image.Point{int(w.posX) + w.width, int(w.posY) + w.height}}
 }
 
 func (w *widget) Disable() {

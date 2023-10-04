@@ -5,6 +5,7 @@ import (
 
 	"github.com/fglo/chopstiqs/pkg/event"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 type Button struct {
@@ -17,7 +18,7 @@ type Button struct {
 	ReleasedEvent *event.Event
 	ClickedEvent  *event.Event
 
-	Label *Label
+	label *Label
 }
 
 type ButtonOpt func(b *Button)
@@ -62,8 +63,12 @@ func NewButton(posX, posY float64, options *ButtonOptions) *Button {
 	return b
 }
 
-func (o *ButtonOptions) Text(posX, posY float64, text string, color color.RGBA) *ButtonOptions {
-	label := NewLabel(posX, 15, text, color, &LabelOptions{})
+func (o *ButtonOptions) Text(posX, posY float64, labelText string, color color.RGBA) *ButtonOptions {
+	// TODO: change deprecated function
+	bounds := text.BoundString(defaultFontFace, labelText) // nolint
+
+	lblOpts := &LabelOptions{}
+	label := NewLabel(float64(bounds.Dx())/2+5, 7.5, labelText, color, lblOpts.Centered())
 
 	o.PressedHandler(func(args *ButtonPressedEventArgs) {
 		label.Inverted = true
@@ -74,7 +79,7 @@ func (o *ButtonOptions) Text(posX, posY float64, text string, color color.RGBA) 
 	})
 
 	o.opts = append(o.opts, func(b *Button) {
-		b.Label = label
+		b.SetLabel(label)
 	})
 
 	return o
@@ -110,6 +115,11 @@ func (o *ButtonOptions) ClickedHandler(f ButtonClickedHandlerFunc) *ButtonOption
 	return o
 }
 
+func (b *Button) SetLabel(label *Label) {
+	b.label = label
+	b.setWidth(label.width + 10)
+}
+
 func (b *Button) Draw() *ebiten.Image {
 	if b.pressed {
 		b.image.WritePixels(b.drawPressed())
@@ -121,8 +131,10 @@ func (b *Button) Draw() *ebiten.Image {
 		b.image.WritePixels(b.draw())
 	}
 
-	if b.Label != nil {
-		b.Label.DrawCentered(b.image, (b.Rect.Max.X-b.Rect.Min.X)/2, (b.Rect.Max.Y-b.Rect.Min.Y)/2+1)
+	if b.label != nil {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(b.label.Position())
+		b.image.DrawImage(b.label.Draw(), op)
 	}
 
 	return b.image
