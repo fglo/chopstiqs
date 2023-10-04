@@ -126,18 +126,6 @@ func (l *Label) Draw() *ebiten.Image {
 	return l.image
 }
 
-func (l *Label) drawCentered(image *ebiten.Image, cx, cy int) {
-	// TODO: change deprecated function
-	bounds := text.BoundString(l.font, l.text) // nolint
-	x, y := cx-bounds.Min.X-bounds.Dx()/2, cy-bounds.Min.Y-bounds.Dy()/2
-
-	if l.Inverted {
-		text.Draw(image, l.text, l.font, x, y, color.RGBA{255 - l.color.R, 255 - l.color.G, 255 - l.color.B, l.color.A})
-	} else {
-		text.Draw(image, l.text, l.font, x, y, l.color)
-	}
-}
-
 func (l *Label) createWidget(posX, posY float64, width, height int) widget {
 	widgetOptions := &WidgetOptions{}
 

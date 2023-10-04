@@ -8,8 +8,6 @@ import (
 )
 
 type Gui struct {
-	image *ebiten.Image
-
 	containers []*widget.Container
 }
 

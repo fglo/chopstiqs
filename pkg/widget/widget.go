@@ -16,6 +16,9 @@ type Widget interface {
 	Disable()
 	Enable()
 	setContainer(*Container)
+	SetWidth(width int)
+	SetHeight(height int)
+	SetDimensions(width, height int)
 }
 
 type widget struct {
@@ -93,7 +96,7 @@ func (w *widget) setContainer(container *Container) {
 	w.container = container
 }
 
-func (w *widget) setWidth(width int) {
+func (w *widget) SetWidth(width int) {
 	w.width = width
 	w.pixelCols = width * 4
 	w.lastPixelColId = width*4 - 4
@@ -103,7 +106,7 @@ func (w *widget) setWidth(width int) {
 	w.Rect = image.Rectangle{Min: image.Point{int(w.posX), int(w.posY)}, Max: image.Point{int(w.posX) + w.width, int(w.posY) + w.height}}
 }
 
-func (w *widget) setHeight(height int) {
+func (w *widget) SetHeight(height int) {
 	w.height = height
 	w.pixelRows = height * 4
 	w.lastPixelRowId = height*4 - 4
@@ -113,7 +116,7 @@ func (w *widget) setHeight(height int) {
 	w.Rect = image.Rectangle{Min: image.Point{int(w.posX), int(w.posY)}, Max: image.Point{int(w.posX) + w.width, int(w.posY) + w.height}}
 }
 
-func (w *widget) setDimensions(width, height int) {
+func (w *widget) SetDimensions(width, height int) {
 	w.width = width
 	w.pixelCols = width * 4
 	w.lastPixelColId = width*4 - 4
