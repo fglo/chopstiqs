@@ -39,3 +39,12 @@ Pressed button with text:
 ### Label
 
 ![label](img/examples/label.png)
+
+## Roadmap
+
+What I want to achieve:
+
+- unit tests for components
+- sliders
+- tooltips
+- radiogroups
