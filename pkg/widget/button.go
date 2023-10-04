@@ -118,7 +118,7 @@ func (o *ButtonOptions) ClickedHandler(f ButtonClickedHandlerFunc) *ButtonOption
 
 func (b *Button) SetLabel(label *Label) {
 	b.label = label
-	b.setWidth(label.width + 10)
+	b.SetWidth(label.width + 10)
 }
 
 func (b *Button) Draw() *ebiten.Image {
