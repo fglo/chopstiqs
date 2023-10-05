@@ -64,7 +64,7 @@ func NewButton(posX, posY float64, options *ButtonOptions) *Button {
 	return b
 }
 
-func (o *ButtonOptions) Text(posX, posY float64, labelText string, color color.RGBA) *ButtonOptions {
+func (o *ButtonOptions) Text(labelText string, color color.RGBA) *ButtonOptions {
 	// TODO: change deprecated function
 	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
 

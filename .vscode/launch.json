@@ -9,7 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "examples/demo/main.go",
+            "program": "_examples/demo/main.go",
             "args": []
         },
     ]

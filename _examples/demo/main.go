@@ -61,17 +61,21 @@ func NewGame() *Game {
 		}
 
 		g.bgColorToggled = !g.bgColorToggled
-	}).Text(5, 20, "toggle background", color.RGBA{25, 25, 25, 255}))
+	}).Text("toggle background", color.RGBA{25, 25, 25, 255}))
 	container.AddComponent(btn)
 
-	cbOpts := &widget.CheckBoxOptions{}
-	cb := widget.NewCheckBox(5, 5, cbOpts.ToggledHandler(func(args *widget.CheckBoxToggledEventArgs) {
-		btn.SetDisabled(args.CheckBox.Checked)
-	}))
+	cb := widget.NewCheckBox(5, 5, nil)
+	cb.Toggle()
 	container.AddComponent(cb)
 
-	cb2 := widget.NewCheckBox(25, 5, nil)
-	cb2.Toggle()
+	cb2Opts := &widget.CheckBoxOptions{}
+	cb2Opts = cb2Opts.
+		Text("disable button", color.RGBA{230, 230, 230, 255}).
+		ToggledHandler(func(args *widget.CheckBoxToggledEventArgs) {
+			btn.SetDisabled(args.CheckBox.Checked)
+		})
+
+	cb2 := widget.NewCheckBox(20, 5, cb2Opts)
 	container.AddComponent(cb2)
 
 	lblOpts := &widget.LabelOptions{}
