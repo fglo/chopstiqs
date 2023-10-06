@@ -15,10 +15,10 @@ RESET  := $(shell tput -Txterm sgr0)
 all: help
 
 ## Build:
-run: ## Run project
+run-demo: ## Run project
 	go run $(PATH_TO_MAIN_GO)
 
-build: ## Build your project and put the output binary in out/bin/
+build-demo: ## Build your project and put the output binary in out/bin/
 	mkdir -p out/bin
 #    GO111MODULE=on $(GOCMD) build -mod vendor -o out/bin/$(BINARY_NAME) $(PATH_TO_MAIN_GO)
 	GO111MODULE=on $(GOCMD) build -o out/bin/$(BINARY_NAME) $(PATH_TO_MAIN_GO)
@@ -30,7 +30,7 @@ clean: ## Remove build related file
 vendor: ## Copy of all packages needed to support builds and tests in the vendor directory
 	$(GOCMD) mod vendor
 
-watch: ## Run the code with cosmtrek/air to have automatic reload on changes
+watch-demo: ## Run the code with cosmtrek/air to have automatic reload on changes
 	air  --build.cmd "go build -o out/bin/$(BINARY_NAME) $(PATH_TO_MAIN_GO)" --build.bin "./out/bin/chopstiqs"
 
 ## Test:
