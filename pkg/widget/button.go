@@ -3,6 +3,7 @@ package widget
 import (
 	"image/color"
 
+	"github.com/fglo/chopstiqs/pkg/colorutils"
 	"github.com/fglo/chopstiqs/pkg/event"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
@@ -25,9 +26,17 @@ type Button struct {
 	colorDisabled color.RGBA
 }
 
-type ButtonOpt func(b *Button)
 type ButtonOptions struct {
-	opts []ButtonOpt
+	Color         color.Color
+	ColorPressed  color.Color
+	ColorHovered  color.Color
+	ColorDisabled color.Color
+
+	Label *Label
+
+	pressedHandlers []func(args interface{})
+	releaseHandlers []func(args interface{})
+	clickedHandlers []func(args interface{})
 }
 
 type ButtonPressedEventArgs struct {
@@ -50,6 +59,9 @@ type ButtonReleasedHandlerFunc func(args *ButtonReleasedEventArgs)
 type ButtonClickedHandlerFunc func(args *ButtonClickedEventArgs)
 
 func NewButton(options *ButtonOptions) *Button {
+	width := 45
+	height := 15
+
 	b := &Button{
 		PressedEvent:  &event.Event{},
 		ReleasedEvent: &event.Event{},
@@ -57,84 +69,84 @@ func NewButton(options *ButtonOptions) *Button {
 
 		color:         color.RGBA{230, 230, 230, 255},
 		colorPressed:  color.RGBA{200, 200, 200, 255},
-		colorHovered:  color.RGBA{220, 220, 220, 255},
+		colorHovered:  color.RGBA{250, 250, 250, 255},
 		colorDisabled: color.RGBA{150, 150, 150, 255},
 	}
 
-	b.widget = b.createWidget(45, 15)
-
 	if options != nil {
-		for _, o := range options.opts {
-			o(b)
+		if options.Label != nil {
+			b.SetLabel(options.Label)
+			width = b.width
+
+			options.AddPressedHandler(func(args *ButtonPressedEventArgs) {
+				b.label.Inverted = true
+			})
+
+			options.AddReleasedHandler(func(args *ButtonReleasedEventArgs) {
+				b.label.Inverted = false
+			})
+		}
+
+		if options.Color != nil {
+			b.color = colorutils.ColorToRGBA(options.Color)
+		}
+
+		if options.ColorPressed != nil {
+			b.colorPressed = colorutils.ColorToRGBA(options.ColorPressed)
+		}
+
+		if options.ColorHovered != nil {
+			b.colorHovered = colorutils.ColorToRGBA(options.ColorHovered)
+		}
+
+		if options.ColorDisabled != nil {
+			b.colorDisabled = colorutils.ColorToRGBA(options.ColorDisabled)
+		}
+
+		for _, handler := range options.pressedHandlers {
+			b.PressedEvent.AddHandler(handler)
+		}
+
+		for _, handler := range options.releaseHandlers {
+			b.ReleasedEvent.AddHandler(handler)
+		}
+
+		for _, handler := range options.clickedHandlers {
+			b.ClickedEvent.AddHandler(handler)
 		}
 	}
+
+	b.widget = b.createWidget(width, height)
 
 	return b
 }
 
-func (o *ButtonOptions) Label(labelText string, options *LabelOptions) *ButtonOptions {
-	label := NewLabel(labelText, options.Centered())
-	label.SetPosistion(float64(label.textBounds.Dx())/2+5, 7.5)
-
-	o.PressedHandler(func(args *ButtonPressedEventArgs) {
-		label.Inverted = true
-	})
-
-	o.ReleasedHandler(func(args *ButtonReleasedEventArgs) {
-		label.Inverted = false
-	})
-
-	o.opts = append(o.opts, func(b *Button) {
-		b.SetLabel(label)
-	})
+func (o *ButtonOptions) AddPressedHandler(f ButtonPressedHandlerFunc) *ButtonOptions {
+	o.pressedHandlers = append(o.pressedHandlers, func(args interface{}) { f(args.(*ButtonPressedEventArgs)) })
 
 	return o
 }
 
-func (o *ButtonOptions) Color(color, colorPressed, colorHovered, colorDisabled color.RGBA) *ButtonOptions {
-	o.opts = append(o.opts, func(b *Button) {
-		b.color = color
-		b.colorPressed = colorPressed
-		b.colorHovered = colorHovered
-		b.colorDisabled = colorDisabled
-	})
+func (o *ButtonOptions) AddReleasedHandler(f ButtonReleasedHandlerFunc) *ButtonOptions {
+	o.releaseHandlers = append(o.releaseHandlers, func(args interface{}) { f(args.(*ButtonReleasedEventArgs)) })
 
 	return o
 }
 
-func (o *ButtonOptions) PressedHandler(f ButtonPressedHandlerFunc) *ButtonOptions {
-	o.opts = append(o.opts, func(b *Button) {
-		b.PressedEvent.AddHandler(func(args interface{}) {
-			f(args.(*ButtonPressedEventArgs))
-		})
-	})
-
-	return o
-}
-
-func (o *ButtonOptions) ReleasedHandler(f ButtonReleasedHandlerFunc) *ButtonOptions {
-	o.opts = append(o.opts, func(b *Button) {
-		b.ReleasedEvent.AddHandler(func(args interface{}) {
-			f(args.(*ButtonReleasedEventArgs))
-		})
-	})
-
-	return o
-}
-
-func (o *ButtonOptions) ClickedHandler(f ButtonClickedHandlerFunc) *ButtonOptions {
-	o.opts = append(o.opts, func(b *Button) {
-		b.ClickedEvent.AddHandler(func(args interface{}) {
-			f(args.(*ButtonClickedEventArgs))
-		})
-	})
+func (o *ButtonOptions) AddClickedHandler(f ButtonClickedHandlerFunc) *ButtonOptions {
+	o.clickedHandlers = append(o.clickedHandlers, func(args interface{}) { f(args.(*ButtonClickedEventArgs)) })
 
 	return o
 }
 
 func (b *Button) SetLabel(label *Label) {
 	b.label = label
-	b.SetWidth(label.width + 10)
+	b.label.alignHorizontally = b.label.centerHorizontally
+	b.label.alignVertically = b.label.centerVertically
+
+	b.label.SetPosistion(float64(b.label.textBounds.Dx())/2+5, 7.5)
+
+	b.SetDimensions(b.label.width+10, 15)
 }
 
 func (b *Button) Draw() *ebiten.Image {

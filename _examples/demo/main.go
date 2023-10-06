@@ -49,45 +49,55 @@ func NewGame() *Game {
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
 
-	container := widget.NewContainer(0, 0, 200, 200, color.RGBA{9, 32, 42, 255})
+	container := widget.NewContainer(0, 0, 200, 200, color.RGBA{32, 32, 32, 255})
 
-	btnLblOpts := &widget.LabelOptions{}
-	btnOpts := &widget.ButtonOptions{}
-	btn := widget.NewButton(btnOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+	lbl := widget.NewLabel("chopstiqs demo", &widget.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: widget.AlignmentTop})
+	container.AddComponent(5, 5, lbl)
+
+	btnOpts := &widget.ButtonOptions{
+		Label: widget.NewLabel("toggle background", &widget.LabelOptions{Color: color.RGBA{25, 25, 25, 255}}),
+	}
+
+	btnOpts.AddClickedHandler(func(args *widget.ButtonClickedEventArgs) {
 		if !g.bgColorToggled {
-			container.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
-		} else {
 			container.SetBackgroundColor(color.RGBA{9, 32, 42, 255})
+		} else {
+			container.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
 		}
 
 		g.bgColorToggled = !g.bgColorToggled
-	}).Label("toggle background", btnLblOpts.Color(color.RGBA{25, 25, 25, 255})))
-	container.AddComponent(5, 20, btn)
+	})
 
-	btn2Opts := &widget.ButtonOptions{}
-	btn2 := widget.NewButton(btn2Opts.Color(color.RGBA{100, 180, 90, 255}, color.RGBA{90, 160, 80, 255}, color.RGBA{120, 190, 100, 255}, color.RGBA{80, 100, 70, 255}))
-	container.AddComponent(5, 52, btn2)
+	btn := widget.NewButton(btnOpts)
+	container.AddComponent(5, 35, btn)
 
-	cbOpts := &widget.CheckBoxOptions{}
-	cb := widget.NewCheckBox(cbOpts.Color(color.RGBA{255, 100, 50, 255}))
+	btn2 := widget.NewButton(&widget.ButtonOptions{
+		Color:         color.RGBA{100, 180, 90, 255},
+		ColorPressed:  color.RGBA{90, 160, 80, 255},
+		ColorHovered:  color.RGBA{120, 190, 100, 255},
+		ColorDisabled: color.RGBA{80, 100, 70, 255},
+	})
+	container.AddComponent(5, 55, btn2)
+
+	cbOpts := &widget.CheckBoxOptions{
+		Color: color.RGBA{255, 100, 50, 255},
+	}
+	cb := widget.NewCheckBox(cbOpts)
 	cb.Toggle()
-	container.AddComponent(5, 5, cb)
+	container.AddComponent(5, 20, cb)
 
-	cb2LblOpts := &widget.LabelOptions{}
-	cb2Opts := &widget.CheckBoxOptions{}
-	cb2Opts = cb2Opts.
-		Label("disable buttons", cb2LblOpts.Color(color.RGBA{230, 230, 230, 255})).
-		ToggledHandler(func(args *widget.CheckBoxToggledEventArgs) {
-			btn.SetDisabled(args.CheckBox.Checked)
-			btn2.SetDisabled(args.CheckBox.Checked)
-		})
+	cb2Opts := &widget.CheckBoxOptions{
+		Color: color.RGBA{230, 230, 230, 255},
+		Label: widget.NewLabel("disable buttons", &widget.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
+	}
+
+	cb2Opts.AddToggledHandler(func(args *widget.CheckBoxToggledEventArgs) {
+		btn.SetDisabled(args.CheckBox.Checked)
+		btn2.SetDisabled(args.CheckBox.Checked)
+	})
 
 	cb2 := widget.NewCheckBox(cb2Opts)
-	container.AddComponent(20, 5, cb2)
-
-	lblOpts := &widget.LabelOptions{}
-	lbl := widget.NewLabel("label", lblOpts.Color(color.RGBA{120, 190, 100, 255}).Left())
-	container.AddComponent(5, 40, lbl)
+	container.AddComponent(20, 20, cb2)
 
 	g.gui.AddContainer(container)
 

@@ -3,6 +3,7 @@ package widget
 import (
 	"image/color"
 
+	"github.com/fglo/chopstiqs/pkg/colorutils"
 	"github.com/fglo/chopstiqs/pkg/event"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
@@ -29,9 +30,12 @@ type CheckBox struct {
 	color color.RGBA
 }
 
-type CheckBoxOpt func(b *CheckBox)
 type CheckBoxOptions struct {
-	opts []CheckBoxOpt
+	Color color.Color
+
+	Label *Label
+
+	toggledHandlers []func(args interface{})
 }
 
 type CheckBoxToggledEventArgs struct {
@@ -62,49 +66,41 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 		color: color.RGBA{230, 230, 230, 255},
 	}
 
-	cb.widget = cb.createWidget(width, height)
-
 	if options != nil {
-		for _, o := range options.opts {
-			o(cb)
+		if options.Label != nil {
+			cb.SetLabel(options.Label)
+
+			width = cb.widget.width
+		}
+
+		if options.Color != nil {
+			cb.color = colorutils.ColorToRGBA(options.Color)
+		}
+
+		for _, handler := range options.toggledHandlers {
+			cb.ToggledEvent.AddHandler(handler)
 		}
 	}
+
+	cb.widget = cb.createWidget(width, height)
 
 	return cb
 }
 
-func (o *CheckBoxOptions) ToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBoxOptions {
-	o.opts = append(o.opts, func(cb *CheckBox) {
-		cb.ToggledEvent.AddHandler(func(args interface{}) {
-			f(args.(*CheckBoxToggledEventArgs))
-		})
-	})
-
-	return o
-}
-
-func (o *CheckBoxOptions) Label(labelText string, options *LabelOptions) *CheckBoxOptions {
-	label := NewLabel(labelText, options.CenteredVertically())
-	label.SetPosistion(13, 5)
-
-	o.opts = append(o.opts, func(cb *CheckBox) {
-		cb.SetLabel(label)
-	})
-
-	return o
-}
-
-func (o *CheckBoxOptions) Color(color color.RGBA) *CheckBoxOptions {
-	o.opts = append(o.opts, func(cb *CheckBox) {
-		cb.color = color
-	})
+func (o *CheckBoxOptions) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBoxOptions {
+	o.toggledHandlers = append(o.toggledHandlers, func(args interface{}) { f(args.(*CheckBoxToggledEventArgs)) })
 
 	return o
 }
 
 func (cb *CheckBox) SetLabel(label *Label) {
 	cb.label = label
-	cb.SetWidth(label.width + 13)
+	cb.label.alignHorizontally = cb.label.alignToLeft
+	cb.label.alignVertically = cb.label.centerVertically
+
+	cb.label.SetPosistion(13, 4.5)
+
+	cb.SetDimensions(cb.label.width+13, 10)
 }
 
 func (cb *CheckBox) Set(checked bool) {

@@ -4,22 +4,27 @@ import (
 	"image"
 	"image/color"
 
+	"github.com/fglo/chopstiqs/pkg/colorutils"
 	"github.com/fglo/chopstiqs/pkg/fontutils"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
 )
 
-type position int
+type HorizontalAlignment int
 
 const (
-	left                 position = iota
-	right                position = iota
-	centered             position = iota
-	centeredHorizontally position = iota
-	centeredVertically   position = iota
-	top                  position = iota
-	bottom               position = iota
+	AlignmentLeft                 HorizontalAlignment = iota
+	AlignmentCenteredHorizontally HorizontalAlignment = iota
+	AlignmentRight                HorizontalAlignment = iota
+)
+
+type VerticalAlignment int
+
+const (
+	AlignmentTop                VerticalAlignment = iota
+	AlignmentCenteredVertically VerticalAlignment = iota
+	AlignmentBottom             VerticalAlignment = iota
 )
 
 type Label struct {
@@ -28,7 +33,9 @@ type Label struct {
 	color color.RGBA
 	font  font.Face
 
-	position          position
+	horizontalAlignment HorizontalAlignment
+	verticalAlignment   VerticalAlignment
+
 	alignHorizontally func()
 	alignVertically   func()
 	textPosX          int
@@ -39,9 +46,14 @@ type Label struct {
 	Inverted bool
 }
 
-type LabelOpt func(b *Label)
 type LabelOptions struct {
-	opts []LabelOpt
+	Color color.Color
+	Font  font.Face
+
+	HorizontalAlignment HorizontalAlignment
+	VerticalAlignment   VerticalAlignment
+
+	Inverted bool
 }
 
 func NewLabel(labelText string, options *LabelOptions) *Label {
@@ -51,98 +63,48 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 	width := bounds.Dx()
 	height := bounds.Dy()
 
-	lbl := &Label{
+	l := &Label{
 		text:       labelText,
 		color:      color.RGBA{230, 230, 230, 255},
 		font:       fontutils.DefaultFontFace,
-		position:   left,
 		textPosX:   0,
 		textPosY:   -bounds.Min.Y,
 		textBounds: bounds,
 		Inverted:   false,
 	}
 
-	lbl.widget = lbl.createWidget(width, height)
-
 	if options != nil {
-		for _, o := range options.opts {
-			o(lbl)
+		if options.Color != nil {
+			l.color = colorutils.ColorToRGBA(options.Color)
 		}
+
+		l.horizontalAlignment = options.HorizontalAlignment
+		l.verticalAlignment = options.VerticalAlignment
 	}
 
-	return lbl
-}
-
-func (o *LabelOptions) Color(color color.RGBA) *LabelOptions {
-	o.opts = append(o.opts, func(l *Label) {
-		l.color = color
-	})
-
-	return o
-}
-
-func (o *LabelOptions) Centered() *LabelOptions {
-	o.opts = append(o.opts, func(l *Label) {
-		l.position = centered
-		l.alignHorizontally = l.centerHorizontally
-		l.alignVertically = l.centerVertically
-	})
-
-	return o
-}
-
-func (o *LabelOptions) CenteredHorizontally() *LabelOptions {
-	o.opts = append(o.opts, func(l *Label) {
-		l.position = centeredHorizontally
-		l.alignHorizontally = l.centerHorizontally
-	})
-
-	return o
-}
-
-func (o *LabelOptions) CenteredVertically() *LabelOptions {
-	o.opts = append(o.opts, func(l *Label) {
-		l.position = centeredVertically
-		l.alignVertically = l.centerVertically
-	})
-
-	return o
-}
-
-func (o *LabelOptions) Left() *LabelOptions {
-	o.opts = append(o.opts, func(l *Label) {
-		l.position = left
+	switch l.horizontalAlignment {
+	case AlignmentLeft:
 		l.alignHorizontally = l.alignToLeft
-	})
-
-	return o
-}
-
-func (o *LabelOptions) Right() *LabelOptions {
-	o.opts = append(o.opts, func(l *Label) {
-		l.position = right
+	case AlignmentCenteredHorizontally:
+		l.alignHorizontally = l.centerHorizontally
+	case AlignmentRight:
 		l.alignHorizontally = l.alignToRight
-	})
+	}
 
-	return o
-}
-
-func (o *LabelOptions) Top() *LabelOptions {
-	o.opts = append(o.opts, func(l *Label) {
-		l.position = top
+	switch l.verticalAlignment {
+	case AlignmentTop:
 		l.alignVertically = l.alignToTop
-	})
-
-	return o
-}
-
-func (o *LabelOptions) Bottom() *LabelOptions {
-	o.opts = append(o.opts, func(l *Label) {
-		l.position = bottom
+	case AlignmentCenteredVertically:
+		l.alignVertically = l.centerVertically
+	case AlignmentBottom:
 		l.alignVertically = l.alignToBottom
-	})
+	}
 
-	return o
+	l.widget = l.createWidget(width, height)
+
+	l.align()
+
+	return l
 }
 
 func (l *Label) align() {
