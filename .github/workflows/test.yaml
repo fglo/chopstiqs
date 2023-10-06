@@ -1,0 +1,12 @@
+name: Go Release
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish package
+        run: GOPROXY=proxy.golang.org go list -m github.com/fglo/chopstiqs@v0.2.0

@@ -66,3 +66,6 @@ jobs:
           body: ${{ steps.changelog.outputs.changes }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Publish package
+        run: GOPROXY=proxy.golang.org go list -m github.com/fglo/chopstiqs@${{ github.ref_name }}
