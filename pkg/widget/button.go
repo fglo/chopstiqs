@@ -4,9 +4,7 @@ import (
 	"image/color"
 
 	"github.com/fglo/chopstiqs/pkg/event"
-	"github.com/fglo/chopstiqs/pkg/fontutils"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 type Button struct {
@@ -74,13 +72,9 @@ func NewButton(options *ButtonOptions) *Button {
 	return b
 }
 
-func (o *ButtonOptions) Label(labelText string, color color.RGBA) *ButtonOptions {
-	// TODO: change deprecated function
-	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
-
-	lblOpts := &LabelOptions{}
-	label := NewLabel(labelText, lblOpts.Color(color).Centered())
-	label.SetPosistion(float64(bounds.Dx())/2+5, 7.5)
+func (o *ButtonOptions) Label(labelText string, options *LabelOptions) *ButtonOptions {
+	label := NewLabel(labelText, options.Centered())
+	label.SetPosistion(float64(label.textBounds.Dx())/2+5, 7.5)
 
 	o.PressedHandler(func(args *ButtonPressedEventArgs) {
 		label.Inverted = true

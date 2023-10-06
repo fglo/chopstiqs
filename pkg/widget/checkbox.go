@@ -83,9 +83,8 @@ func (o *CheckBoxOptions) ToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox
 	return o
 }
 
-func (o *CheckBoxOptions) Text(labelText string, color color.RGBA) *CheckBoxOptions {
-	lblOpts := &LabelOptions{}
-	label := NewLabel(labelText, lblOpts.Color(color).CenteredVertically())
+func (o *CheckBoxOptions) Label(labelText string, options *LabelOptions) *CheckBoxOptions {
+	label := NewLabel(labelText, options.CenteredVertically())
 	label.SetPosistion(13, 5)
 
 	o.opts = append(o.opts, func(cb *CheckBox) {
