@@ -2,7 +2,7 @@ GOCMD=go
 GOTEST=$(GOCMD) test
 GOVET=$(GOCMD) vet
 BINARY_NAME=chopstiqs
-PATH_TO_MAIN_GO=examples/demo/main.go
+PATH_TO_MAIN_GO=_examples/demo/main.go
 
 GREEN  := $(shell tput -Txterm setaf 2)
 YELLOW := $(shell tput -Txterm setaf 3)

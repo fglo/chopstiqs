@@ -44,7 +44,7 @@ type LabelOptions struct {
 	opts []LabelOpt
 }
 
-func NewLabel(labelText string, color color.RGBA, options *LabelOptions) *Label {
+func NewLabel(labelText string, options *LabelOptions) *Label {
 	// TODO: change deprecated function
 	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
 
@@ -53,7 +53,7 @@ func NewLabel(labelText string, color color.RGBA, options *LabelOptions) *Label 
 
 	lbl := &Label{
 		text:       labelText,
-		color:      color,
+		color:      color.RGBA{230, 230, 230, 255},
 		font:       fontutils.DefaultFontFace,
 		position:   left,
 		textPosX:   0,
@@ -71,6 +71,14 @@ func NewLabel(labelText string, color color.RGBA, options *LabelOptions) *Label 
 	}
 
 	return lbl
+}
+
+func (o *LabelOptions) Color(color color.RGBA) *LabelOptions {
+	o.opts = append(o.opts, func(l *Label) {
+		l.color = color
+	})
+
+	return o
 }
 
 func (o *LabelOptions) Centered() *LabelOptions {

@@ -20,6 +20,11 @@ type Button struct {
 	ClickedEvent  *event.Event
 
 	label *Label
+
+	color         color.RGBA
+	colorPressed  color.RGBA
+	colorHovered  color.RGBA
+	colorDisabled color.RGBA
 }
 
 type ButtonOpt func(b *Button)
@@ -51,6 +56,11 @@ func NewButton(options *ButtonOptions) *Button {
 		PressedEvent:  &event.Event{},
 		ReleasedEvent: &event.Event{},
 		ClickedEvent:  &event.Event{},
+
+		color:         color.RGBA{230, 230, 230, 255},
+		colorPressed:  color.RGBA{200, 200, 200, 255},
+		colorHovered:  color.RGBA{220, 220, 220, 255},
+		colorDisabled: color.RGBA{150, 150, 150, 255},
 	}
 
 	b.widget = b.createWidget(45, 15)
@@ -64,12 +74,12 @@ func NewButton(options *ButtonOptions) *Button {
 	return b
 }
 
-func (o *ButtonOptions) Text(labelText string, color color.RGBA) *ButtonOptions {
+func (o *ButtonOptions) Label(labelText string, color color.RGBA) *ButtonOptions {
 	// TODO: change deprecated function
 	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
 
 	lblOpts := &LabelOptions{}
-	label := NewLabel(labelText, color, lblOpts.Centered())
+	label := NewLabel(labelText, lblOpts.Color(color).Centered())
 	label.SetPosistion(float64(bounds.Dx())/2+5, 7.5)
 
 	o.PressedHandler(func(args *ButtonPressedEventArgs) {
@@ -82,6 +92,17 @@ func (o *ButtonOptions) Text(labelText string, color color.RGBA) *ButtonOptions 
 
 	o.opts = append(o.opts, func(b *Button) {
 		b.SetLabel(label)
+	})
+
+	return o
+}
+
+func (o *ButtonOptions) Color(color, colorPressed, colorHovered, colorDisabled color.RGBA) *ButtonOptions {
+	o.opts = append(o.opts, func(b *Button) {
+		b.color = color
+		b.colorPressed = colorPressed
+		b.colorHovered = colorHovered
+		b.colorDisabled = colorDisabled
 	})
 
 	return o
@@ -146,23 +167,22 @@ func (b *Button) draw() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
 
 	for i := 0; i < b.pixelRows; i++ {
+		rowNumber := b.pixelCols * i
 		for j := 0; j < b.pixelCols; j += 4 {
 			if i == 0 && (j == 0 || j == b.lastPixelColId) || i == b.lastPixelRowId && (j == 0 || j == b.lastPixelColId) {
 				continue
-			} else if i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId {
-				arr[j+b.pixelCols*i] = 230
-				arr[j+1+b.pixelCols*i] = 230
-				arr[j+2+b.pixelCols*i] = 230
-			} else if j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId {
-				arr[j+b.pixelCols*i] = 230
-				arr[j+1+b.pixelCols*i] = 230
-				arr[j+2+b.pixelCols*i] = 230
+			} else if (i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId) ||
+				(j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId) {
+				arr[j+rowNumber] = b.color.R
+				arr[j+1+rowNumber] = b.color.G
+				arr[j+2+rowNumber] = b.color.B
+				arr[j+3+rowNumber] = b.color.A
 			} else {
-				arr[j+b.pixelCols*i] = b.container.backgroundColor.R
-				arr[j+1+b.pixelCols*i] = b.container.backgroundColor.G
-				arr[j+2+b.pixelCols*i] = b.container.backgroundColor.B
+				arr[j+rowNumber] = b.container.backgroundColor.R
+				arr[j+1+rowNumber] = b.container.backgroundColor.G
+				arr[j+2+rowNumber] = b.container.backgroundColor.B
+				arr[j+3+rowNumber] = b.container.backgroundColor.A
 			}
-			arr[j+3+b.pixelCols*i] = 255
 		}
 	}
 
@@ -173,19 +193,22 @@ func (b *Button) drawPressed() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
 
 	for i := 0; i < b.pixelRows; i++ {
+		rowNumber := b.pixelCols * i
+
 		for j := 0; j < b.pixelCols; j += 4 {
 			if i == 0 && (j == 0 || j == b.lastPixelColId) || i == b.lastPixelRowId && (j == 0 || j == b.lastPixelColId) {
 				continue
 			} else if i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId {
-				arr[j+b.pixelCols*i] = 200
-				arr[j+1+b.pixelCols*i] = 200
-				arr[j+2+b.pixelCols*i] = 200
+				arr[j+rowNumber] = b.colorPressed.R
+				arr[j+1+rowNumber] = b.colorPressed.G
+				arr[j+2+rowNumber] = b.colorPressed.B
+				arr[j+3+rowNumber] = b.colorPressed.A
 			} else {
-				arr[j+b.pixelCols*i] = b.container.backgroundColor.R
-				arr[j+1+b.pixelCols*i] = b.container.backgroundColor.G
-				arr[j+2+b.pixelCols*i] = b.container.backgroundColor.B
+				arr[j+rowNumber] = b.container.backgroundColor.R
+				arr[j+1+rowNumber] = b.container.backgroundColor.G
+				arr[j+2+rowNumber] = b.container.backgroundColor.B
+				arr[j+3+rowNumber] = b.container.backgroundColor.A
 			}
-			arr[j+3+b.pixelCols*i] = 255
 		}
 	}
 
@@ -196,23 +219,23 @@ func (b *Button) drawHovered() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
 
 	for i := 0; i < b.pixelRows; i++ {
+		rowNumber := b.pixelCols * i
+
 		for j := 0; j < b.pixelCols; j += 4 {
 			if (i == 0 || i == b.lastPixelRowId) && (j == 0 || j == b.lastPixelColId) {
 				continue
-			} else if i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId {
-				arr[j+b.pixelCols*i] = 220
-				arr[j+1+b.pixelCols*i] = 220
-				arr[j+2+b.pixelCols*i] = 220
-			} else if j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId {
-				arr[j+b.pixelCols*i] = 200
-				arr[j+1+b.pixelCols*i] = 200
-				arr[j+2+b.pixelCols*i] = 200
+			} else if (i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId) ||
+				j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId {
+				arr[j+rowNumber] = b.colorHovered.R
+				arr[j+1+rowNumber] = b.colorHovered.G
+				arr[j+2+rowNumber] = b.colorHovered.B
+				arr[j+3+rowNumber] = b.colorHovered.A
 			} else {
-				arr[j+b.pixelCols*i] = b.container.backgroundColor.R
-				arr[j+1+b.pixelCols*i] = b.container.backgroundColor.G
-				arr[j+2+b.pixelCols*i] = b.container.backgroundColor.B
+				arr[j+rowNumber] = b.container.backgroundColor.R
+				arr[j+1+rowNumber] = b.container.backgroundColor.G
+				arr[j+2+rowNumber] = b.container.backgroundColor.B
+				arr[j+3+rowNumber] = b.container.backgroundColor.A
 			}
-			arr[j+3+b.pixelCols*i] = 255
 		}
 	}
 
@@ -223,19 +246,23 @@ func (b *Button) drawDisabled() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
 
 	for i := 0; i < b.pixelRows; i++ {
+		rowNumber := b.pixelCols * i
+
 		for j := 0; j < b.pixelCols; j += 4 {
 			if (i == 0 || i == b.lastPixelRowId) && (j == 0 || j == b.lastPixelColId) {
 				continue
 			} else if i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId ||
 				(j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId) {
-				arr[j+b.pixelCols*i] = 175
-				arr[j+1+b.pixelCols*i] = 175
-				arr[j+2+b.pixelCols*i] = 175
-				arr[j+3+b.pixelCols*i] = 255
+				arr[j+rowNumber] = b.colorDisabled.R
+				arr[j+1+rowNumber] = b.colorDisabled.G
+				arr[j+2+rowNumber] = b.colorDisabled.B
+				arr[j+3+rowNumber] = b.colorDisabled.A
 			} else {
-				arr[j+3+b.pixelCols*i] = 0
+				arr[j+rowNumber] = b.container.backgroundColor.R
+				arr[j+1+rowNumber] = b.container.backgroundColor.G
+				arr[j+2+rowNumber] = b.container.backgroundColor.B
+				arr[j+3+rowNumber] = b.container.backgroundColor.A
 			}
-			arr[j+3+b.pixelCols*i] = 255
 		}
 	}
 
