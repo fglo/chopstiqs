@@ -1,4 +1,4 @@
-package widget
+package component
 
 import (
 	"image"
@@ -10,6 +10,7 @@ import (
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
+// Container is a component that contains other components
 type Container struct {
 	image *ebiten.Image
 
@@ -17,7 +18,7 @@ type Container struct {
 
 	backgroundColor imgColor.RGBA
 
-	components []Widget
+	components []Component
 
 	disabled bool
 
@@ -28,6 +29,7 @@ type Container struct {
 	posY float64
 }
 
+// NewContainer creates a new container
 func NewContainer(posX, posY float64, width, height int, backgroundColor imgColor.RGBA) *Container {
 	c := &Container{
 		image:           ebiten.NewImage(width, height),
@@ -42,50 +44,57 @@ func NewContainer(posX, posY float64, width, height int, backgroundColor imgColo
 	return c
 }
 
+// Disable disables the container
 func (c *Container) Disable() {
 	c.disabled = true
 }
 
+// Enable enables the container
 func (c *Container) Enable() {
 	c.disabled = false
 }
 
+// SetDisabled sets the container to disabled or enabled
 func (c *Container) SetDisabled(disabled bool) {
 	c.disabled = disabled
 }
 
+// SetBackgroundColor sets the container's background color
 func (c *Container) SetBackgroundColor(backgroundColor imgColor.RGBA) {
 	c.backgroundColor = backgroundColor
 }
 
+// Position returns the container's position
 func (c *Container) Position() (float64, float64) {
 	return c.posX, c.posY
 }
 
+// Size returns the container's size
 func (c *Container) Size() (int, int) {
 	return c.width, c.height
 }
 
-func (c *Container) AddComponent(posX, posY float64, component Widget) {
+// AddComponent adds a component to the container
+func (c *Container) AddComponent(posX, posY float64, component Component) {
 	component.setContainer(c)
 	component.SetPosistion(posX, posY)
 	c.components = append(c.components, component)
 }
 
+// Update updates registered in the container components.
 func (c *Container) Update(mouse *input.Mouse) {
 	for _, component := range c.components {
 		component.FireEvents(mouse)
 	}
 }
 
+// Draw draws the container's components, executes deferred events and returns the image.
 func (c *Container) Draw(mouse *input.Mouse) *ebiten.Image {
-	event.ExecuteDeferred()
+	event.HandleFired()
 
 	c.image.Fill(c.backgroundColor)
 
 	for _, component := range c.components {
-		component.FireEvents(mouse)
-
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(component.Position())
 		c.image.DrawImage(component.Draw(), op)

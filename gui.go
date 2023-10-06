@@ -1,40 +1,46 @@
 package chopstiqs
 
 import (
+	"github.com/fglo/chopstiqs/pkg/component"
 	"github.com/fglo/chopstiqs/pkg/event"
 	"github.com/fglo/chopstiqs/pkg/input"
-	"github.com/fglo/chopstiqs/pkg/widget"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
-type Gui struct {
-	containers []*widget.Container
+// GUI represents an entire graphical user interface.
+// Only a single GUI instance should exist for each running program.
+type GUI struct {
+	containers []*component.Container
 }
 
-func New() *Gui {
-	return &Gui{
-		containers: make([]*widget.Container, 0),
+// New creates a new gui
+func New() *GUI {
+	return &GUI{
+		containers: make([]*component.Container, 0),
 	}
 }
 
-func (gui *Gui) AddContainer(container *widget.Container) {
+// AddContainer adds a container to the gui
+func (gui *GUI) AddContainer(container *component.Container) {
 	gui.containers = append(gui.containers, container)
 }
 
-func (gui *Gui) Update(mouse *input.Mouse) {
-	for _, component := range gui.containers {
-		component.Update(mouse)
+// Update updates registered in the gui containers.
+// It should be called in the Ebiten Game's Update function.
+func (gui *GUI) Update(mouse *input.Mouse) {
+	for _, container := range gui.containers {
+		container.Update(mouse)
 	}
 }
 
-func (gui *Gui) Draw(guiImage *ebiten.Image, mouse *input.Mouse) {
-	event.ExecuteDeferred()
+// Draw draws registered in the gui containers to the guiImage
+// It should be called in the Ebiten Game's Draw function.
+func (gui *GUI) Draw(guiImage *ebiten.Image, mouse *input.Mouse) {
+	event.HandleFired()
 
-	for _, component := range gui.containers {
-		component.Update(mouse)
-
+	for _, container := range gui.containers {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(component.Position())
-		guiImage.DrawImage(component.Draw(mouse), op)
+		op.GeoM.Translate(container.Position())
+		guiImage.DrawImage(container.Draw(mouse), op)
 	}
 }
