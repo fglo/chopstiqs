@@ -28,12 +28,8 @@ func (m *Mouse) Update() {
 	m.CursorPosX, m.CursorPosY = ebiten.CursorPosition()
 
 	m.LeftButtonPressed = ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
-
-	m.RightButtonPressed = ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
-}
-
-func (m *Mouse) Draw() {
 	m.LeftButtonJustPressed = m.LeftButtonPressed != m.LastLeftButtonPressed
 
+	m.RightButtonPressed = ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
 	m.RightButtonJustPressed = m.RightButtonPressed != m.LastRightButtonPressed
 }

@@ -1,4 +1,4 @@
-package widget
+package component
 
 import (
 	"image/color"
@@ -9,7 +9,7 @@ import (
 )
 
 type Button struct {
-	widget
+	component
 
 	pressed  bool
 	hovering bool
@@ -73,10 +73,11 @@ func NewButton(options *ButtonOptions) *Button {
 		colorDisabled: color.RGBA{150, 150, 150, 255},
 	}
 
+	b.component = b.createComponent(width, height)
+
 	if options != nil {
 		if options.Label != nil {
 			b.SetLabel(options.Label)
-			width = b.width
 
 			options.AddPressedHandler(func(args *ButtonPressedEventArgs) {
 				b.label.Inverted = true
@@ -116,8 +117,6 @@ func NewButton(options *ButtonOptions) *Button {
 		}
 	}
 
-	b.widget = b.createWidget(width, height)
-
 	return b
 }
 
@@ -139,6 +138,7 @@ func (o *ButtonOptions) AddClickedHandler(f ButtonClickedHandlerFunc) *ButtonOpt
 	return o
 }
 
+// SetLabel sets the label of the button and sets the dimensions of the button accordingly.
 func (b *Button) SetLabel(label *Label) {
 	b.label = label
 	b.label.alignHorizontally = b.label.centerHorizontally
@@ -275,20 +275,20 @@ func (b *Button) drawDisabled() []byte {
 	return arr
 }
 
-func (b *Button) createWidget(width, height int) widget {
-	widgetOptions := &WidgetOptions{}
+func (b *Button) createComponent(width, height int) component {
+	componentOptions := &ComponentOptions{}
 
-	widgetOptions.CursorEnterHandler(func(args *WidgetCursorEnterEventArgs) {
+	componentOptions.AddCursorEnterHandler(func(args *ComponentCursorEnterEventArgs) {
 		if !b.disabled {
 			b.hovering = true
 		}
 	})
 
-	widgetOptions.CursorExitHandler(func(args *WidgetCursorExitEventArgs) {
+	componentOptions.AddCursorExitHandler(func(args *ComponentCursorExitEventArgs) {
 		b.hovering = false
 	})
 
-	widgetOptions.MouseButtonPressedHandler(func(args *WidgetMouseButtonPressedEventArgs) {
+	componentOptions.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
 		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = true
 			b.PressedEvent.Fire(&ButtonPressedEventArgs{
@@ -297,7 +297,7 @@ func (b *Button) createWidget(width, height int) widget {
 		}
 	})
 
-	widgetOptions.MouseButtonReleasedHandler(func(args *WidgetMouseButtonReleasedEventArgs) {
+	componentOptions.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = false
 			b.ReleasedEvent.Fire(&ButtonReleasedEventArgs{
@@ -311,5 +311,5 @@ func (b *Button) createWidget(width, height int) widget {
 		}
 	})
 
-	return *NewWidget(width, height, widgetOptions)
+	return *NewComponent(width, height, componentOptions)
 }

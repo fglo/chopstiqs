@@ -1,4 +1,4 @@
-package widget
+package component
 
 import (
 	"image"
@@ -28,7 +28,7 @@ const (
 )
 
 type Label struct {
-	widget
+	component
 	text  string
 	color color.RGBA
 	font  font.Face
@@ -82,6 +82,8 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 		l.verticalAlignment = options.VerticalAlignment
 	}
 
+	l.component = l.createComponent(width, height)
+
 	switch l.horizontalAlignment {
 	case AlignmentLeft:
 		l.alignHorizontally = l.alignToLeft
@@ -99,8 +101,6 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 	case AlignmentBottom:
 		l.alignVertically = l.alignToBottom
 	}
-
-	l.widget = l.createWidget(width, height)
 
 	l.align()
 
@@ -141,7 +141,7 @@ func (l *Label) alignToBottom() {
 	l.posY = l.posY - float64(l.textBounds.Dy())
 }
 
-func (l *Label) Invert() {
+func (l *Label) InvertColor() {
 	l.Inverted = !l.Inverted
 }
 
@@ -155,23 +155,23 @@ func (l *Label) Draw() *ebiten.Image {
 	return l.image
 }
 
-func (l *Label) createWidget(width, height int) widget {
-	widgetOptions := &WidgetOptions{}
+func (l *Label) createComponent(width, height int) component {
+	componentOptions := &ComponentOptions{}
 
-	return *NewWidget(width, height, widgetOptions)
+	return *NewComponent(width, height, componentOptions)
 }
 
 func (l *Label) SetPosX(posX float64) {
-	l.widget.SetPosX(posX)
+	l.component.SetPosX(posX)
 	l.align()
 }
 
 func (l *Label) SetPosY(posY float64) {
-	l.widget.SetPosY(posY)
+	l.component.SetPosY(posY)
 	l.align()
 }
 
 func (l *Label) SetPosistion(posX, posY float64) {
-	l.widget.SetPosistion(posX, posY)
+	l.component.SetPosistion(posX, posY)
 	l.align()
 }
