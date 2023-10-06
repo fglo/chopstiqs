@@ -53,7 +53,7 @@ func NewGame() *Game {
 	container := widget.NewContainer(0, 0, 200, 200, imgColor.RGBA{9, 32, 42, 255})
 
 	btnOpts := &widget.ButtonOptions{}
-	btn := widget.NewButton(5, 20, btnOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
+	btn := widget.NewButton(btnOpts.ClickedHandler(func(args *widget.ButtonClickedEventArgs) {
 		if !g.bgColorToggled {
 			container.SetBackgroundColor(imgColor.RGBA{32, 32, 32, 255})
 		} else {
@@ -62,11 +62,11 @@ func NewGame() *Game {
 
 		g.bgColorToggled = !g.bgColorToggled
 	}).Text("toggle background", color.RGBA{25, 25, 25, 255}))
-	container.AddComponent(btn)
+	container.AddComponent(5, 20, btn)
 
-	cb := widget.NewCheckBox(5, 5, nil)
+	cb := widget.NewCheckBox(nil)
 	cb.Toggle()
-	container.AddComponent(cb)
+	container.AddComponent(5, 5, cb)
 
 	cb2Opts := &widget.CheckBoxOptions{}
 	cb2Opts = cb2Opts.
@@ -75,15 +75,15 @@ func NewGame() *Game {
 			btn.SetDisabled(args.CheckBox.Checked)
 		})
 
-	cb2 := widget.NewCheckBox(20, 5, cb2Opts)
-	container.AddComponent(cb2)
+	cb2 := widget.NewCheckBox(cb2Opts)
+	container.AddComponent(20, 5, cb2)
 
 	lblOpts := &widget.LabelOptions{}
-	lbl := widget.NewLabel(5, 40, "label", color.RGBA{230, 230, 230, 255}, lblOpts.Left())
-	container.AddComponent(lbl)
+	lbl := widget.NewLabel("label", color.RGBA{230, 230, 230, 255}, lblOpts.Left())
+	container.AddComponent(5, 40, lbl)
 
-	btn2 := widget.NewButton(5, 52, nil)
-	container.AddComponent(btn2)
+	btn2 := widget.NewButton(nil)
+	container.AddComponent(5, 52, btn2)
 
 	g.gui.AddContainer(container)
 

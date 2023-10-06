@@ -38,7 +38,7 @@ type CheckBoxToggledEventArgs struct {
 
 type CheckBoxToggledHandlerFunc func(args *CheckBoxToggledEventArgs)
 
-func NewCheckBox(posX, posY float64, options *CheckBoxOptions) *CheckBox {
+func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 	width := 10
 	height := 10
 
@@ -58,7 +58,7 @@ func NewCheckBox(posX, posY float64, options *CheckBoxOptions) *CheckBox {
 		penultimatePixelRowId: height - 2,
 	}
 
-	cb.widget = cb.createWidget(posX, posY, width, height)
+	cb.widget = cb.createWidget(width, height)
 
 	if options != nil {
 		for _, o := range options.opts {
@@ -81,7 +81,8 @@ func (o *CheckBoxOptions) ToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox
 
 func (o *CheckBoxOptions) Text(labelText string, color color.RGBA) *CheckBoxOptions {
 	lblOpts := &LabelOptions{}
-	label := NewLabel(13, 5, labelText, color, lblOpts.CenteredVertically())
+	label := NewLabel(labelText, color, lblOpts.CenteredVertically())
+	label.SetPosistion(13, 5)
 
 	o.opts = append(o.opts, func(cb *CheckBox) {
 		cb.SetLabel(label)
@@ -165,7 +166,7 @@ func (cb *CheckBox) drawChecked() []byte {
 	return arr
 }
 
-func (cb *CheckBox) createWidget(posX, posY float64, width, height int) widget {
+func (cb *CheckBox) createWidget(width, height int) widget {
 	widgetOptions := &WidgetOptions{}
 
 	widgetOptions.MouseButtonReleasedHandler(func(args *WidgetMouseButtonReleasedEventArgs) {
@@ -177,5 +178,5 @@ func (cb *CheckBox) createWidget(posX, posY float64, width, height int) widget {
 		}
 	})
 
-	return *NewWidget(posX, posY, width, height, widgetOptions)
+	return *NewWidget(width, height, widgetOptions)
 }

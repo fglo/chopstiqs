@@ -13,9 +13,13 @@ import (
 type position int
 
 const (
-	left     position = 0
-	centered position = 1
-	right    position = 2
+	left                 position = iota
+	right                position = iota
+	centered             position = iota
+	centeredHorizontally position = iota
+	centeredVertically   position = iota
+	top                  position = iota
+	bottom               position = iota
 )
 
 type Label struct {
@@ -24,9 +28,11 @@ type Label struct {
 	color color.RGBA
 	font  font.Face
 
-	position position
-	textPosX int
-	textPosY int
+	position          position
+	alignHorizontally func()
+	alignVertically   func()
+	textPosX          int
+	textPosY          int
 
 	textBounds image.Rectangle
 
@@ -38,7 +44,7 @@ type LabelOptions struct {
 	opts []LabelOpt
 }
 
-func NewLabel(posX, posY float64, labelText string, color color.RGBA, options *LabelOptions) *Label {
+func NewLabel(labelText string, color color.RGBA, options *LabelOptions) *Label {
 	// TODO: change deprecated function
 	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
 
@@ -56,7 +62,7 @@ func NewLabel(posX, posY float64, labelText string, color color.RGBA, options *L
 		Inverted:   false,
 	}
 
-	lbl.widget = lbl.createWidget(posX, posY, width, height)
+	lbl.widget = lbl.createWidget(width, height)
 
 	if options != nil {
 		for _, o := range options.opts {
@@ -70,8 +76,8 @@ func NewLabel(posX, posY float64, labelText string, color color.RGBA, options *L
 func (o *LabelOptions) Centered() *LabelOptions {
 	o.opts = append(o.opts, func(l *Label) {
 		l.position = centered
-		l.posX = l.posX - float64(l.textBounds.Dx())/2
-		l.posY = l.posY - float64(l.textBounds.Dy())/2
+		l.alignHorizontally = l.centerHorizontally
+		l.alignVertically = l.centerVertically
 	})
 
 	return o
@@ -79,8 +85,8 @@ func (o *LabelOptions) Centered() *LabelOptions {
 
 func (o *LabelOptions) CenteredHorizontally() *LabelOptions {
 	o.opts = append(o.opts, func(l *Label) {
-		l.position = centered
-		l.posX = l.posX - float64(l.textBounds.Dx())/2
+		l.position = centeredHorizontally
+		l.alignHorizontally = l.centerHorizontally
 	})
 
 	return o
@@ -88,8 +94,8 @@ func (o *LabelOptions) CenteredHorizontally() *LabelOptions {
 
 func (o *LabelOptions) CenteredVertically() *LabelOptions {
 	o.opts = append(o.opts, func(l *Label) {
-		l.position = centered
-		l.posY = l.posY - float64(l.textBounds.Dy())/2
+		l.position = centeredVertically
+		l.alignVertically = l.centerVertically
 	})
 
 	return o
@@ -98,6 +104,7 @@ func (o *LabelOptions) CenteredVertically() *LabelOptions {
 func (o *LabelOptions) Left() *LabelOptions {
 	o.opts = append(o.opts, func(l *Label) {
 		l.position = left
+		l.alignHorizontally = l.alignToLeft
 	})
 
 	return o
@@ -106,10 +113,62 @@ func (o *LabelOptions) Left() *LabelOptions {
 func (o *LabelOptions) Right() *LabelOptions {
 	o.opts = append(o.opts, func(l *Label) {
 		l.position = right
-		l.posX = l.posX - float64(l.textBounds.Dx())
+		l.alignHorizontally = l.alignToRight
 	})
 
 	return o
+}
+
+func (o *LabelOptions) Top() *LabelOptions {
+	o.opts = append(o.opts, func(l *Label) {
+		l.position = top
+		l.alignVertically = l.alignToTop
+	})
+
+	return o
+}
+
+func (o *LabelOptions) Bottom() *LabelOptions {
+	o.opts = append(o.opts, func(l *Label) {
+		l.position = bottom
+		l.alignVertically = l.alignToBottom
+	})
+
+	return o
+}
+
+func (l *Label) align() {
+	if l.alignHorizontally != nil {
+		l.alignHorizontally()
+	}
+
+	if l.alignVertically != nil {
+		l.alignVertically()
+	}
+}
+
+func (l *Label) centerHorizontally() {
+	l.posX = l.posX - float64(l.textBounds.Dx())/2
+}
+
+func (l *Label) centerVertically() {
+	l.posY = l.posY - float64(l.textBounds.Dy())/2
+}
+
+func (l *Label) alignToLeft() {
+	// l.posX = l.posX
+}
+
+func (l *Label) alignToRight() {
+	l.posX = l.posX - float64(l.textBounds.Dx())
+}
+
+func (l *Label) alignToTop() {
+	// l.posY = l.posY
+}
+
+func (l *Label) alignToBottom() {
+	l.posY = l.posY - float64(l.textBounds.Dy())
 }
 
 func (l *Label) Invert() {
@@ -126,8 +185,23 @@ func (l *Label) Draw() *ebiten.Image {
 	return l.image
 }
 
-func (l *Label) createWidget(posX, posY float64, width, height int) widget {
+func (l *Label) createWidget(width, height int) widget {
 	widgetOptions := &WidgetOptions{}
 
-	return *NewWidget(posX, posY, width, height, widgetOptions)
+	return *NewWidget(width, height, widgetOptions)
+}
+
+func (l *Label) SetPosX(posX float64) {
+	l.widget.SetPosX(posX)
+	l.align()
+}
+
+func (l *Label) SetPosY(posY float64) {
+	l.widget.SetPosY(posY)
+	l.align()
+}
+
+func (l *Label) SetPosistion(posX, posY float64) {
+	l.widget.SetPosistion(posX, posY)
+	l.align()
 }

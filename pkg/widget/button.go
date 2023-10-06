@@ -46,14 +46,14 @@ type ButtonReleasedHandlerFunc func(args *ButtonReleasedEventArgs)
 
 type ButtonClickedHandlerFunc func(args *ButtonClickedEventArgs)
 
-func NewButton(posX, posY float64, options *ButtonOptions) *Button {
+func NewButton(options *ButtonOptions) *Button {
 	b := &Button{
 		PressedEvent:  &event.Event{},
 		ReleasedEvent: &event.Event{},
 		ClickedEvent:  &event.Event{},
 	}
 
-	b.widget = b.createWidget(posX, posY, 45, 15)
+	b.widget = b.createWidget(45, 15)
 
 	if options != nil {
 		for _, o := range options.opts {
@@ -69,7 +69,8 @@ func (o *ButtonOptions) Text(labelText string, color color.RGBA) *ButtonOptions 
 	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
 
 	lblOpts := &LabelOptions{}
-	label := NewLabel(float64(bounds.Dx())/2+5, 7.5, labelText, color, lblOpts.Centered())
+	label := NewLabel(labelText, color, lblOpts.Centered())
+	label.SetPosistion(float64(bounds.Dx())/2+5, 7.5)
 
 	o.PressedHandler(func(args *ButtonPressedEventArgs) {
 		label.Inverted = true
@@ -241,7 +242,7 @@ func (b *Button) drawDisabled() []byte {
 	return arr
 }
 
-func (b *Button) createWidget(posX, posY float64, width, height int) widget {
+func (b *Button) createWidget(width, height int) widget {
 	widgetOptions := &WidgetOptions{}
 
 	widgetOptions.CursorEnterHandler(func(args *WidgetCursorEnterEventArgs) {
@@ -277,5 +278,5 @@ func (b *Button) createWidget(posX, posY float64, width, height int) widget {
 		}
 	})
 
-	return *NewWidget(posX, posY, width, height, widgetOptions)
+	return *NewWidget(width, height, widgetOptions)
 }

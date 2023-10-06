@@ -19,6 +19,9 @@ type Widget interface {
 	SetWidth(width int)
 	SetHeight(height int)
 	SetDimensions(width, height int)
+	SetPosX(posX float64)
+	SetPosY(posY float64)
+	SetPosistion(posX, posY float64)
 }
 
 type widget struct {
@@ -59,14 +62,14 @@ type WidgetOptions struct {
 	opts []WidgetOpt
 }
 
-func NewWidget(posX, posY float64, width, height int, options *WidgetOptions) *widget {
+func NewWidget(width, height int, options *WidgetOptions) *widget {
 	w := &widget{
 		image:  ebiten.NewImage(width, height),
 		width:  width,
 		height: height,
-		posX:   posX,
-		posY:   posY,
-		Rect:   image.Rectangle{Min: image.Point{int(posX), int(posY)}, Max: image.Point{int(posX) + width, int(posY) + height}},
+		posX:   0,
+		posY:   0,
+		Rect:   image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{width, height}},
 
 		pixelCols:             width * 4,
 		lastPixelColId:        width*4 - 4,
@@ -94,6 +97,22 @@ func (o *WidgetOptions) Disabled() *WidgetOptions {
 
 func (w *widget) setContainer(container *Container) {
 	w.container = container
+}
+
+func (w *widget) SetPosX(posX float64) {
+	w.posX = posX
+	w.Rect = image.Rectangle{Min: image.Point{int(w.posX), int(w.posY)}, Max: image.Point{int(w.posX) + w.width, int(w.posY) + w.height}}
+}
+
+func (w *widget) SetPosY(posY float64) {
+	w.posY = posY
+	w.Rect = image.Rectangle{Min: image.Point{int(w.posX), int(w.posY)}, Max: image.Point{int(w.posX) + w.width, int(w.posY) + w.height}}
+}
+
+func (w *widget) SetPosistion(posX, posY float64) {
+	w.posX = posX
+	w.posY = posY
+	w.Rect = image.Rectangle{Min: image.Point{int(w.posX), int(w.posY)}, Max: image.Point{int(w.posX) + w.width, int(w.posY) + w.height}}
 }
 
 func (w *widget) SetWidth(width int) {

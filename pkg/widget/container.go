@@ -66,8 +66,9 @@ func (c *Container) Size() (int, int) {
 	return c.width, c.height
 }
 
-func (c *Container) AddComponent(component Widget) {
+func (c *Container) AddComponent(posX, posY float64, component Widget) {
 	component.setContainer(c)
+	component.SetPosistion(posX, posY)
 	c.components = append(c.components, component)
 }
 
