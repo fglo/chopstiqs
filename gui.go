@@ -27,20 +27,22 @@ func (gui *GUI) AddContainer(container *component.Container) {
 
 // Update updates registered in the gui containers.
 // It should be called in the Ebiten Game's Update function.
-func (gui *GUI) Update(mouse *input.Mouse) {
+func (gui *GUI) Update() {
+	input.Update()
+
 	for _, container := range gui.containers {
-		container.Update(mouse)
+		container.Update()
 	}
 }
 
 // Draw draws registered in the gui containers to the guiImage
 // It should be called in the Ebiten Game's Draw function.
-func (gui *GUI) Draw(guiImage *ebiten.Image, mouse *input.Mouse) {
+func (gui *GUI) Draw(guiImage *ebiten.Image) {
 	event.HandleFired()
 
 	for _, container := range gui.containers {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(container.Position())
-		guiImage.DrawImage(container.Draw(mouse), op)
+		guiImage.DrawImage(container.Draw(), op)
 	}
 }
