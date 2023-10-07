@@ -6,7 +6,6 @@ import (
 	imgColor "image/color"
 
 	"github.com/fglo/chopstiqs/pkg/event"
-	"github.com/fglo/chopstiqs/pkg/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -82,14 +81,14 @@ func (c *Container) AddComponent(posX, posY float64, component Component) {
 }
 
 // Update updates registered in the container components.
-func (c *Container) Update(mouse *input.Mouse) {
+func (c *Container) Update() {
 	for _, component := range c.components {
-		component.FireEvents(mouse)
+		component.FireEvents()
 	}
 }
 
 // Draw draws the container's components, executes deferred events and returns the image.
-func (c *Container) Draw(mouse *input.Mouse) *ebiten.Image {
+func (c *Container) Draw() *ebiten.Image {
 	event.HandleFired()
 
 	c.image.Fill(c.backgroundColor)

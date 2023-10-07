@@ -7,7 +7,6 @@ import (
 
 	"github.com/fglo/chopstiqs"
 	"github.com/fglo/chopstiqs/pkg/component"
-	"github.com/fglo/chopstiqs/pkg/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -26,8 +25,7 @@ func main() {
 
 // Game encapsulates game logic
 type Game struct {
-	gui   *chopstiqs.GUI
-	mouse *input.Mouse
+	gui *chopstiqs.GUI
 
 	bgColorToggled bool
 
@@ -41,7 +39,6 @@ type Game struct {
 func NewGame() *Game {
 	g := &Game{
 		gui:          &chopstiqs.GUI{},
-		mouse:        input.NewMouse(),
 		screenWidth:  200,
 		screenHeight: 200,
 	}
@@ -116,8 +113,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 // Update updates the current game state.
 func (g *Game) Update() error {
-	g.mouse.Update()
-	g.gui.Update(g.mouse)
+	g.gui.Update()
 
 	return g.checkQuitButton()
 }
@@ -135,5 +131,5 @@ func (g *Game) checkQuitButton() error {
 
 // Draw draws the current game to the given screen.
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.gui.Draw(screen, g.mouse)
+	g.gui.Draw(screen)
 }

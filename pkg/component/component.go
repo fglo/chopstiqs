@@ -17,7 +17,7 @@ type Component interface {
 	// Size returns the component's size (width and height).
 	Size() (width int, height int)
 	// FireEvents fires the component's events.
-	FireEvents(mouse *input.Mouse)
+	FireEvents()
 	// Disable disables the component.
 	Disable()
 	// Enable enables the component.
@@ -194,14 +194,14 @@ func (c *component) Size() (int, int) {
 }
 
 // FireEvents checks if the mouse cursor is inside the component and fires events accordingly.
-func (c *component) FireEvents(mouse *input.Mouse) {
-	p := image.Point{mouse.CursorPosX, mouse.CursorPosY}
+func (c *component) FireEvents() {
+	p := image.Point{input.CursorPosX, input.CursorPosY}
 	mouseEntered := p.In(c.Rect)
 
 	if mouseEntered {
 		c.lastUpdateCursorEntered = true
 
-		if mouse.LeftButtonJustPressed {
+		if input.MouseLeftButtonJustPressed {
 			c.lastUpdateMouseLeftButtonPressed = true
 			c.MouseButtonPressedEvent.Fire(&ComponentMouseButtonPressedEventArgs{
 				Component: c,
@@ -213,7 +213,7 @@ func (c *component) FireEvents(mouse *input.Mouse) {
 			})
 		}
 
-		if mouse.RightButtonJustPressed {
+		if input.MouseRightButtonJustPressed {
 			c.lastUpdateMouseRightButtonPressed = true
 			c.MouseButtonPressedEvent.Fire(&ComponentMouseButtonPressedEventArgs{
 				Component: c,
@@ -227,7 +227,7 @@ func (c *component) FireEvents(mouse *input.Mouse) {
 		})
 	}
 
-	if !mouse.LeftButtonPressed && c.lastUpdateMouseLeftButtonPressed {
+	if !input.MouseLeftButtonPressed && c.lastUpdateMouseLeftButtonPressed {
 		c.lastUpdateMouseLeftButtonPressed = false
 		c.MouseButtonReleasedEvent.Fire(&ComponentMouseButtonReleasedEventArgs{
 			Component: c,
@@ -236,7 +236,7 @@ func (c *component) FireEvents(mouse *input.Mouse) {
 		})
 	}
 
-	if !mouse.RightButtonPressed && c.lastUpdateMouseRightButtonPressed {
+	if !input.MouseRightButtonPressed && c.lastUpdateMouseRightButtonPressed {
 		c.lastUpdateMouseRightButtonPressed = false
 		c.MouseButtonReleasedEvent.Fire(&ComponentMouseButtonReleasedEventArgs{
 			Component: c,
