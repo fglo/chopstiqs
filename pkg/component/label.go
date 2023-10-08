@@ -4,8 +4,8 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/fglo/chopstiqs/pkg/colorutils"
-	"github.com/fglo/chopstiqs/pkg/fontutils"
+	"github.com/fglo/chopstiqs/internal/colorutils"
+	"github.com/fglo/chopstiqs/internal/fontutils"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"

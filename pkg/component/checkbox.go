@@ -3,7 +3,7 @@ package component
 import (
 	"image/color"
 
-	"github.com/fglo/chopstiqs/pkg/colorutils"
+	"github.com/fglo/chopstiqs/internal/colorutils"
 	"github.com/fglo/chopstiqs/pkg/event"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
@@ -125,6 +125,7 @@ func (cb *CheckBox) Draw() *ebiten.Image {
 
 func (cb *CheckBox) drawUnchecked() []byte {
 	arr := make([]byte, cb.component.pixelRows*cb.component.pixelCols)
+	backgroundColor := cb.container.GetBackgroundColor()
 
 	for i := 0; i < cb.component.pixelRows; i++ {
 		rowNumber := cb.component.pixelCols * i
@@ -136,10 +137,10 @@ func (cb *CheckBox) drawUnchecked() []byte {
 				arr[j+2+rowNumber] = cb.color.B
 				arr[j+3+rowNumber] = cb.color.A
 			} else {
-				arr[j+rowNumber] = cb.container.backgroundColor.R
-				arr[j+1+rowNumber] = cb.container.backgroundColor.G
-				arr[j+2+rowNumber] = cb.container.backgroundColor.B
-				arr[j+3+rowNumber] = cb.container.backgroundColor.A
+				arr[j+rowNumber] = backgroundColor.R
+				arr[j+1+rowNumber] = backgroundColor.G
+				arr[j+2+rowNumber] = backgroundColor.B
+				arr[j+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
@@ -149,6 +150,7 @@ func (cb *CheckBox) drawUnchecked() []byte {
 
 func (cb *CheckBox) drawChecked() []byte {
 	arr := make([]byte, cb.component.pixelRows*cb.component.pixelCols)
+	backgroundColor := cb.container.GetBackgroundColor()
 
 	for i := 0; i < cb.component.pixelRows; i++ {
 		rowNumber := cb.component.pixelCols * i
@@ -161,10 +163,10 @@ func (cb *CheckBox) drawChecked() []byte {
 				arr[j+2+rowNumber] = cb.color.B
 				arr[j+3+rowNumber] = cb.color.A
 			} else {
-				arr[j+rowNumber] = cb.container.backgroundColor.R
-				arr[j+1+rowNumber] = cb.container.backgroundColor.G
-				arr[j+2+rowNumber] = cb.container.backgroundColor.B
-				arr[j+3+rowNumber] = cb.container.backgroundColor.A
+				arr[j+rowNumber] = backgroundColor.R
+				arr[j+1+rowNumber] = backgroundColor.G
+				arr[j+2+rowNumber] = backgroundColor.B
+				arr[j+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}

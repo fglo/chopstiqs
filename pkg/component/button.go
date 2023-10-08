@@ -3,7 +3,7 @@ package component
 import (
 	"image/color"
 
-	"github.com/fglo/chopstiqs/pkg/colorutils"
+	"github.com/fglo/chopstiqs/internal/colorutils"
 	"github.com/fglo/chopstiqs/pkg/event"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
@@ -155,6 +155,7 @@ func (b *Button) Draw() *ebiten.Image {
 
 func (b *Button) draw() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
+	backgroundColor := b.container.GetBackgroundColor()
 
 	for i := 0; i < b.pixelRows; i++ {
 		rowNumber := b.pixelCols * i
@@ -168,10 +169,10 @@ func (b *Button) draw() []byte {
 				arr[j+2+rowNumber] = b.color.B
 				arr[j+3+rowNumber] = b.color.A
 			} else {
-				arr[j+rowNumber] = b.container.backgroundColor.R
-				arr[j+1+rowNumber] = b.container.backgroundColor.G
-				arr[j+2+rowNumber] = b.container.backgroundColor.B
-				arr[j+3+rowNumber] = b.container.backgroundColor.A
+				arr[j+rowNumber] = backgroundColor.R
+				arr[j+1+rowNumber] = backgroundColor.G
+				arr[j+2+rowNumber] = backgroundColor.B
+				arr[j+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
@@ -181,6 +182,7 @@ func (b *Button) draw() []byte {
 
 func (b *Button) drawPressed() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
+	backgroundColor := b.container.GetBackgroundColor()
 
 	for i := 0; i < b.pixelRows; i++ {
 		rowNumber := b.pixelCols * i
@@ -194,10 +196,10 @@ func (b *Button) drawPressed() []byte {
 				arr[j+2+rowNumber] = b.colorPressed.B
 				arr[j+3+rowNumber] = b.colorPressed.A
 			} else {
-				arr[j+rowNumber] = b.container.backgroundColor.R
-				arr[j+1+rowNumber] = b.container.backgroundColor.G
-				arr[j+2+rowNumber] = b.container.backgroundColor.B
-				arr[j+3+rowNumber] = b.container.backgroundColor.A
+				arr[j+rowNumber] = backgroundColor.R
+				arr[j+1+rowNumber] = backgroundColor.G
+				arr[j+2+rowNumber] = backgroundColor.B
+				arr[j+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
@@ -207,6 +209,7 @@ func (b *Button) drawPressed() []byte {
 
 func (b *Button) drawHovered() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
+	backgroundColor := b.container.GetBackgroundColor()
 
 	for i := 0; i < b.pixelRows; i++ {
 		rowNumber := b.pixelCols * i
@@ -221,10 +224,10 @@ func (b *Button) drawHovered() []byte {
 				arr[j+2+rowNumber] = b.colorHovered.B
 				arr[j+3+rowNumber] = b.colorHovered.A
 			} else {
-				arr[j+rowNumber] = b.container.backgroundColor.R
-				arr[j+1+rowNumber] = b.container.backgroundColor.G
-				arr[j+2+rowNumber] = b.container.backgroundColor.B
-				arr[j+3+rowNumber] = b.container.backgroundColor.A
+				arr[j+rowNumber] = backgroundColor.R
+				arr[j+1+rowNumber] = backgroundColor.G
+				arr[j+2+rowNumber] = backgroundColor.B
+				arr[j+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
@@ -234,6 +237,7 @@ func (b *Button) drawHovered() []byte {
 
 func (b *Button) drawDisabled() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
+	backgroundColor := b.container.GetBackgroundColor()
 
 	for i := 0; i < b.pixelRows; i++ {
 		rowNumber := b.pixelCols * i
@@ -248,10 +252,10 @@ func (b *Button) drawDisabled() []byte {
 				arr[j+2+rowNumber] = b.colorDisabled.B
 				arr[j+3+rowNumber] = b.colorDisabled.A
 			} else {
-				arr[j+rowNumber] = b.container.backgroundColor.R
-				arr[j+1+rowNumber] = b.container.backgroundColor.G
-				arr[j+2+rowNumber] = b.container.backgroundColor.B
-				arr[j+3+rowNumber] = b.container.backgroundColor.A
+				arr[j+rowNumber] = backgroundColor.R
+				arr[j+1+rowNumber] = backgroundColor.G
+				arr[j+2+rowNumber] = backgroundColor.B
+				arr[j+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}

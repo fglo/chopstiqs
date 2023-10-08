@@ -5,8 +5,8 @@ import (
 	"image/color"
 	"log"
 
-	"github.com/fglo/chopstiqs"
 	"github.com/fglo/chopstiqs/pkg/component"
+	"github.com/fglo/chopstiqs/pkg/gui"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -25,8 +25,6 @@ func main() {
 
 // Game encapsulates game logic
 type Game struct {
-	gui *chopstiqs.GUI
-
 	bgColorToggled bool
 
 	screenWidth  int
@@ -38,7 +36,6 @@ type Game struct {
 // New generates a new Game object.
 func NewGame() *Game {
 	g := &Game{
-		gui:          &chopstiqs.GUI{},
 		screenWidth:  200,
 		screenHeight: 200,
 	}
@@ -46,10 +43,12 @@ func NewGame() *Game {
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
 
-	container := component.NewContainer(0, 0, 200, 200, color.RGBA{32, 32, 32, 255})
+	mainContainer := component.NewSimpleContainer(200, 200)
+	mainContainer.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
 
 	lbl := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
-	container.AddComponent(5, 5, lbl)
+	lbl.SetPosistion(5, 5)
+	mainContainer.AddComponent(lbl)
 
 	btnOpts := &component.ButtonOptions{
 		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{25, 25, 25, 255}}),
@@ -57,14 +56,15 @@ func NewGame() *Game {
 
 	btn := component.NewButton(btnOpts).AddClickedHandler(func(args *component.ButtonClickedEventArgs) {
 		if !g.bgColorToggled {
-			container.SetBackgroundColor(color.RGBA{9, 32, 42, 255})
+			mainContainer.SetBackgroundColor(color.RGBA{9, 32, 42, 255})
 		} else {
-			container.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
+			mainContainer.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
 		}
 
 		g.bgColorToggled = !g.bgColorToggled
 	})
-	container.AddComponent(5, 35, btn)
+	btn.SetPosistion(5, 35)
+	mainContainer.AddComponent(btn)
 
 	btn2 := component.NewButton(&component.ButtonOptions{
 		Color:         color.RGBA{100, 180, 90, 255},
@@ -72,14 +72,17 @@ func NewGame() *Game {
 		ColorHovered:  color.RGBA{120, 190, 100, 255},
 		ColorDisabled: color.RGBA{80, 100, 70, 255},
 	})
-	container.AddComponent(5, 55, btn2)
+
+	btn2.SetPosistion(5, 55)
+	mainContainer.AddComponent(btn2)
 
 	cbOpts := &component.CheckBoxOptions{
 		Color: color.RGBA{255, 100, 50, 255},
 	}
 	cb := component.NewCheckBox(cbOpts)
+	cb.SetPosistion(5, 20)
 	cb.Toggle()
-	container.AddComponent(5, 20, cb)
+	mainContainer.AddComponent(cb)
 
 	cb2Opts := &component.CheckBoxOptions{
 		Color: color.RGBA{230, 230, 230, 255},
@@ -90,9 +93,10 @@ func NewGame() *Game {
 		btn.SetDisabled(args.CheckBox.Checked)
 		btn2.SetDisabled(args.CheckBox.Checked)
 	})
-	container.AddComponent(20, 20, cb2)
+	cb2.SetPosistion(20, 20)
+	mainContainer.AddComponent(cb2)
 
-	g.gui.AddContainer(container)
+	gui.SetMainContainer(mainContainer)
 
 	return g
 }
@@ -109,7 +113,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 // Update updates the current game state.
 func (g *Game) Update() error {
-	g.gui.Update()
+	gui.Update()
 
 	return g.checkQuitButton()
 }
@@ -127,5 +131,5 @@ func (g *Game) checkQuitButton() error {
 
 // Draw draws the current game to the given screen.
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.gui.Draw(screen)
+	gui.Draw(screen)
 }
