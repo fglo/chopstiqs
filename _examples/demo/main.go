@@ -55,7 +55,7 @@ func NewGame() *Game {
 		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{25, 25, 25, 255}}),
 	}
 
-	btnOpts.AddClickedHandler(func(args *component.ButtonClickedEventArgs) {
+	btn := component.NewButton(btnOpts).AddClickedHandler(func(args *component.ButtonClickedEventArgs) {
 		if !g.bgColorToggled {
 			container.SetBackgroundColor(color.RGBA{9, 32, 42, 255})
 		} else {
@@ -64,8 +64,6 @@ func NewGame() *Game {
 
 		g.bgColorToggled = !g.bgColorToggled
 	})
-
-	btn := component.NewButton(btnOpts)
 	container.AddComponent(5, 35, btn)
 
 	btn2 := component.NewButton(&component.ButtonOptions{
@@ -88,12 +86,10 @@ func NewGame() *Game {
 		Label: component.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
 	}
 
-	cb2Opts.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
+	cb2 := component.NewCheckBox(cb2Opts).AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
 		btn.SetDisabled(args.CheckBox.Checked)
 		btn2.SetDisabled(args.CheckBox.Checked)
 	})
-
-	cb2 := component.NewCheckBox(cb2Opts)
 	container.AddComponent(20, 20, cb2)
 
 	g.gui.AddContainer(container)
@@ -102,7 +98,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) getWindowSize() (int, int) {
-	var factor float32 = 1.8
+	var factor float32 = 2
 	return int(float32(g.screenWidth) * factor), int(float32(g.screenHeight) * factor)
 }
 

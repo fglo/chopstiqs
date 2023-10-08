@@ -33,10 +33,6 @@ type ButtonOptions struct {
 	ColorDisabled color.Color
 
 	Label *Label
-
-	pressedHandlers []func(args interface{})
-	releaseHandlers []func(args interface{})
-	clickedHandlers []func(args interface{})
 }
 
 type ButtonPressedEventArgs struct {
@@ -79,11 +75,11 @@ func NewButton(options *ButtonOptions) *Button {
 		if options.Label != nil {
 			b.SetLabel(options.Label)
 
-			options.AddPressedHandler(func(args *ButtonPressedEventArgs) {
+			b.PressedEvent.AddHandler(func(args interface{}) {
 				b.label.Inverted = true
 			})
 
-			options.AddReleasedHandler(func(args *ButtonReleasedEventArgs) {
+			b.ReleasedEvent.AddHandler(func(args interface{}) {
 				b.label.Inverted = false
 			})
 		}
@@ -103,39 +99,27 @@ func NewButton(options *ButtonOptions) *Button {
 		if options.ColorDisabled != nil {
 			b.colorDisabled = colorutils.ColorToRGBA(options.ColorDisabled)
 		}
-
-		for _, handler := range options.pressedHandlers {
-			b.PressedEvent.AddHandler(handler)
-		}
-
-		for _, handler := range options.releaseHandlers {
-			b.ReleasedEvent.AddHandler(handler)
-		}
-
-		for _, handler := range options.clickedHandlers {
-			b.ClickedEvent.AddHandler(handler)
-		}
 	}
 
 	return b
 }
 
-func (o *ButtonOptions) AddPressedHandler(f ButtonPressedHandlerFunc) *ButtonOptions {
-	o.pressedHandlers = append(o.pressedHandlers, func(args interface{}) { f(args.(*ButtonPressedEventArgs)) })
+func (b *Button) AddPressedHandler(f ButtonPressedHandlerFunc) *Button {
+	b.PressedEvent.AddHandler(func(args interface{}) { f(args.(*ButtonPressedEventArgs)) })
 
-	return o
+	return b
 }
 
-func (o *ButtonOptions) AddReleasedHandler(f ButtonReleasedHandlerFunc) *ButtonOptions {
-	o.releaseHandlers = append(o.releaseHandlers, func(args interface{}) { f(args.(*ButtonReleasedEventArgs)) })
+func (b *Button) AddReleasedHandler(f ButtonReleasedHandlerFunc) *Button {
+	b.ReleasedEvent.AddHandler(func(args interface{}) { f(args.(*ButtonReleasedEventArgs)) })
 
-	return o
+	return b
 }
 
-func (o *ButtonOptions) AddClickedHandler(f ButtonClickedHandlerFunc) *ButtonOptions {
-	o.clickedHandlers = append(o.clickedHandlers, func(args interface{}) { f(args.(*ButtonClickedEventArgs)) })
+func (b *Button) AddClickedHandler(f ButtonClickedHandlerFunc) *Button {
+	b.ClickedEvent.AddHandler(func(args interface{}) { f(args.(*ButtonClickedEventArgs)) })
 
-	return o
+	return b
 }
 
 // SetLabel sets the label of the button and sets the dimensions of the button accordingly.

@@ -34,8 +34,6 @@ type CheckBoxOptions struct {
 	Color color.Color
 
 	Label *Label
-
-	toggledHandlers []func(args interface{})
 }
 
 type CheckBoxToggledEventArgs struct {
@@ -76,19 +74,15 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 		if options.Color != nil {
 			cb.color = colorutils.ColorToRGBA(options.Color)
 		}
-
-		for _, handler := range options.toggledHandlers {
-			cb.ToggledEvent.AddHandler(handler)
-		}
 	}
 
 	return cb
 }
 
-func (o *CheckBoxOptions) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBoxOptions {
-	o.toggledHandlers = append(o.toggledHandlers, func(args interface{}) { f(args.(*CheckBoxToggledEventArgs)) })
+func (cb *CheckBox) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox {
+	cb.ToggledEvent.AddHandler(func(args interface{}) { f(args.(*CheckBoxToggledEventArgs)) })
 
-	return o
+	return cb
 }
 
 // SetLabel sets the label of the checkbox and adjusts the checkbox's dimensions accordingly.
