@@ -16,12 +16,10 @@ type Component interface {
 	Position() (posX float64, posY float64)
 	// Size returns the component's size (width and height).
 	Size() (width int, height int)
+	// SetDisabled sets the component's disabled state.
+	SetDisabled(disabled bool)
 	// FireEvents fires the component's events.
 	FireEvents()
-	// Disable disables the component.
-	Disable()
-	// Enable enables the component.
-	Enable()
 	// SetWidth sets the component's width.
 	SetWidth(width int)
 	// SetHeight sets the component's height.
@@ -35,12 +33,12 @@ type Component interface {
 	// SetPosistion sets the component's position (x and y)
 	SetPosistion(posX, posY float64)
 
-	setContainer(*Container)
+	setContainer(Container)
 }
 
 // component is an abstraction of a user interface component, like a button or checkbox.
 type component struct {
-	container *Container
+	container Container
 
 	image *ebiten.Image
 
@@ -99,15 +97,17 @@ func NewComponent(width, height int, options *ComponentOptions) *component {
 		penultimatePixelRowId: height - 2,
 	}
 
-	for _, o := range options.opts {
-		o(w)
+	if options != nil {
+		for _, o := range options.opts {
+			o(w)
+		}
 	}
 
 	return w
 }
 
 // setContainer sets the component's container.
-func (c *component) setContainer(container *Container) {
+func (c *component) setContainer(container Container) {
 	c.container = container
 }
 
@@ -166,16 +166,6 @@ func (c *component) SetDimensions(width, height int) {
 
 	c.image = ebiten.NewImage(width, height)
 	c.Rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.width, int(c.posY) + c.height}}
-}
-
-// Disable disables the component.
-func (c *component) Disable() {
-	c.disabled = true
-}
-
-// Enable enables the component.
-func (c *component) Enable() {
-	c.disabled = false
 }
 
 // SetDisabled sets the component's disabled state.
