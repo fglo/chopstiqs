@@ -12,43 +12,18 @@ Chopstiqs aims to be a minimalistic GUI package for the [ebiten](https://ebiteng
 
 Running example: <https://fglo.github.io/chopstiqs/>
 
-### Checkbox
-
-Unchecked checkbox: 
-
-![Unchecked checkbox](img/examples/checkbox_unchecked.png)
-
-Checked checkbox: 
-
-![Checked checkbox](img/examples/checkbox_checked.png)
-
-### Button
-
-Not pressed button: 
-
-![Not pressed button](img/examples/button_not_pressed.png)
-
-Pressed button: 
-
-![Pressed button](img/examples/button_pressed.png)
-
-Not pressed button with text: 
-
-![Not pressed button with text](img/examples/button_with_text_not_pressed.png)
-
-Pressed button with text: 
-
-![Pressed button with text](img/examples/button_with_text_pressed.png)
-
-### Label
-
-![label](img/examples/label.png)
-
 ## Roadmap
 
 What I want to achieve:
 
+- containers
+  - simple container with components positioned by absolute coordinates
+  - vertical and horizontal list
+  - scrollcontainer
+  - flexbox
+- more components:
+  - sliders
+  - tooltips
+  - radiogroups
+  - inputs
 - unit tests for components
-- sliders
-- tooltips
-- radiogroups
