@@ -14,17 +14,17 @@ import (
 type HorizontalAlignment int
 
 const (
-	AlignmentLeft                 HorizontalAlignment = iota
-	AlignmentCenteredHorizontally HorizontalAlignment = iota
-	AlignmentRight                HorizontalAlignment = iota
+	AlignmentLeft HorizontalAlignment = iota
+	AlignmentCenteredHorizontally
+	AlignmentRight
 )
 
 type VerticalAlignment int
 
 const (
-	AlignmentTop                VerticalAlignment = iota
-	AlignmentCenteredVertically VerticalAlignment = iota
-	AlignmentBottom             VerticalAlignment = iota
+	AlignmentTop VerticalAlignment = iota
+	AlignmentCenteredVertically
+	AlignmentBottom
 )
 
 type Label struct {
@@ -172,6 +172,6 @@ func (l *Label) SetPosY(posY float64) {
 }
 
 func (l *Label) SetPosistion(posX, posY float64) {
-	l.component.SetPosistion(posX, posY)
+	l.component.SetPosision(posX, posY)
 	l.align()
 }

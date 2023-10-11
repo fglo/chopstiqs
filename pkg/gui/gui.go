@@ -7,18 +7,19 @@ import (
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
-// mainContainer is the gui main mainContainer that contains all other components
-var mainContainer component.Container
+// rootContainer is the gui main rootContainer that contains all other components
+var rootContainer component.Container
 
-func SetMainContainer(container component.Container) {
-	mainContainer = container
+// SetRootContainer sets the gui root container.
+func SetRootContainer(container component.Container) {
+	rootContainer = container
 }
 
 // Update updates containers.
 // It should be called in the Ebiten Game's Update function.
 func Update() {
 	input.Update()
-	mainContainer.FireEvents()
+	rootContainer.FireEvents()
 }
 
 // Draw draws containers to the guiImage.
@@ -27,6 +28,6 @@ func Draw(guiImage *ebiten.Image) {
 	event.HandleFired()
 
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(mainContainer.Position())
-	guiImage.DrawImage(mainContainer.Draw(), op)
+	op.GeoM.Translate(rootContainer.Position())
+	guiImage.DrawImage(rootContainer.Draw(), op)
 }

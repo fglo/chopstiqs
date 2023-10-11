@@ -16,14 +16,17 @@ Running example: <https://fglo.github.io/chopstiqs/>
 
 What I want to achieve:
 
-- containers
-  - simple container with components positioned by absolute coordinates
-  - vertical and horizontal list
-  - scrollcontainer
-  - flexbox
 - more components:
   - sliders
   - tooltips
   - radiogroups
-  - inputs
-- unit tests for components
+  - text inputs
+  - ...
+- containers
+  - simple container with components positioned by absolute coordinates
+  - vertical list
+  - horizontal list
+  - vertical scroll container
+  - horizontal scroll container
+  - flexbox
+- tests for components
