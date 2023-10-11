@@ -43,12 +43,12 @@ func NewGame() *Game {
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
 
-	mainContainer := component.NewSimpleContainer(200, 200)
-	mainContainer.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
+	rootContainer := component.NewSimpleContainer(200, 200)
+	rootContainer.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
 
 	lbl := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
-	lbl.SetPosistion(5, 5)
-	mainContainer.AddComponent(lbl)
+	lbl.SetPosision(5, 5)
+	rootContainer.AddComponent(lbl)
 
 	btnOpts := &component.ButtonOptions{
 		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{25, 25, 25, 255}}),
@@ -56,15 +56,15 @@ func NewGame() *Game {
 
 	btn := component.NewButton(btnOpts).AddClickedHandler(func(args *component.ButtonClickedEventArgs) {
 		if !g.bgColorToggled {
-			mainContainer.SetBackgroundColor(color.RGBA{9, 32, 42, 255})
+			rootContainer.SetBackgroundColor(color.RGBA{9, 32, 42, 255})
 		} else {
-			mainContainer.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
+			rootContainer.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
 		}
 
 		g.bgColorToggled = !g.bgColorToggled
 	})
-	btn.SetPosistion(5, 35)
-	mainContainer.AddComponent(btn)
+	btn.SetPosision(5, 35)
+	rootContainer.AddComponent(btn)
 
 	btn2 := component.NewButton(&component.ButtonOptions{
 		Color:         color.RGBA{100, 180, 90, 255},
@@ -73,16 +73,19 @@ func NewGame() *Game {
 		ColorDisabled: color.RGBA{80, 100, 70, 255},
 	})
 
-	btn2.SetPosistion(5, 55)
-	mainContainer.AddComponent(btn2)
+	btn2.SetPosision(5, 55)
+	rootContainer.AddComponent(btn2)
+
+	checkBoxContainer := component.NewListContainer(200, 10, component.ListContainerOptions{Direction: component.Horizontal})
+	checkBoxContainer.SetPosision(5, 20)
 
 	cbOpts := &component.CheckBoxOptions{
 		Color: color.RGBA{255, 100, 50, 255},
 	}
 	cb := component.NewCheckBox(cbOpts)
-	cb.SetPosistion(5, 20)
+	// cb.SetPosistion(5, 20)
 	cb.Toggle()
-	mainContainer.AddComponent(cb)
+	checkBoxContainer.AddComponent(cb)
 
 	cb2Opts := &component.CheckBoxOptions{
 		Color: color.RGBA{230, 230, 230, 255},
@@ -93,10 +96,12 @@ func NewGame() *Game {
 		btn.SetDisabled(args.CheckBox.Checked)
 		btn2.SetDisabled(args.CheckBox.Checked)
 	})
-	cb2.SetPosistion(20, 20)
-	mainContainer.AddComponent(cb2)
+	// cb2.SetPosistion(20, 20)
+	checkBoxContainer.AddComponent(cb2)
 
-	gui.SetMainContainer(mainContainer)
+	rootContainer.AddComponent(checkBoxContainer)
+
+	gui.SetRootContainer(rootContainer)
 
 	return g
 }

@@ -12,10 +12,18 @@ import (
 type Component interface {
 	// Draw draws the component to it's image.
 	Draw() *ebiten.Image
+	// Dimensions returns the component's dimensions (width and height).
+	Dimensions() (width int, height int)
+	// Width returns the component's width.
+	Width() int
+	// Height returns the component's height.
+	Height() int
 	// Position returns the component's position.
 	Position() (posX float64, posY float64)
-	// Size returns the component's size (width and height).
-	Size() (width int, height int)
+	// PosX returns the component's position X.
+	PosX() float64
+	// PosY returns the component's position Y.
+	PosY() float64
 	// SetDisabled sets the component's disabled state.
 	SetDisabled(disabled bool)
 	// FireEvents fires the component's events.
@@ -30,8 +38,8 @@ type Component interface {
 	SetPosX(posX float64)
 	// SetPosY sets the component's position Y.
 	SetPosY(posY float64)
-	// SetPosistion sets the component's position (x and y)
-	SetPosistion(posX, posY float64)
+	// SetPosision sets the component's position (x and y)
+	SetPosision(posX, posY float64)
 
 	setContainer(Container)
 }
@@ -123,8 +131,8 @@ func (c *component) SetPosY(posY float64) {
 	c.Rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.width, int(c.posY) + c.height}}
 }
 
-// SetPosistion sets the component's position (x and y).
-func (c *component) SetPosistion(posX, posY float64) {
+// SetPosision sets the component's position (x and y).
+func (c *component) SetPosision(posX, posY float64) {
 	c.posX = posX
 	c.posY = posY
 	c.Rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.width, int(c.posY) + c.height}}
@@ -178,9 +186,29 @@ func (c *component) Position() (float64, float64) {
 	return c.posX, c.posY
 }
 
-// Size returns the component's size (width and height).
-func (c *component) Size() (int, int) {
+// PosX returns the component's position X.
+func (c *component) PosX() float64 {
+	return c.posX
+}
+
+// PosY returns the component's position Y.
+func (c *component) PosY() float64 {
+	return c.posY
+}
+
+// Dimensions returns the component's size (width and height).
+func (c *component) Dimensions() (int, int) {
 	return c.width, c.height
+}
+
+// Width returns the component's width.
+func (c *component) Width() int {
+	return c.width
+}
+
+// Height returns the component's height.
+func (c *component) Height() int {
+	return c.height
 }
 
 // FireEvents checks if the mouse cursor is inside the component and fires events accordingly.
