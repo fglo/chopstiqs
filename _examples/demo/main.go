@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/fglo/chopstiqs/pkg/component"
+	"github.com/fglo/chopstiqs/pkg/debug"
 	"github.com/fglo/chopstiqs/pkg/gui"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -30,41 +31,46 @@ type Game struct {
 	screenWidth  int
 	screenHeight int
 
-	quitIsPressed bool
+	quitIsPressed  bool
+	debugIsPressed bool
+
+	backgroundColor color.RGBA
 }
 
 // New generates a new Game object.
 func NewGame() *Game {
 	g := &Game{
-		screenWidth:  200,
-		screenHeight: 200,
+		screenWidth:     200,
+		screenHeight:    200,
+		backgroundColor: color.RGBA{32, 32, 32, 255},
 	}
 
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
 
-	rootContainer := component.NewSimpleContainer(200, 200)
-	rootContainer.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
+	component.SetDefaultPadding(3, 3, 3, 3)
 
-	lbl := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
-	lbl.SetPosision(5, 5)
-	rootContainer.AddComponent(lbl)
+	rootContainer := component.NewListContainer(&component.ListContainerOptions{Direction: component.Vertical})
 
-	btnOpts := &component.ButtonOptions{
-		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{25, 25, 25, 255}}),
+	lblTitle := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
+
+	lblInstructions := component.NewLabel("d - debug\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: component.AlignmentTop})
+
+	cbOpts := &component.CheckBoxOptions{
+		Color: color.RGBA{255, 100, 50, 255},
+	}
+	cb := component.NewCheckBox(cbOpts)
+	cb.Toggle()
+
+	cb2Opts := &component.CheckBoxOptions{
+		Color: color.RGBA{230, 230, 230, 255},
+		Label: component.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
 	}
 
-	btn := component.NewButton(btnOpts).AddClickedHandler(func(args *component.ButtonClickedEventArgs) {
-		if !g.bgColorToggled {
-			rootContainer.SetBackgroundColor(color.RGBA{9, 32, 42, 255})
-		} else {
-			rootContainer.SetBackgroundColor(color.RGBA{32, 32, 32, 255})
-		}
-
-		g.bgColorToggled = !g.bgColorToggled
+	btn := component.NewButton(&component.ButtonOptions{
+		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{25, 25, 25, 255}}),
 	})
-	btn.SetPosision(5, 35)
-	rootContainer.AddComponent(btn)
+	btn.AddClickedHandler(func(args *component.ButtonClickedEventArgs) { g.toggleBackground() })
 
 	btn2 := component.NewButton(&component.ButtonOptions{
 		Color:         color.RGBA{100, 180, 90, 255},
@@ -73,33 +79,21 @@ func NewGame() *Game {
 		ColorDisabled: color.RGBA{80, 100, 70, 255},
 	})
 
-	btn2.SetPosision(5, 55)
-	rootContainer.AddComponent(btn2)
-
-	checkBoxContainer := component.NewListContainer(200, 10, component.ListContainerOptions{Direction: component.Horizontal})
-	checkBoxContainer.SetPosision(5, 20)
-
-	cbOpts := &component.CheckBoxOptions{
-		Color: color.RGBA{255, 100, 50, 255},
-	}
-	cb := component.NewCheckBox(cbOpts)
-	// cb.SetPosistion(5, 20)
-	cb.Toggle()
-	checkBoxContainer.AddComponent(cb)
-
-	cb2Opts := &component.CheckBoxOptions{
-		Color: color.RGBA{230, 230, 230, 255},
-		Label: component.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
-	}
-
-	cb2 := component.NewCheckBox(cb2Opts).AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
+	cb2 := component.NewCheckBox(cb2Opts)
+	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
 		btn.SetDisabled(args.CheckBox.Checked)
 		btn2.SetDisabled(args.CheckBox.Checked)
 	})
-	// cb2.SetPosistion(20, 20)
+
+	checkBoxContainer := component.NewListContainer(&component.ListContainerOptions{Direction: component.Horizontal})
+	checkBoxContainer.AddComponent(cb)
 	checkBoxContainer.AddComponent(cb2)
 
+	rootContainer.AddComponent(lblTitle)
+	rootContainer.AddComponent(lblInstructions)
 	rootContainer.AddComponent(checkBoxContainer)
+	rootContainer.AddComponent(btn)
+	rootContainer.AddComponent(btn2)
 
 	gui.SetRootContainer(rootContainer)
 
@@ -120,6 +114,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func (g *Game) Update() error {
 	gui.Update()
 
+	g.checkDebugButton()
+
 	return g.checkQuitButton()
 }
 
@@ -134,7 +130,29 @@ func (g *Game) checkQuitButton() error {
 	return nil
 }
 
+func (g *Game) checkDebugButton() error {
+	if !g.debugIsPressed && inpututil.IsKeyJustPressed(ebiten.KeyD) {
+		g.debugIsPressed = true
+	}
+	if g.debugIsPressed && inpututil.IsKeyJustReleased(ebiten.KeyD) {
+		g.debugIsPressed = false
+		debug.Debug = !debug.Debug
+	}
+	return nil
+}
+
+func (g *Game) toggleBackground() {
+	if !g.bgColorToggled {
+		g.backgroundColor = color.RGBA{9, 32, 42, 255}
+	} else {
+		g.backgroundColor = color.RGBA{32, 32, 32, 255}
+	}
+
+	g.bgColorToggled = !g.bgColorToggled
+}
+
 // Draw draws the current game to the given screen.
 func (g *Game) Draw(screen *ebiten.Image) {
+	screen.Fill(g.backgroundColor)
 	gui.Draw(screen)
 }

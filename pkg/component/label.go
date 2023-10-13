@@ -54,6 +54,11 @@ type LabelOptions struct {
 	VerticalAlignment   VerticalAlignment
 
 	Inverted bool
+
+	LeftPadding   *int
+	RightPadding  *int
+	TopPadding    *int
+	BottomPadding *int
 }
 
 func NewLabel(labelText string, options *LabelOptions) *Label {
@@ -73,6 +78,8 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 		Inverted:   false,
 	}
 
+	l.component = l.createComponent(width, height, options)
+
 	if options != nil {
 		if options.Color != nil {
 			l.color = colorutils.ColorToRGBA(options.Color)
@@ -81,8 +88,6 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 		l.horizontalAlignment = options.HorizontalAlignment
 		l.verticalAlignment = options.VerticalAlignment
 	}
-
-	l.component = l.createComponent(width, height)
 
 	switch l.horizontalAlignment {
 	case AlignmentLeft:
@@ -105,6 +110,23 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 	l.align()
 
 	return l
+}
+
+func (l *Label) createComponent(width, height int, options *LabelOptions) component {
+	var componentOptions ComponentOptions
+
+	if options != nil {
+		componentOptions = ComponentOptions{
+			LeftPadding:   options.LeftPadding,
+			RightPadding:  options.RightPadding,
+			TopPadding:    options.TopPadding,
+			BottomPadding: options.BottomPadding,
+		}
+	}
+
+	component := NewComponent(width, height, &componentOptions)
+
+	return *component
 }
 
 func (l *Label) align() {
@@ -146,19 +168,17 @@ func (l *Label) InvertColor() {
 }
 
 func (l *Label) Draw() *ebiten.Image {
+	l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
+
 	if l.Inverted {
-		text.Draw(l.image, l.text, l.font, 0, l.textPosY, color.RGBA{255 - l.color.R, 255 - l.color.G, 255 - l.color.B, l.color.A})
+		text.Draw(l.image, l.text, l.font, l.textPosX+l.leftPadding, l.textPosY+l.topPadding, color.RGBA{255 - l.color.R, 255 - l.color.G, 255 - l.color.B, l.color.A})
 	} else {
-		text.Draw(l.image, l.text, l.font, 0, l.textPosY, l.color)
+		text.Draw(l.image, l.text, l.font, l.textPosX+l.leftPadding, l.textPosY+l.topPadding, l.color)
 	}
 
+	l.component.Draw()
+
 	return l.image
-}
-
-func (l *Label) createComponent(width, height int) component {
-	componentOptions := &ComponentOptions{}
-
-	return *NewComponent(width, height, componentOptions)
 }
 
 func (l *Label) SetPosX(posX float64) {

@@ -2,7 +2,9 @@ package component
 
 import (
 	"image"
+	"image/color"
 
+	"github.com/fglo/chopstiqs/pkg/debug"
 	"github.com/fglo/chopstiqs/pkg/event"
 	"github.com/fglo/chopstiqs/pkg/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
@@ -16,8 +18,12 @@ type Component interface {
 	Dimensions() (width int, height int)
 	// Width returns the component's width.
 	Width() int
+	// WidthWithPadding returns the component's width with left and right paddings.
+	WidthWithPadding() int
 	// Height returns the component's height.
 	Height() int
+	// HeightWithPadding returns the component's height with top and bottom paddings.
+	HeightWithPadding() int
 	// Position returns the component's position.
 	Position() (posX float64, posY float64)
 	// PosX returns the component's position X.
@@ -50,18 +56,30 @@ type component struct {
 
 	image *ebiten.Image
 
-	Rect image.Rectangle
+	rect image.Rectangle
 
 	disabled bool
 
-	width  int
-	height int
+	width             int
+	widthWithPadding  int
+	height            int
+	heightWithPadding int
+
+	leftPadding   int
+	rightPadding  int
+	topPadding    int
+	bottomPadding int
 
 	pixelCols int
 	pixelRows int
 
+	firstPixelRowId       int
+	secondPixelRowId      int
 	lastPixelRowId        int
 	penultimatePixelRowId int
+
+	firstPixelColId       int
+	secondPixelColId      int
 	lastPixelColId        int
 	penultimatePixelColId int
 
@@ -78,40 +96,44 @@ type component struct {
 	CursorExitEvent          event.Event
 }
 
-// ComponentOption is a function that configures a component.
-type ComponentOption func(c *component)
-
 // ComponentOptions is a struct that holds component options.
 type ComponentOptions struct {
-	opts []ComponentOption
+	LeftPadding   *int
+	RightPadding  *int
+	TopPadding    *int
+	BottomPadding *int
 }
 
 // NewComponent creates a new component.
 func NewComponent(width, height int, options *ComponentOptions) *component {
-	w := &component{
-		image:  ebiten.NewImage(width, height),
-		width:  width,
-		height: height,
-		posX:   0,
-		posY:   0,
-		Rect:   image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{width, height}},
-
-		pixelCols:             width * 4,
-		lastPixelColId:        width*4 - 4,
-		penultimatePixelColId: width*4 - 8,
-
-		pixelRows:             height,
-		lastPixelRowId:        height - 1,
-		penultimatePixelRowId: height - 2,
+	c := &component{
+		leftPadding:   DefaultLeftPadding,
+		rightPadding:  DefaultRightPadding,
+		topPadding:    DefaultTopPadding,
+		bottomPadding: DefaultBottomPadding,
 	}
 
 	if options != nil {
-		for _, o := range options.opts {
-			o(w)
+		if options.LeftPadding != nil {
+			c.leftPadding = *options.LeftPadding
+		}
+
+		if options.RightPadding != nil {
+			c.rightPadding = *options.RightPadding
+		}
+
+		if options.TopPadding != nil {
+			c.topPadding = *options.TopPadding
+		}
+
+		if options.BottomPadding != nil {
+			c.bottomPadding = *options.BottomPadding
 		}
 	}
 
-	return w
+	c.SetDimensions(width, height)
+
+	return c
 }
 
 // setContainer sets the component's container.
@@ -119,61 +141,126 @@ func (c *component) setContainer(container Container) {
 	c.container = container
 }
 
+func (c *component) Draw() *ebiten.Image {
+	if debug.Debug {
+		debugImage := ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
+
+		debugColor := color.RGBA{255, 100, 100, 255}
+
+		arr := make([]byte, c.pixelRows*c.pixelCols)
+
+		lastRowNumber := c.pixelCols * (c.pixelRows - 1)
+		for colId := 0; colId < c.pixelCols; colId += 4 {
+			arr[colId] = debugColor.R
+			arr[colId+1] = debugColor.G
+			arr[colId+2] = debugColor.B
+			arr[colId+3] = debugColor.A
+
+			arr[colId+lastRowNumber] = debugColor.R
+			arr[colId+1+lastRowNumber] = debugColor.G
+			arr[colId+2+lastRowNumber] = debugColor.B
+			arr[colId+3+lastRowNumber] = debugColor.A
+		}
+
+		for rowId := 0; rowId < c.pixelRows; rowId++ {
+			rowNumber := c.pixelCols * rowId
+
+			arr[rowNumber] = debugColor.R
+			arr[1+rowNumber] = debugColor.G
+			arr[2+rowNumber] = debugColor.B
+			arr[3+rowNumber] = debugColor.A
+
+			arr[c.pixelCols-4+rowNumber] = debugColor.R
+			arr[c.pixelCols-4+1+rowNumber] = debugColor.G
+			arr[c.pixelCols-4+2+rowNumber] = debugColor.B
+			arr[c.pixelCols-4+3+rowNumber] = debugColor.A
+		}
+
+		debugImage.WritePixels(arr)
+
+		c.image.DrawImage(debugImage, &ebiten.DrawImageOptions{})
+	}
+
+	return c.image
+}
+
 // SetPosX sets the component's position X.
 func (c *component) SetPosX(posX float64) {
 	c.posX = posX
-	c.Rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.width, int(c.posY) + c.height}}
+	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
 }
 
 // SetPosY sets the component's position Y.
 func (c *component) SetPosY(posY float64) {
 	c.posY = posY
-	c.Rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.width, int(c.posY) + c.height}}
+	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
 }
 
 // SetPosision sets the component's position (x and y).
 func (c *component) SetPosision(posX, posY float64) {
 	c.posX = posX
 	c.posY = posY
-	c.Rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.width, int(c.posY) + c.height}}
+	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
 }
 
 // SetWidth sets the component's width.
 func (c *component) SetWidth(width int) {
 	c.width = width
-	c.pixelCols = width * 4
-	c.lastPixelColId = width*4 - 4
-	c.penultimatePixelColId = width*4 - 8
+	c.widthWithPadding = width + c.leftPadding + c.rightPadding
+	c.pixelCols = c.widthWithPadding * 4
 
-	c.image = ebiten.NewImage(width, c.height)
-	c.Rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.width, int(c.posY) + c.height}}
+	c.firstPixelColId = c.leftPadding * 4
+	c.secondPixelColId = c.firstPixelColId + 4
+
+	c.lastPixelColId = c.pixelCols - c.rightPadding*4 - 4
+	c.penultimatePixelColId = c.pixelCols - c.rightPadding*4 - 8
+
+	c.image = ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
+	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
 }
 
 // SetHeight sets the component's height.
 func (c *component) SetHeight(height int) {
 	c.height = height
-	c.pixelRows = height
-	c.lastPixelRowId = height - 1
-	c.penultimatePixelRowId = height - 2
+	c.heightWithPadding = height + c.topPadding + c.bottomPadding
+	c.pixelRows = c.heightWithPadding
 
-	c.image = ebiten.NewImage(c.width, height)
-	c.Rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.width, int(c.posY) + c.height}}
+	c.firstPixelRowId = c.topPadding
+	c.secondPixelRowId = c.firstPixelRowId + 1
+
+	c.lastPixelRowId = c.pixelRows - c.bottomPadding - 1
+	c.penultimatePixelRowId = c.pixelRows - c.bottomPadding - 2
+
+	c.image = ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
+	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
 }
 
 // SetDimensions sets the component's dimensions (width and height).
 func (c *component) SetDimensions(width, height int) {
-	c.width = width
-	c.pixelCols = width * 4
-	c.lastPixelColId = width*4 - 4
-	c.penultimatePixelColId = width*4 - 8
+	if width != 0 && height != 0 {
+		c.width = width
+		c.widthWithPadding = width + c.leftPadding + c.rightPadding
+		c.pixelCols = c.widthWithPadding * 4
 
-	c.height = height
-	c.pixelRows = height
-	c.lastPixelRowId = height - 1
-	c.penultimatePixelRowId = height - 2
+		c.firstPixelColId = c.leftPadding * 4
+		c.secondPixelColId = c.firstPixelColId + 4
 
-	c.image = ebiten.NewImage(width, height)
-	c.Rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.width, int(c.posY) + c.height}}
+		c.lastPixelColId = c.pixelCols - c.rightPadding*4 - 4
+		c.penultimatePixelColId = c.lastPixelColId - 4
+
+		c.height = height
+		c.heightWithPadding = height + c.topPadding + c.bottomPadding
+		c.pixelRows = c.heightWithPadding
+
+		c.firstPixelRowId = c.topPadding
+		c.secondPixelRowId = c.firstPixelRowId + 1
+
+		c.lastPixelRowId = c.pixelRows - c.bottomPadding - 1
+		c.penultimatePixelRowId = c.lastPixelRowId - 1
+
+		c.image = ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
+		c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
+	}
 }
 
 // SetDisabled sets the component's disabled state.
@@ -206,15 +293,25 @@ func (c *component) Width() int {
 	return c.width
 }
 
+// WidthWithPadding returns the component's width with left and right paddings.
+func (c *component) WidthWithPadding() int {
+	return c.widthWithPadding
+}
+
 // Height returns the component's height.
 func (c *component) Height() int {
 	return c.height
 }
 
+// HeightWithPadding returns the component's height with top and bottom paddings.
+func (c *component) HeightWithPadding() int {
+	return c.heightWithPadding
+}
+
 // FireEvents checks if the mouse cursor is inside the component and fires events accordingly.
 func (c *component) FireEvents() {
 	p := image.Point{input.CursorPosX, input.CursorPosY}
-	mouseEntered := p.In(c.Rect)
+	mouseEntered := p.In(c.rect)
 
 	if mouseEntered {
 		c.lastUpdateCursorEntered = true
@@ -272,14 +369,12 @@ type ComponentMouseButtonPressedEventArgs struct { //nolint:golint
 	Button    ebiten.MouseButton
 }
 
-func (o *ComponentOptions) AddMouseButtonPressedHandler(f ComponentMouseButtonPressedHandlerFunc) *ComponentOptions {
-	o.opts = append(o.opts, func(c *component) {
-		c.MouseButtonPressedEvent.AddHandler(func(args interface{}) {
-			f(args.(*ComponentMouseButtonPressedEventArgs))
-		})
+func (c *component) AddMouseButtonPressedHandler(f ComponentMouseButtonPressedHandlerFunc) *component {
+	c.MouseButtonPressedEvent.AddHandler(func(args interface{}) {
+		f(args.(*ComponentMouseButtonPressedEventArgs))
 	})
 
-	return o
+	return c
 }
 
 // ComponentMouseButtonReleasedHandlerFunc is a function that handles mouse button release events.
@@ -291,14 +386,12 @@ type ComponentMouseButtonReleasedEventArgs struct { //nolint:golint
 	Inside    bool
 }
 
-func (o *ComponentOptions) AddMouseButtonReleasedHandler(f ComponentMouseButtonReleasedHandlerFunc) *ComponentOptions {
-	o.opts = append(o.opts, func(c *component) {
-		c.MouseButtonReleasedEvent.AddHandler(func(args interface{}) {
-			f(args.(*ComponentMouseButtonReleasedEventArgs))
-		})
+func (c *component) AddMouseButtonReleasedHandler(f ComponentMouseButtonReleasedHandlerFunc) *component {
+	c.MouseButtonReleasedEvent.AddHandler(func(args interface{}) {
+		f(args.(*ComponentMouseButtonReleasedEventArgs))
 	})
 
-	return o
+	return c
 }
 
 // ComponentCursorEnterHandlerFunc is a function that handles cursor enter events.
@@ -308,14 +401,12 @@ type ComponentCursorEnterEventArgs struct { //nolint:golint
 	Component *component
 }
 
-func (o *ComponentOptions) AddCursorEnterHandler(f ComponentCursorEnterHandlerFunc) *ComponentOptions {
-	o.opts = append(o.opts, func(c *component) {
-		c.CursorEnterEvent.AddHandler(func(args interface{}) {
-			f(args.(*ComponentCursorEnterEventArgs))
-		})
+func (c *component) AddCursorEnterHandler(f ComponentCursorEnterHandlerFunc) *component {
+	c.CursorEnterEvent.AddHandler(func(args interface{}) {
+		f(args.(*ComponentCursorEnterEventArgs))
 	})
 
-	return o
+	return c
 }
 
 // ComponentCursorExitHandlerFunc is a function that handles cursor exit events.
@@ -325,12 +416,10 @@ type ComponentCursorExitEventArgs struct { //nolint:golint
 	Component *component
 }
 
-func (o *ComponentOptions) AddCursorExitHandler(f ComponentCursorExitHandlerFunc) *ComponentOptions {
-	o.opts = append(o.opts, func(c *component) {
-		c.CursorExitEvent.AddHandler(func(args interface{}) {
-			f(args.(*ComponentCursorExitEventArgs))
-		})
+func (c *component) AddCursorExitHandler(f ComponentCursorExitHandlerFunc) *component {
+	c.CursorExitEvent.AddHandler(func(args interface{}) {
+		f(args.(*ComponentCursorExitEventArgs))
 	})
 
-	return o
+	return c
 }
