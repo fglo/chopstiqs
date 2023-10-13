@@ -12,10 +12,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
-// TODO: center labels
-// TODO: handling clicking moved checkboxes
-// TODO: handling layers (container on top of a container)
-
 var Terminated = errors.New("terminated")
 
 func main() {
