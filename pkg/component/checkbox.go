@@ -19,11 +19,13 @@ type CheckBox struct {
 	width  int
 	height int
 
-	pixelCols int
-	pixelRows int
-
+	firstPixelRowId       int
+	secondPixelRowId      int
 	lastPixelRowId        int
 	penultimatePixelRowId int
+
+	firstPixelColId       int
+	secondPixelColId      int
 	lastPixelColId        int
 	penultimatePixelColId int
 
@@ -34,6 +36,11 @@ type CheckBoxOptions struct {
 	Color color.Color
 
 	Label *Label
+
+	LeftPadding   *int
+	RightPadding  *int
+	TopPadding    *int
+	BottomPadding *int
 }
 
 type CheckBoxToggledEventArgs struct {
@@ -53,18 +60,22 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 		width:  width,
 		height: height,
 
-		pixelCols:             width * 4,
-		lastPixelColId:        width*4 - 4,
-		penultimatePixelColId: width*4 - 8,
-
-		pixelRows:             height,
-		lastPixelRowId:        height - 1,
-		penultimatePixelRowId: height - 2,
-
 		color: color.RGBA{230, 230, 230, 255},
 	}
 
-	cb.component = cb.createComponent(width, height)
+	cb.component = cb.createComponent(width, height, options)
+
+	cb.firstPixelColId = cb.leftPadding * 4
+	cb.secondPixelColId = cb.firstPixelColId + 4
+
+	cb.lastPixelColId = (width+cb.leftPadding)*4 - 4
+	cb.penultimatePixelColId = cb.lastPixelColId - 4
+
+	cb.firstPixelRowId = cb.topPadding
+	cb.secondPixelRowId = cb.firstPixelRowId + 1
+
+	cb.lastPixelRowId = height + cb.topPadding - 1
+	cb.penultimatePixelRowId = cb.lastPixelRowId - 1
 
 	if options != nil {
 		if options.Label != nil {
@@ -79,6 +90,32 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 	return cb
 }
 
+func (cb *CheckBox) createComponent(width, height int, options *CheckBoxOptions) component {
+	var componentOptions ComponentOptions
+
+	if options != nil {
+		componentOptions = ComponentOptions{
+			LeftPadding:   options.LeftPadding,
+			RightPadding:  options.RightPadding,
+			TopPadding:    options.TopPadding,
+			BottomPadding: options.BottomPadding,
+		}
+	}
+
+	component := NewComponent(width, height, &componentOptions)
+
+	component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
+		if !cb.disabled && args.Inside {
+			cb.Checked = !cb.Checked
+			cb.ToggledEvent.Fire(&CheckBoxToggledEventArgs{
+				CheckBox: cb,
+			})
+		}
+	})
+
+	return *component
+}
+
 func (cb *CheckBox) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox {
 	cb.ToggledEvent.AddHandler(func(args interface{}) { f(args.(*CheckBoxToggledEventArgs)) })
 
@@ -87,13 +124,32 @@ func (cb *CheckBox) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox {
 
 // SetLabel sets the label of the checkbox and adjusts the checkbox's dimensions accordingly.
 func (cb *CheckBox) SetLabel(label *Label) {
+	width := 10
+	height := 10
+
 	cb.label = label
 	cb.label.alignHorizontally = cb.label.alignToLeft
 	cb.label.alignVertically = cb.label.centerVertically
 
-	cb.label.SetPosistion(13, 4.5)
+	if cb.label.leftPadding == 0 {
+		cb.label.leftPadding = 3
+	}
 
-	cb.SetDimensions(cb.label.width+13, 10)
+	cb.label.SetPosistion(10+float64(cb.label.leftPadding), 4.5)
+
+	cb.SetDimensions(width+cb.label.widthWithPadding, height)
+
+	cb.firstPixelColId = cb.leftPadding * 4
+	cb.secondPixelColId = cb.firstPixelColId + 4
+
+	cb.lastPixelColId = (width+cb.leftPadding)*4 - 4
+	cb.penultimatePixelColId = cb.lastPixelColId - 4
+
+	cb.firstPixelRowId = cb.topPadding
+	cb.secondPixelRowId = cb.firstPixelRowId + 1
+
+	cb.lastPixelRowId = height + cb.topPadding - 1
+	cb.penultimatePixelRowId = cb.lastPixelRowId - 1
 }
 
 func (cb *CheckBox) Set(checked bool) {
@@ -120,27 +176,37 @@ func (cb *CheckBox) Draw() *ebiten.Image {
 		cb.image.DrawImage(cb.label.Draw(), op)
 	}
 
+	cb.component.Draw()
+
 	return cb.image
+}
+
+func (cb *CheckBox) isBorder(rowId, colId int) bool {
+	return rowId == cb.firstPixelRowId || rowId == cb.lastPixelRowId || colId == cb.firstPixelColId || colId == cb.lastPixelColId
+}
+
+func (cb *CheckBox) isColored(rowId, colId int) bool {
+	return colId > cb.secondPixelColId && colId < cb.penultimatePixelColId && rowId > cb.secondPixelRowId && rowId < cb.penultimatePixelRowId
 }
 
 func (cb *CheckBox) drawUnchecked() []byte {
 	arr := make([]byte, cb.component.pixelRows*cb.component.pixelCols)
 	backgroundColor := cb.container.GetBackgroundColor()
 
-	for i := 0; i < cb.component.pixelRows; i++ {
-		rowNumber := cb.component.pixelCols * i
+	for rowId := cb.firstPixelRowId; rowId <= cb.lastPixelRowId; rowId++ {
+		rowNumber := cb.component.pixelCols * rowId
 
-		for j := 0; j < cb.component.pixelCols; j += 4 {
-			if ((i == 0 || i == cb.lastPixelRowId) && j <= cb.lastPixelColId) || ((j == 0 || j == cb.lastPixelColId) && i <= cb.lastPixelRowId) {
-				arr[j+rowNumber] = cb.color.R
-				arr[j+1+rowNumber] = cb.color.G
-				arr[j+2+rowNumber] = cb.color.B
-				arr[j+3+rowNumber] = cb.color.A
+		for colId := cb.firstPixelColId; colId <= cb.lastPixelColId; colId += 4 {
+			if cb.isBorder(rowId, colId) {
+				arr[colId+rowNumber] = cb.color.R
+				arr[colId+1+rowNumber] = cb.color.G
+				arr[colId+2+rowNumber] = cb.color.B
+				arr[colId+3+rowNumber] = cb.color.A
 			} else {
-				arr[j+rowNumber] = backgroundColor.R
-				arr[j+1+rowNumber] = backgroundColor.G
-				arr[j+2+rowNumber] = backgroundColor.B
-				arr[j+3+rowNumber] = backgroundColor.A
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
@@ -152,39 +218,23 @@ func (cb *CheckBox) drawChecked() []byte {
 	arr := make([]byte, cb.component.pixelRows*cb.component.pixelCols)
 	backgroundColor := cb.container.GetBackgroundColor()
 
-	for i := 0; i < cb.component.pixelRows; i++ {
-		rowNumber := cb.component.pixelCols * i
+	for rowId := cb.firstPixelRowId; rowId <= cb.lastPixelRowId; rowId++ {
+		rowNumber := cb.component.pixelCols * rowId
 
-		for j := 0; j < cb.component.pixelCols; j += 4 {
-			if ((i == 0 || i == cb.lastPixelRowId) && j <= cb.lastPixelColId) || ((j == 0 || j == cb.lastPixelColId) && i <= cb.lastPixelRowId) ||
-				(j > 4 && j < cb.penultimatePixelColId && i > 1 && i < cb.penultimatePixelRowId) {
-				arr[j+rowNumber] = cb.color.R
-				arr[j+1+rowNumber] = cb.color.G
-				arr[j+2+rowNumber] = cb.color.B
-				arr[j+3+rowNumber] = cb.color.A
+		for colId := cb.firstPixelColId; colId <= cb.lastPixelColId; colId += 4 {
+			if cb.isBorder(rowId, colId) || cb.isColored(rowId, colId) {
+				arr[colId+rowNumber] = cb.color.R
+				arr[colId+1+rowNumber] = cb.color.G
+				arr[colId+2+rowNumber] = cb.color.B
+				arr[colId+3+rowNumber] = cb.color.A
 			} else {
-				arr[j+rowNumber] = backgroundColor.R
-				arr[j+1+rowNumber] = backgroundColor.G
-				arr[j+2+rowNumber] = backgroundColor.B
-				arr[j+3+rowNumber] = backgroundColor.A
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
 
 	return arr
-}
-
-func (cb *CheckBox) createComponent(width, height int) component {
-	componentOptions := &ComponentOptions{}
-
-	componentOptions.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
-		if !cb.disabled && args.Inside {
-			cb.Checked = !cb.Checked
-			cb.ToggledEvent.Fire(&CheckBoxToggledEventArgs{
-				CheckBox: cb,
-			})
-		}
-	})
-
-	return *NewComponent(width, height, componentOptions)
 }

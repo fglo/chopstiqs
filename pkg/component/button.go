@@ -33,6 +33,11 @@ type ButtonOptions struct {
 	ColorDisabled color.Color
 
 	Label *Label
+
+	LeftPadding   *int
+	RightPadding  *int
+	TopPadding    *int
+	BottomPadding *int
 }
 
 type ButtonPressedEventArgs struct {
@@ -69,7 +74,7 @@ func NewButton(options *ButtonOptions) *Button {
 		colorDisabled: color.RGBA{150, 150, 150, 255},
 	}
 
-	b.component = b.createComponent(width, height)
+	b.component = b.createComponent(width, height, options)
 
 	if options != nil {
 		if options.Label != nil {
@@ -102,6 +107,56 @@ func NewButton(options *ButtonOptions) *Button {
 	}
 
 	return b
+}
+
+func (b *Button) createComponent(width, height int, options *ButtonOptions) component {
+	var componentOptions ComponentOptions
+
+	if options != nil {
+		componentOptions = ComponentOptions{
+			LeftPadding:   options.LeftPadding,
+			RightPadding:  options.RightPadding,
+			TopPadding:    options.TopPadding,
+			BottomPadding: options.BottomPadding,
+		}
+	}
+
+	component := NewComponent(width, height, &componentOptions)
+
+	component.AddCursorEnterHandler(func(args *ComponentCursorEnterEventArgs) {
+		if !b.disabled {
+			b.hovering = true
+		}
+	})
+
+	component.AddCursorExitHandler(func(args *ComponentCursorExitEventArgs) {
+		b.hovering = false
+	})
+
+	component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
+		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
+			b.pressed = true
+			b.PressedEvent.Fire(&ButtonPressedEventArgs{
+				Button: b,
+			})
+		}
+	})
+
+	component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
+		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
+			b.pressed = false
+			b.ReleasedEvent.Fire(&ButtonReleasedEventArgs{
+				Button: b,
+				Inside: args.Inside,
+			})
+
+			b.ClickedEvent.Fire(&ButtonClickedEventArgs{
+				Button: b,
+			})
+		}
+	})
+
+	return *component
 }
 
 func (b *Button) AddPressedHandler(f ButtonPressedHandlerFunc) *Button {
@@ -150,29 +205,46 @@ func (b *Button) Draw() *ebiten.Image {
 		b.image.DrawImage(b.label.Draw(), op)
 	}
 
+	b.component.Draw()
+
 	return b.image
+}
+
+func (b *Button) isCorner(rowId, colId int) bool {
+	return (rowId == b.firstPixelRowId || rowId == b.lastPixelRowId) && (colId == b.firstPixelColId || colId == b.lastPixelColId)
+}
+
+func (b *Button) isBorder(rowId, colId int) bool {
+	return rowId == b.firstPixelRowId || rowId == b.lastPixelRowId || colId == b.firstPixelColId || colId == b.lastPixelColId
+}
+
+func (b *Button) isColored(rowId, colId int) bool {
+	return colId > b.secondPixelColId && colId < b.penultimatePixelColId && rowId > b.secondPixelRowId && rowId < b.penultimatePixelRowId
 }
 
 func (b *Button) draw() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
 	backgroundColor := b.container.GetBackgroundColor()
 
-	for i := 0; i < b.pixelRows; i++ {
-		rowNumber := b.pixelCols * i
-		for j := 0; j < b.pixelCols; j += 4 {
-			if i == 0 && (j == 0 || j == b.lastPixelColId) || i == b.lastPixelRowId && (j == 0 || j == b.lastPixelColId) {
-				continue
-			} else if (i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId) ||
-				(j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId) {
-				arr[j+rowNumber] = b.color.R
-				arr[j+1+rowNumber] = b.color.G
-				arr[j+2+rowNumber] = b.color.B
-				arr[j+3+rowNumber] = b.color.A
+	for rowId := b.firstPixelRowId; rowId <= b.lastPixelRowId; rowId++ {
+		rowNumber := b.pixelCols * rowId
+
+		for colId := b.firstPixelColId; colId <= b.lastPixelColId; colId += 4 {
+			if b.isCorner(rowId, colId) {
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
+			} else if b.isBorder(rowId, colId) || b.isColored(rowId, colId) {
+				arr[colId+rowNumber] = b.color.R
+				arr[colId+1+rowNumber] = b.color.G
+				arr[colId+2+rowNumber] = b.color.B
+				arr[colId+3+rowNumber] = b.color.A
 			} else {
-				arr[j+rowNumber] = backgroundColor.R
-				arr[j+1+rowNumber] = backgroundColor.G
-				arr[j+2+rowNumber] = backgroundColor.B
-				arr[j+3+rowNumber] = backgroundColor.A
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
@@ -184,22 +256,25 @@ func (b *Button) drawPressed() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
 	backgroundColor := b.container.GetBackgroundColor()
 
-	for i := 0; i < b.pixelRows; i++ {
-		rowNumber := b.pixelCols * i
+	for rowId := b.firstPixelRowId; rowId <= b.lastPixelRowId; rowId++ {
+		rowNumber := b.pixelCols * rowId
 
-		for j := 0; j < b.pixelCols; j += 4 {
-			if i == 0 && (j == 0 || j == b.lastPixelColId) || i == b.lastPixelRowId && (j == 0 || j == b.lastPixelColId) {
-				continue
-			} else if i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId {
-				arr[j+rowNumber] = b.colorPressed.R
-				arr[j+1+rowNumber] = b.colorPressed.G
-				arr[j+2+rowNumber] = b.colorPressed.B
-				arr[j+3+rowNumber] = b.colorPressed.A
+		for colId := b.firstPixelColId; colId <= b.lastPixelColId; colId += 4 {
+			if b.isCorner(rowId, colId) {
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
+			} else if b.isBorder(rowId, colId) {
+				arr[colId+rowNumber] = b.colorPressed.R
+				arr[colId+1+rowNumber] = b.colorPressed.G
+				arr[colId+2+rowNumber] = b.colorPressed.B
+				arr[colId+3+rowNumber] = b.colorPressed.A
 			} else {
-				arr[j+rowNumber] = backgroundColor.R
-				arr[j+1+rowNumber] = backgroundColor.G
-				arr[j+2+rowNumber] = backgroundColor.B
-				arr[j+3+rowNumber] = backgroundColor.A
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
@@ -211,23 +286,25 @@ func (b *Button) drawHovered() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
 	backgroundColor := b.container.GetBackgroundColor()
 
-	for i := 0; i < b.pixelRows; i++ {
-		rowNumber := b.pixelCols * i
+	for rowId := b.firstPixelRowId; rowId <= b.lastPixelRowId; rowId++ {
+		rowNumber := b.pixelCols * rowId
 
-		for j := 0; j < b.pixelCols; j += 4 {
-			if (i == 0 || i == b.lastPixelRowId) && (j == 0 || j == b.lastPixelColId) {
-				continue
-			} else if (i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId) ||
-				j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId {
-				arr[j+rowNumber] = b.colorHovered.R
-				arr[j+1+rowNumber] = b.colorHovered.G
-				arr[j+2+rowNumber] = b.colorHovered.B
-				arr[j+3+rowNumber] = b.colorHovered.A
+		for colId := b.firstPixelColId; colId <= b.lastPixelColId; colId += 4 {
+			if b.isCorner(rowId, colId) {
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
+			} else if b.isBorder(rowId, colId) || b.isColored(rowId, colId) {
+				arr[colId+rowNumber] = b.colorHovered.R
+				arr[colId+1+rowNumber] = b.colorHovered.G
+				arr[colId+2+rowNumber] = b.colorHovered.B
+				arr[colId+3+rowNumber] = b.colorHovered.A
 			} else {
-				arr[j+rowNumber] = backgroundColor.R
-				arr[j+1+rowNumber] = backgroundColor.G
-				arr[j+2+rowNumber] = backgroundColor.B
-				arr[j+3+rowNumber] = backgroundColor.A
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
@@ -239,65 +316,28 @@ func (b *Button) drawDisabled() []byte {
 	arr := make([]byte, b.pixelRows*b.pixelCols)
 	backgroundColor := b.container.GetBackgroundColor()
 
-	for i := 0; i < b.pixelRows; i++ {
-		rowNumber := b.pixelCols * i
+	for rowId := b.firstPixelRowId; rowId <= b.lastPixelRowId; rowId++ {
+		rowNumber := b.pixelCols * rowId
 
-		for j := 0; j < b.pixelCols; j += 4 {
-			if (i == 0 || i == b.lastPixelRowId) && (j == 0 || j == b.lastPixelColId) {
-				continue
-			} else if i == 0 || i == b.lastPixelRowId || j == 0 || j == b.lastPixelColId ||
-				(j > 4 && j < b.penultimatePixelColId && i > 1 && i < b.penultimatePixelRowId) {
-				arr[j+rowNumber] = b.colorDisabled.R
-				arr[j+1+rowNumber] = b.colorDisabled.G
-				arr[j+2+rowNumber] = b.colorDisabled.B
-				arr[j+3+rowNumber] = b.colorDisabled.A
+		for colId := b.firstPixelColId; colId <= b.lastPixelColId; colId += 4 {
+			if b.isCorner(rowId, colId) {
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
+			} else if b.isBorder(rowId, colId) || b.isColored(rowId, colId) {
+				arr[colId+rowNumber] = b.colorDisabled.R
+				arr[colId+1+rowNumber] = b.colorDisabled.G
+				arr[colId+2+rowNumber] = b.colorDisabled.B
+				arr[colId+3+rowNumber] = b.colorDisabled.A
 			} else {
-				arr[j+rowNumber] = backgroundColor.R
-				arr[j+1+rowNumber] = backgroundColor.G
-				arr[j+2+rowNumber] = backgroundColor.B
-				arr[j+3+rowNumber] = backgroundColor.A
+				arr[colId+rowNumber] = backgroundColor.R
+				arr[colId+1+rowNumber] = backgroundColor.G
+				arr[colId+2+rowNumber] = backgroundColor.B
+				arr[colId+3+rowNumber] = backgroundColor.A
 			}
 		}
 	}
 
 	return arr
-}
-
-func (b *Button) createComponent(width, height int) component {
-	componentOptions := &ComponentOptions{}
-
-	componentOptions.AddCursorEnterHandler(func(args *ComponentCursorEnterEventArgs) {
-		if !b.disabled {
-			b.hovering = true
-		}
-	})
-
-	componentOptions.AddCursorExitHandler(func(args *ComponentCursorExitEventArgs) {
-		b.hovering = false
-	})
-
-	componentOptions.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
-		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
-			b.pressed = true
-			b.PressedEvent.Fire(&ButtonPressedEventArgs{
-				Button: b,
-			})
-		}
-	})
-
-	componentOptions.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
-		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
-			b.pressed = false
-			b.ReleasedEvent.Fire(&ButtonReleasedEventArgs{
-				Button: b,
-				Inside: args.Inside,
-			})
-
-			b.ClickedEvent.Fire(&ButtonClickedEventArgs{
-				Button: b,
-			})
-		}
-	})
-
-	return *NewComponent(width, height, componentOptions)
 }

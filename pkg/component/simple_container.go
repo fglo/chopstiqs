@@ -15,14 +15,39 @@ type SimpleContainer struct {
 	backgroundColor imgColor.RGBA
 }
 
+type SimpleContainerOptions struct {
+	LeftPadding   *int
+	RightPadding  *int
+	TopPadding    *int
+	BottomPadding *int
+}
+
 // NewSimpleContainer creates a new simple container
-func NewSimpleContainer(width, height int) *SimpleContainer {
+func NewSimpleContainer(width, height int, options *SimpleContainerOptions) *SimpleContainer {
 	c := &SimpleContainer{
-		component:  *NewComponent(width, height, nil),
 		components: make([]Component, 0),
 	}
 
+	c.component = c.createComponent(width, height, options)
+
 	return c
+}
+
+func (c *SimpleContainer) createComponent(width, height int, options *SimpleContainerOptions) component {
+	var componentOptions ComponentOptions
+
+	if options != nil {
+		componentOptions = ComponentOptions{
+			LeftPadding:   options.LeftPadding,
+			RightPadding:  options.RightPadding,
+			TopPadding:    options.TopPadding,
+			BottomPadding: options.BottomPadding,
+		}
+	}
+
+	component := NewComponent(width, height, &componentOptions)
+
+	return *component
 }
 
 // AddComponent adds a component to the container
@@ -57,6 +82,8 @@ func (c *SimpleContainer) Draw() *ebiten.Image {
 		op.GeoM.Translate(component.Position())
 		c.image.DrawImage(component.Draw(), op)
 	}
+
+	c.component.Draw()
 
 	return c.image
 }
