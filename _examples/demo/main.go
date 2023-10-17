@@ -50,7 +50,8 @@ func NewGame() *Game {
 
 	component.SetDefaultPadding(3, 3, 3, 3)
 
-	rootContainer := component.NewListContainer(&component.ListContainerOptions{Direction: component.Vertical})
+	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: to.Ptr(200), Height: to.Ptr(200)})
+	rootContainer := component.NewContainer(&component.ContainerOptions{Layout: component.VerticalListLayout})
 
 	lblTitle := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
 
@@ -85,14 +86,19 @@ func NewGame() *Game {
 		btn2.SetDisabled(args.CheckBox.Checked)
 	})
 
-	checkBoxContainer := component.NewListContainer(&component.ListContainerOptions{Direction: component.Horizontal})
+	checkBoxContainer := component.NewContainer(&component.ContainerOptions{Layout: component.HorizontalListLayout})
 	checkBoxContainer.AddComponent(cb)
 	checkBoxContainer.AddComponent(cb2)
 
+	lblTitle.SetPosision(5, 5)
 	rootContainer.AddComponent(lblTitle)
+	lblInstructions.SetPosision(5, 15)
 	rootContainer.AddComponent(lblInstructions)
+	checkBoxContainer.SetPosision(5, 45)
 	rootContainer.AddComponent(checkBoxContainer)
+	btn.SetPosision(5, 60)
 	rootContainer.AddComponent(btn)
+	btn2.SetPosision(5, 75)
 	rootContainer.AddComponent(btn2)
 
 	gui.SetRootContainer(rootContainer)
