@@ -22,7 +22,8 @@ type container struct {
 	components      []Component
 	backgroundColor imgColor.RGBA
 
-	lastComponentDim float64
+	lastComponentPosX int
+	lastComponentPosY int
 }
 
 type ContainerOptions struct {
@@ -118,9 +119,11 @@ func (c *container) Draw() *ebiten.Image {
 	c.image.Fill(c.backgroundColor)
 
 	for _, component := range c.components {
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(component.Position())
-		c.image.DrawImage(component.Draw(), op)
+		if !component.Hidden() {
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(component.Position())
+			c.image.DrawImage(component.Draw(), op)
+		}
 	}
 
 	c.component.Draw()

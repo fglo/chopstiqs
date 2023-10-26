@@ -5,84 +5,140 @@ type Layout interface {
 	Arrange(*container, Component)
 }
 
-var HorizontalListLayout horizontalListLayout
-
-type horizontalListLayout struct {
+type HorizontalListLayout struct {
+	ColumnGap int
 }
 
-func (hl horizontalListLayout) Rearrange(c *container) {
+func (hl *HorizontalListLayout) Rearrange(c *container) {
 	width := 0
 	height := 0
 
-	c.lastComponentDim = 0
+	c.lastComponentPosX = 0
 
 	for _, component := range c.components {
-		component.SetPosision(float64(c.leftPadding)+c.lastComponentDim, float64(c.topPadding))
-		c.lastComponentDim += float64(component.WidthWithPadding())
-
-		width += component.WidthWithPadding()
-
-		if component.HeightWithPadding() > height {
-			height = component.HeightWithPadding()
-		}
+		width, height = hl.arrange(c, component, width, height)
 	}
 
 	c.SetDimensions(width, height)
 }
 
-func (hl horizontalListLayout) Arrange(c *container, component Component) {
-	width := c.width
-	height := c.height
+func (hl *HorizontalListLayout) Arrange(c *container, component Component) {
+	width, height := hl.arrange(c, component, c.width, c.height)
+	c.SetDimensions(width, height)
+}
 
-	component.SetPosision(float64(c.leftPadding)+c.lastComponentDim, float64(c.topPadding))
-	c.lastComponentDim += float64(component.WidthWithPadding())
-
-	width += component.WidthWithPadding()
+func (hl *HorizontalListLayout) arrange(c *container, component Component, width, height int) (int, int) {
+	component.SetPosision(float64(c.leftPadding+c.lastComponentPosX), float64(c.topPadding))
+	c.lastComponentPosX += component.WidthWithPadding() + hl.ColumnGap
 
 	if component.HeightWithPadding() > height {
 		height = component.HeightWithPadding()
 	}
 
-	c.SetDimensions(width, height)
+	return c.lastComponentPosX, height
 }
 
-var VerticalListLayout verticalListLayout
-
-type verticalListLayout struct {
+type VerticalListLayout struct {
+	RowGap int
 }
 
-func (vl verticalListLayout) Rearrange(c *container) {
+func (vl *VerticalListLayout) Rearrange(c *container) {
 	width := 0
 	height := 0
 
-	c.lastComponentDim = 0.
+	c.lastComponentPosY = 0.
 
 	for _, component := range c.components {
-		component.SetPosision(float64(c.leftPadding), c.lastComponentDim+float64(c.topPadding))
-		c.lastComponentDim += float64(component.HeightWithPadding())
-
-		if component.WidthWithPadding() > width {
-			width = component.WidthWithPadding()
-		}
-
-		height += component.HeightWithPadding()
+		width, height = vl.arrange(c, component, width, height)
 	}
 
 	c.SetDimensions(width, height)
 }
 
-func (vl verticalListLayout) Arrange(c *container, component Component) {
-	width := c.width
-	height := c.height
+func (vl *VerticalListLayout) Arrange(c *container, component Component) {
+	width, height := vl.arrange(c, component, c.width, c.height)
+	c.SetDimensions(width, height)
+}
 
-	component.SetPosision(float64(c.leftPadding), c.lastComponentDim+float64(c.topPadding))
-	c.lastComponentDim += float64(component.HeightWithPadding())
+func (vl *VerticalListLayout) arrange(c *container, component Component, width, height int) (int, int) {
+	component.SetPosision(float64(c.leftPadding), float64(c.lastComponentPosY+c.topPadding))
+	c.lastComponentPosY += component.HeightWithPadding() + vl.RowGap
 
 	if component.WidthWithPadding() > width {
 		width = component.WidthWithPadding()
 	}
 
-	height += component.HeightWithPadding()
+	return width, c.lastComponentPosY
+}
+
+func GridLayout(columns, rows int) Layout {
+	return &gridLayout{
+		Columns: columns,
+		Rows:    rows,
+	}
+}
+
+type gridLayout struct {
+	Columns int
+	Rows    int
+
+	Width int
+
+	columnWidth int
+
+	currColId int
+	currRowId int
+
+	maxHeightInRow int
+}
+
+func (gl *gridLayout) Rearrange(c *container) {
+	width := 0
+	height := 0
+
+	c.lastComponentPosX = 0.
+	c.lastComponentPosY = 0.
+
+	gl.currColId = 0
+	gl.currRowId = 0
+
+	for _, component := range c.components {
+		width, height = gl.arrange(c, component, c.width, c.height)
+	}
 
 	c.SetDimensions(width, height)
+}
+
+func (gl *gridLayout) Arrange(c *container, component Component) {
+	width, height := gl.arrange(c, component, c.width, c.height)
+	c.SetDimensions(width, height)
+}
+
+func (gl *gridLayout) arrange(c *container, component Component, width, height int) (int, int) {
+	if gl.currRowId >= gl.Rows {
+		// component.SetVisible(false)
+		return width, height
+	}
+
+	component.SetPosision(float64(c.leftPadding+gl.columnWidth), float64(c.topPadding+c.lastComponentPosY))
+	if gl.currColId < gl.Columns {
+		if component.HeightWithPadding() > gl.maxHeightInRow {
+			gl.maxHeightInRow = component.HeightWithPadding()
+		}
+	}
+
+	gl.currColId++
+	if gl.currColId == gl.Columns {
+		gl.currColId = 0
+		gl.currRowId++
+		c.lastComponentPosX = 0 // reset last component dim for next row.
+		c.lastComponentPosY += gl.maxHeightInRow
+		gl.maxHeightInRow = 0 // reset max height for next row.
+	}
+
+	if c.lastComponentPosY > height {
+		height = c.lastComponentPosY
+	}
+
+	return width, height
 }

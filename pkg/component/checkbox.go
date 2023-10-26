@@ -164,6 +164,10 @@ func (cb *CheckBox) Toggle() {
 }
 
 func (cb *CheckBox) Draw() *ebiten.Image {
+	if cb.hidden {
+		return cb.image
+	}
+
 	if cb.Checked {
 		cb.image.WritePixels(cb.drawChecked())
 	} else {

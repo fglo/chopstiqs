@@ -36,8 +36,14 @@ type Component interface {
 	AbsPosX() float64
 	// AbsPosY returns the component's absolute position Y.
 	AbsPosY() float64
+	// Disable returns the component's disabled state.
+	Disable() bool
 	// SetDisabled sets the component's disabled state.
 	SetDisabled(disabled bool)
+	// Hidden returns the component's hidden state.
+	Hidden() bool
+	// SetHidden sets the component's hidden state.
+	SetHidden(hidden bool)
 	// FireEvents fires the component's events.
 	FireEvents()
 	// SetWidth sets the component's width.
@@ -65,6 +71,7 @@ type component struct {
 	rect image.Rectangle
 
 	disabled bool
+	hidden   bool
 
 	width             int
 	widthWithPadding  int
@@ -111,6 +118,8 @@ type ComponentOptions struct {
 	RightPadding  *int
 	TopPadding    *int
 	BottomPadding *int
+	Disabled      bool
+	Hidden        bool
 }
 
 // NewComponent creates a new component.
@@ -138,6 +147,9 @@ func NewComponent(width, height int, options *ComponentOptions) *component {
 		if options.BottomPadding != nil {
 			c.bottomPadding = *options.BottomPadding
 		}
+
+		c.disabled = options.Disabled
+		c.hidden = options.Hidden
 	}
 
 	c.SetDimensions(width, height)
@@ -304,9 +316,24 @@ func (c *component) setRect() {
 	c.rect = image.Rectangle{Min: image.Point{int(c.absPosX), int(c.absPosY)}, Max: image.Point{int(c.absPosX) + c.widthWithPadding, int(c.absPosY) + c.heightWithPadding}}
 }
 
+// Disable returns the component's disabled state.
+func (c *component) Disable() bool {
+	return c.disabled
+}
+
 // SetDisabled sets the component's disabled state.
 func (c *component) SetDisabled(disabled bool) {
 	c.disabled = disabled
+}
+
+// Hidden returns the component's hidden state.
+func (c *component) Hidden() bool {
+	return c.hidden
+}
+
+// SetHidden sets the component's hidden state.
+func (c *component) SetHidden(hidden bool) {
+	c.hidden = hidden
 }
 
 // Position returns the component's position (x and y).

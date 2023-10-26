@@ -189,6 +189,10 @@ func (b *Button) SetLabel(label *Label) {
 }
 
 func (b *Button) Draw() *ebiten.Image {
+	if b.hidden {
+		return b.image
+	}
+
 	if b.pressed {
 		b.image.WritePixels(b.drawPressed())
 	} else if b.hovering {

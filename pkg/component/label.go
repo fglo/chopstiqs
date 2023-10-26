@@ -168,6 +168,10 @@ func (l *Label) InvertColor() {
 }
 
 func (l *Label) Draw() *ebiten.Image {
+	if l.hidden {
+		return l.image
+	}
+
 	l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
 
 	if l.Inverted {

@@ -48,10 +48,11 @@ func NewGame() *Game {
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
 
-	component.SetDefaultPadding(3, 3, 3, 3)
+	// component.SetDefaultPadding(3, 3, 3, 3)
 
 	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: to.Ptr(200), Height: to.Ptr(200)})
-	rootContainer := component.NewContainer(&component.ContainerOptions{Layout: component.VerticalListLayout})
+	rootContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.VerticalListLayout{RowGap: 5}})
+	// rootContainer := component.NewContainer(&component.ContainerOptions{Layout: component.GridLayout(2, 2)})
 
 	lblTitle := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
 
@@ -86,7 +87,7 @@ func NewGame() *Game {
 		btn2.SetDisabled(args.CheckBox.Checked)
 	})
 
-	checkBoxContainer := component.NewContainer(&component.ContainerOptions{Layout: component.HorizontalListLayout})
+	checkBoxContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	checkBoxContainer.AddComponent(cb)
 	checkBoxContainer.AddComponent(cb2)
 
