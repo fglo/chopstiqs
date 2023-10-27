@@ -32,10 +32,7 @@ type ContainerOptions struct {
 	Width  *int
 	Height *int
 
-	LeftPadding   *int
-	RightPadding  *int
-	TopPadding    *int
-	BottomPadding *int
+	Padding *Padding
 }
 
 // Newcontainer creates a new simple container
@@ -48,6 +45,9 @@ func NewContainer(options *ContainerOptions) Container {
 
 	if options != nil {
 		if options.Layout != nil {
+			if _, ok := options.Layout.(*GridLayout); ok {
+
+			}
 			c.layout = options.Layout
 		}
 
@@ -68,10 +68,7 @@ func (c *container) createComponent(width, height int, options *ContainerOptions
 
 	if options != nil {
 		componentOptions = ComponentOptions{
-			LeftPadding:   options.LeftPadding,
-			RightPadding:  options.RightPadding,
-			TopPadding:    options.TopPadding,
-			BottomPadding: options.BottomPadding,
+			Padding: options.Padding,
 		}
 	}
 

@@ -78,10 +78,7 @@ type component struct {
 	height            int
 	heightWithPadding int
 
-	leftPadding   int
-	rightPadding  int
-	topPadding    int
-	bottomPadding int
+	padding Padding
 
 	pixelCols int
 	pixelRows int
@@ -114,38 +111,21 @@ type component struct {
 
 // ComponentOptions is a struct that holds component options.
 type ComponentOptions struct {
-	LeftPadding   *int
-	RightPadding  *int
-	TopPadding    *int
-	BottomPadding *int
-	Disabled      bool
-	Hidden        bool
+	Padding  *Padding
+	Disabled bool
+	Hidden   bool
 }
 
 // NewComponent creates a new component.
 func NewComponent(width, height int, options *ComponentOptions) *component {
 	c := &component{
-		leftPadding:   DefaultLeftPadding,
-		rightPadding:  DefaultRightPadding,
-		topPadding:    DefaultTopPadding,
-		bottomPadding: DefaultBottomPadding,
+		padding: DefaultPadding,
 	}
 
 	if options != nil {
-		if options.LeftPadding != nil {
-			c.leftPadding = *options.LeftPadding
-		}
-
-		if options.RightPadding != nil {
-			c.rightPadding = *options.RightPadding
-		}
-
-		if options.TopPadding != nil {
-			c.topPadding = *options.TopPadding
-		}
-
-		if options.BottomPadding != nil {
-			c.bottomPadding = *options.BottomPadding
+		if options.Padding != nil {
+			options.Padding.Validate()
+			c.padding = *options.Padding
 		}
 
 		c.disabled = options.Disabled
@@ -251,14 +231,14 @@ func (c *component) SetPosision(posX, posY float64) {
 // SetWidth sets the component's width.
 func (c *component) SetWidth(width int) {
 	c.width = width
-	c.widthWithPadding = width + c.leftPadding + c.rightPadding
+	c.widthWithPadding = width + c.padding.Left + c.padding.Right
 	c.pixelCols = c.widthWithPadding * 4
 
-	c.firstPixelColId = c.leftPadding * 4
+	c.firstPixelColId = c.padding.Left * 4
 	c.secondPixelColId = c.firstPixelColId + 4
 
-	c.lastPixelColId = c.pixelCols - c.rightPadding*4 - 4
-	c.penultimatePixelColId = c.pixelCols - c.rightPadding*4 - 8
+	c.lastPixelColId = c.pixelCols - c.padding.Right*4 - 4
+	c.penultimatePixelColId = c.pixelCols - c.padding.Right*4 - 8
 
 	c.setImage()
 	c.setRect()
@@ -267,14 +247,14 @@ func (c *component) SetWidth(width int) {
 // SetHeight sets the component's height.
 func (c *component) SetHeight(height int) {
 	c.height = height
-	c.heightWithPadding = height + c.topPadding + c.bottomPadding
+	c.heightWithPadding = height + c.padding.Top + c.padding.Bottom
 	c.pixelRows = c.heightWithPadding
 
-	c.firstPixelRowId = c.topPadding
+	c.firstPixelRowId = c.padding.Top
 	c.secondPixelRowId = c.firstPixelRowId + 1
 
-	c.lastPixelRowId = c.pixelRows - c.bottomPadding - 1
-	c.penultimatePixelRowId = c.pixelRows - c.bottomPadding - 2
+	c.lastPixelRowId = c.pixelRows - c.padding.Bottom - 1
+	c.penultimatePixelRowId = c.pixelRows - c.padding.Bottom - 2
 
 	c.setImage()
 	c.setRect()
@@ -284,23 +264,23 @@ func (c *component) SetHeight(height int) {
 func (c *component) SetDimensions(width, height int) {
 	if width != 0 && height != 0 {
 		c.width = width
-		c.widthWithPadding = width + c.leftPadding + c.rightPadding
+		c.widthWithPadding = width + c.padding.Left + c.padding.Right
 		c.pixelCols = c.widthWithPadding * 4
 
-		c.firstPixelColId = c.leftPadding * 4
+		c.firstPixelColId = c.padding.Left * 4
 		c.secondPixelColId = c.firstPixelColId + 4
 
-		c.lastPixelColId = c.pixelCols - c.rightPadding*4 - 4
+		c.lastPixelColId = c.pixelCols - c.padding.Right*4 - 4
 		c.penultimatePixelColId = c.lastPixelColId - 4
 
 		c.height = height
-		c.heightWithPadding = height + c.topPadding + c.bottomPadding
+		c.heightWithPadding = height + c.padding.Top + c.padding.Bottom
 		c.pixelRows = c.heightWithPadding
 
-		c.firstPixelRowId = c.topPadding
+		c.firstPixelRowId = c.padding.Top
 		c.secondPixelRowId = c.firstPixelRowId + 1
 
-		c.lastPixelRowId = c.pixelRows - c.bottomPadding - 1
+		c.lastPixelRowId = c.pixelRows - c.padding.Bottom - 1
 		c.penultimatePixelRowId = c.lastPixelRowId - 1
 
 		c.setImage()

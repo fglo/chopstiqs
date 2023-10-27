@@ -51,7 +51,9 @@ func NewGame() *Game {
 	// component.SetDefaultPadding(3, 3, 3, 3)
 
 	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: to.Ptr(200), Height: to.Ptr(200)})
-	rootContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.VerticalListLayout{RowGap: 5}})
+	rootContainer := component.NewContainer(&component.ContainerOptions{
+		Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
+		Layout:  &component.VerticalListLayout{RowGap: 5}})
 	// rootContainer := component.NewContainer(&component.ContainerOptions{Layout: component.GridLayout(2, 2)})
 
 	lblTitle := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})

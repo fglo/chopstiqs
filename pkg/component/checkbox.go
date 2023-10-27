@@ -37,10 +37,7 @@ type CheckBoxOptions struct {
 
 	Label *Label
 
-	LeftPadding   *int
-	RightPadding  *int
-	TopPadding    *int
-	BottomPadding *int
+	Padding *Padding
 }
 
 type CheckBoxToggledEventArgs struct {
@@ -65,16 +62,16 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 
 	cb.component = cb.createComponent(width, height, options)
 
-	cb.firstPixelColId = cb.leftPadding * 4
+	cb.firstPixelColId = cb.padding.Left * 4
 	cb.secondPixelColId = cb.firstPixelColId + 4
 
-	cb.lastPixelColId = (width+cb.leftPadding)*4 - 4
+	cb.lastPixelColId = (width+cb.padding.Left)*4 - 4
 	cb.penultimatePixelColId = cb.lastPixelColId - 4
 
-	cb.firstPixelRowId = cb.topPadding
+	cb.firstPixelRowId = cb.padding.Top
 	cb.secondPixelRowId = cb.firstPixelRowId + 1
 
-	cb.lastPixelRowId = height + cb.topPadding - 1
+	cb.lastPixelRowId = height + cb.padding.Top - 1
 	cb.penultimatePixelRowId = cb.lastPixelRowId - 1
 
 	if options != nil {
@@ -95,10 +92,7 @@ func (cb *CheckBox) createComponent(width, height int, options *CheckBoxOptions)
 
 	if options != nil {
 		componentOptions = ComponentOptions{
-			LeftPadding:   options.LeftPadding,
-			RightPadding:  options.RightPadding,
-			TopPadding:    options.TopPadding,
-			BottomPadding: options.BottomPadding,
+			Padding: options.Padding,
 		}
 	}
 
@@ -131,24 +125,24 @@ func (cb *CheckBox) SetLabel(label *Label) {
 	cb.label.alignHorizontally = cb.label.alignToLeft
 	cb.label.alignVertically = cb.label.centerVertically
 
-	if cb.label.leftPadding == 0 {
-		cb.label.leftPadding = 3
+	if cb.label.padding.Left == 0 {
+		cb.label.padding.Left = 3
 	}
 
-	cb.label.SetPosistion(10+float64(cb.label.leftPadding), 4.5)
+	cb.label.SetPosistion(10+float64(cb.label.padding.Left), 4.5)
 
 	cb.SetDimensions(width+cb.label.widthWithPadding, height)
 
-	cb.firstPixelColId = cb.leftPadding * 4
+	cb.firstPixelColId = cb.padding.Left * 4
 	cb.secondPixelColId = cb.firstPixelColId + 4
 
-	cb.lastPixelColId = (width+cb.leftPadding)*4 - 4
+	cb.lastPixelColId = (width+cb.padding.Left)*4 - 4
 	cb.penultimatePixelColId = cb.lastPixelColId - 4
 
-	cb.firstPixelRowId = cb.topPadding
+	cb.firstPixelRowId = cb.padding.Top
 	cb.secondPixelRowId = cb.firstPixelRowId + 1
 
-	cb.lastPixelRowId = height + cb.topPadding - 1
+	cb.lastPixelRowId = height + cb.padding.Top - 1
 	cb.penultimatePixelRowId = cb.lastPixelRowId - 1
 }
 

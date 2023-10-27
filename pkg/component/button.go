@@ -34,10 +34,7 @@ type ButtonOptions struct {
 
 	Label *Label
 
-	LeftPadding   *int
-	RightPadding  *int
-	TopPadding    *int
-	BottomPadding *int
+	Padding *Padding
 }
 
 type ButtonPressedEventArgs struct {
@@ -114,10 +111,7 @@ func (b *Button) createComponent(width, height int, options *ButtonOptions) comp
 
 	if options != nil {
 		componentOptions = ComponentOptions{
-			LeftPadding:   options.LeftPadding,
-			RightPadding:  options.RightPadding,
-			TopPadding:    options.TopPadding,
-			BottomPadding: options.BottomPadding,
+			Padding: options.Padding,
 		}
 	}
 
