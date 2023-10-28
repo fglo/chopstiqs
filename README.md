@@ -12,6 +12,17 @@ Chopstiqs aims to be a minimalistic GUI package for the [ebiten](https://ebiteng
 
 Running example: <https://fglo.github.io/chopstiqs/>
 
+## Components
+
+- buttons
+- checkboxes
+- labels
+- containers
+- container layouts
+  - horizontal list
+  - vertical list
+  - grid
+
 ## Roadmap
 
 What I want to achieve:
@@ -22,11 +33,8 @@ What I want to achieve:
   - radiogroups
   - text inputs
   - ...
-- containers
-  - simple container with components positioned by absolute coordinates
-  - vertical list
-  - horizontal list
-  - vertical scroll container
-  - horizontal scroll container
+- container layouts
+  - vertical scroll
+  - horizontal scroll
   - flexbox
 - tests for components
