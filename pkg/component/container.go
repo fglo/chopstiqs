@@ -45,8 +45,8 @@ func NewContainer(options *ContainerOptions) Container {
 
 	if options != nil {
 		if options.Layout != nil {
-			if _, ok := options.Layout.(*GridLayout); ok {
-
+			if gl, ok := options.Layout.(*GridLayout); ok {
+				gl.Setup()
 			}
 			c.layout = options.Layout
 		}

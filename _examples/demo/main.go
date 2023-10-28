@@ -54,7 +54,9 @@ func NewGame() *Game {
 	rootContainer := component.NewContainer(&component.ContainerOptions{
 		Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
 		Layout:  &component.VerticalListLayout{RowGap: 5}})
-	// rootContainer := component.NewContainer(&component.ContainerOptions{Layout: component.GridLayout(2, 2)})
+	// rootContainer := component.NewContainer(&component.ContainerOptions{
+	// 	Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
+	// 	Layout:  &component.GridLayout{Columns: 2, ColumnGap: 5, Rows: 2, RowGap: 5}})
 
 	lblTitle := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
 
@@ -139,7 +141,7 @@ func (g *Game) checkQuitButton() error {
 	return nil
 }
 
-func (g *Game) checkDebugButton() error {
+func (g *Game) checkDebugButton() {
 	if !g.debugIsPressed && inpututil.IsKeyJustPressed(ebiten.KeyD) {
 		g.debugIsPressed = true
 	}
@@ -147,7 +149,6 @@ func (g *Game) checkDebugButton() error {
 		g.debugIsPressed = false
 		debug.Debug = !debug.Debug
 	}
-	return nil
 }
 
 func (g *Game) toggleBackground() {
