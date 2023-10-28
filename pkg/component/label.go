@@ -55,10 +55,7 @@ type LabelOptions struct {
 
 	Inverted bool
 
-	LeftPadding   *int
-	RightPadding  *int
-	TopPadding    *int
-	BottomPadding *int
+	Padding *Padding
 }
 
 func NewLabel(labelText string, options *LabelOptions) *Label {
@@ -117,10 +114,7 @@ func (l *Label) createComponent(width, height int, options *LabelOptions) compon
 
 	if options != nil {
 		componentOptions = ComponentOptions{
-			LeftPadding:   options.LeftPadding,
-			RightPadding:  options.RightPadding,
-			TopPadding:    options.TopPadding,
-			BottomPadding: options.BottomPadding,
+			Padding: options.Padding,
 		}
 	}
 
@@ -168,12 +162,16 @@ func (l *Label) InvertColor() {
 }
 
 func (l *Label) Draw() *ebiten.Image {
+	if l.hidden {
+		return l.image
+	}
+
 	l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
 
 	if l.Inverted {
-		text.Draw(l.image, l.text, l.font, l.textPosX+l.leftPadding, l.textPosY+l.topPadding, color.RGBA{255 - l.color.R, 255 - l.color.G, 255 - l.color.B, l.color.A})
+		text.Draw(l.image, l.text, l.font, l.textPosX+l.padding.Left, l.textPosY+l.padding.Top, color.RGBA{255 - l.color.R, 255 - l.color.G, 255 - l.color.B, l.color.A})
 	} else {
-		text.Draw(l.image, l.text, l.font, l.textPosX+l.leftPadding, l.textPosY+l.topPadding, l.color)
+		text.Draw(l.image, l.text, l.font, l.textPosX+l.padding.Left, l.textPosY+l.padding.Top, l.color)
 	}
 
 	l.component.Draw()

@@ -30,8 +30,20 @@ type Component interface {
 	PosX() float64
 	// PosY returns the component's position Y.
 	PosY() float64
+	// AbsPosition return the component's absolute position.
+	AbsPosition() (posX float64, posY float64)
+	// AbsPosX returns the component's absolute position X.
+	AbsPosX() float64
+	// AbsPosY returns the component's absolute position Y.
+	AbsPosY() float64
+	// Disable returns the component's disabled state.
+	Disable() bool
 	// SetDisabled sets the component's disabled state.
 	SetDisabled(disabled bool)
+	// Hidden returns the component's hidden state.
+	Hidden() bool
+	// SetHidden sets the component's hidden state.
+	SetHidden(hidden bool)
 	// FireEvents fires the component's events.
 	FireEvents()
 	// SetWidth sets the component's width.
@@ -59,16 +71,14 @@ type component struct {
 	rect image.Rectangle
 
 	disabled bool
+	hidden   bool
 
 	width             int
 	widthWithPadding  int
 	height            int
 	heightWithPadding int
 
-	leftPadding   int
-	rightPadding  int
-	topPadding    int
-	bottomPadding int
+	padding Padding
 
 	pixelCols int
 	pixelRows int
@@ -82,6 +92,9 @@ type component struct {
 	secondPixelColId      int
 	lastPixelColId        int
 	penultimatePixelColId int
+
+	absPosX float64
+	absPosY float64
 
 	posX float64
 	posY float64
@@ -98,37 +111,25 @@ type component struct {
 
 // ComponentOptions is a struct that holds component options.
 type ComponentOptions struct {
-	LeftPadding   *int
-	RightPadding  *int
-	TopPadding    *int
-	BottomPadding *int
+	Padding  *Padding
+	Disabled bool
+	Hidden   bool
 }
 
 // NewComponent creates a new component.
 func NewComponent(width, height int, options *ComponentOptions) *component {
 	c := &component{
-		leftPadding:   DefaultLeftPadding,
-		rightPadding:  DefaultRightPadding,
-		topPadding:    DefaultTopPadding,
-		bottomPadding: DefaultBottomPadding,
+		padding: DefaultPadding,
 	}
 
 	if options != nil {
-		if options.LeftPadding != nil {
-			c.leftPadding = *options.LeftPadding
+		if options.Padding != nil {
+			options.Padding.Validate()
+			c.padding = *options.Padding
 		}
 
-		if options.RightPadding != nil {
-			c.rightPadding = *options.RightPadding
-		}
-
-		if options.TopPadding != nil {
-			c.topPadding = *options.TopPadding
-		}
-
-		if options.BottomPadding != nil {
-			c.bottomPadding = *options.BottomPadding
-		}
+		c.disabled = options.Disabled
+		c.hidden = options.Hidden
 	}
 
 	c.SetDimensions(width, height)
@@ -187,85 +188,132 @@ func (c *component) Draw() *ebiten.Image {
 // SetPosX sets the component's position X.
 func (c *component) SetPosX(posX float64) {
 	c.posX = posX
-	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
+	if c.container != nil {
+		c.absPosX = posX + c.container.PosX()
+	} else {
+		c.absPosX = posX
+	}
+
+	c.setRect()
 }
 
 // SetPosY sets the component's position Y.
 func (c *component) SetPosY(posY float64) {
 	c.posY = posY
-	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
+	if c.container != nil {
+		c.absPosY = posY + c.container.PosY()
+	} else {
+		c.absPosY = posY
+	}
+
+	c.setRect()
 }
 
 // SetPosision sets the component's position (x and y).
 func (c *component) SetPosision(posX, posY float64) {
 	c.posX = posX
+	if c.container != nil {
+		c.absPosX = posX + c.container.PosX()
+	} else {
+		c.absPosX = posX
+	}
+
 	c.posY = posY
-	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
+	if c.container != nil {
+		c.absPosY = posY + c.container.PosY()
+	} else {
+		c.absPosY = posY
+	}
+
+	c.setRect()
 }
 
 // SetWidth sets the component's width.
 func (c *component) SetWidth(width int) {
 	c.width = width
-	c.widthWithPadding = width + c.leftPadding + c.rightPadding
+	c.widthWithPadding = width + c.padding.Left + c.padding.Right
 	c.pixelCols = c.widthWithPadding * 4
 
-	c.firstPixelColId = c.leftPadding * 4
+	c.firstPixelColId = c.padding.Left * 4
 	c.secondPixelColId = c.firstPixelColId + 4
 
-	c.lastPixelColId = c.pixelCols - c.rightPadding*4 - 4
-	c.penultimatePixelColId = c.pixelCols - c.rightPadding*4 - 8
+	c.lastPixelColId = c.pixelCols - c.padding.Right*4 - 4
+	c.penultimatePixelColId = c.pixelCols - c.padding.Right*4 - 8
 
-	c.image = ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
-	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
+	c.setImage()
+	c.setRect()
 }
 
 // SetHeight sets the component's height.
 func (c *component) SetHeight(height int) {
 	c.height = height
-	c.heightWithPadding = height + c.topPadding + c.bottomPadding
+	c.heightWithPadding = height + c.padding.Top + c.padding.Bottom
 	c.pixelRows = c.heightWithPadding
 
-	c.firstPixelRowId = c.topPadding
+	c.firstPixelRowId = c.padding.Top
 	c.secondPixelRowId = c.firstPixelRowId + 1
 
-	c.lastPixelRowId = c.pixelRows - c.bottomPadding - 1
-	c.penultimatePixelRowId = c.pixelRows - c.bottomPadding - 2
+	c.lastPixelRowId = c.pixelRows - c.padding.Bottom - 1
+	c.penultimatePixelRowId = c.pixelRows - c.padding.Bottom - 2
 
-	c.image = ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
-	c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
+	c.setImage()
+	c.setRect()
 }
 
 // SetDimensions sets the component's dimensions (width and height).
 func (c *component) SetDimensions(width, height int) {
 	if width != 0 && height != 0 {
 		c.width = width
-		c.widthWithPadding = width + c.leftPadding + c.rightPadding
+		c.widthWithPadding = width + c.padding.Left + c.padding.Right
 		c.pixelCols = c.widthWithPadding * 4
 
-		c.firstPixelColId = c.leftPadding * 4
+		c.firstPixelColId = c.padding.Left * 4
 		c.secondPixelColId = c.firstPixelColId + 4
 
-		c.lastPixelColId = c.pixelCols - c.rightPadding*4 - 4
+		c.lastPixelColId = c.pixelCols - c.padding.Right*4 - 4
 		c.penultimatePixelColId = c.lastPixelColId - 4
 
 		c.height = height
-		c.heightWithPadding = height + c.topPadding + c.bottomPadding
+		c.heightWithPadding = height + c.padding.Top + c.padding.Bottom
 		c.pixelRows = c.heightWithPadding
 
-		c.firstPixelRowId = c.topPadding
+		c.firstPixelRowId = c.padding.Top
 		c.secondPixelRowId = c.firstPixelRowId + 1
 
-		c.lastPixelRowId = c.pixelRows - c.bottomPadding - 1
+		c.lastPixelRowId = c.pixelRows - c.padding.Bottom - 1
 		c.penultimatePixelRowId = c.lastPixelRowId - 1
 
-		c.image = ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
-		c.rect = image.Rectangle{Min: image.Point{int(c.posX), int(c.posY)}, Max: image.Point{int(c.posX) + c.widthWithPadding, int(c.posY) + c.heightWithPadding}}
+		c.setImage()
+		c.setRect()
 	}
+}
+
+func (c *component) setImage() {
+	c.image = ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
+}
+
+func (c *component) setRect() {
+	c.rect = image.Rectangle{Min: image.Point{int(c.absPosX), int(c.absPosY)}, Max: image.Point{int(c.absPosX) + c.widthWithPadding, int(c.absPosY) + c.heightWithPadding}}
+}
+
+// Disable returns the component's disabled state.
+func (c *component) Disable() bool {
+	return c.disabled
 }
 
 // SetDisabled sets the component's disabled state.
 func (c *component) SetDisabled(disabled bool) {
 	c.disabled = disabled
+}
+
+// Hidden returns the component's hidden state.
+func (c *component) Hidden() bool {
+	return c.hidden
+}
+
+// SetHidden sets the component's hidden state.
+func (c *component) SetHidden(hidden bool) {
+	c.hidden = hidden
 }
 
 // Position returns the component's position (x and y).
@@ -281,6 +329,21 @@ func (c *component) PosX() float64 {
 // PosY returns the component's position Y.
 func (c *component) PosY() float64 {
 	return c.posY
+}
+
+// AbsPosition return the component's absolute position.
+func (c *component) AbsPosition() (posX float64, posY float64) {
+	return c.absPosX, c.absPosY
+}
+
+// AbsPosX returns the component's absolute position X.
+func (c *component) AbsPosX() float64 {
+	return c.absPosX
+}
+
+// AbsPosY returns the component's absolute position Y.
+func (c *component) AbsPosY() float64 {
+	return c.absPosY
 }
 
 // Dimensions returns the component's size (width and height).
