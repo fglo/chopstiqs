@@ -2,12 +2,15 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 	"log"
+	"strconv"
 
 	"github.com/fglo/chopstiqs/pkg/component"
 	"github.com/fglo/chopstiqs/pkg/debug"
 	"github.com/fglo/chopstiqs/pkg/gui"
+	"github.com/fglo/chopstiqs/pkg/to"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -95,6 +98,55 @@ func NewGame() *Game {
 	checkBoxContainer.AddComponent(cb)
 	checkBoxContainer.AddComponent(cb2)
 
+	sliderLabel := component.NewLabel("4", &component.LabelOptions{
+		Color: color.RGBA{230, 230, 230, 255},
+		Padding: &component.Padding{
+			Top: 4,
+		},
+	})
+
+	slider := component.NewSlider(&component.SliderOptions{
+		Min:          to.Ptr(0.),
+		Max:          to.Ptr(10.),
+		Step:         to.Ptr(1.),
+		DefaultValue: to.Ptr(4.),
+		Width:        to.Ptr(100),
+		Height:       to.Ptr(15),
+	})
+
+	slider.AddSlidedHandler(func(args *component.SliderSlidedEventArgs) {
+		sliderLabel.SetText(strconv.Itoa(int(args.Value)))
+	})
+
+	sliderContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	sliderContainer.AddComponent(slider)
+	sliderContainer.AddComponent(sliderLabel)
+
+	sliderLabel2 := component.NewLabel("0.5", &component.LabelOptions{
+		Color: color.RGBA{230, 230, 230, 255},
+		Padding: &component.Padding{
+			Top: 4,
+		},
+	})
+
+	//TODO: fix float slider (is it really a problem with floats?)
+	slider2 := component.NewSlider(&component.SliderOptions{
+		Min:          to.Ptr(0.),
+		Max:          to.Ptr(1.),
+		Step:         to.Ptr(.05),
+		DefaultValue: to.Ptr(.5),
+		Width:        to.Ptr(150),
+		Height:       to.Ptr(15),
+	})
+
+	slider2.AddSlidedHandler(func(args *component.SliderSlidedEventArgs) {
+		sliderLabel2.SetText(fmt.Sprintf("%.2f", args.Value))
+	})
+
+	sliderContainer2 := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	sliderContainer2.AddComponent(slider2)
+	sliderContainer2.AddComponent(sliderLabel2)
+
 	lblTitle.SetPosision(5, 5)
 	rootContainer.AddComponent(lblTitle)
 	lblInstructions.SetPosision(5, 15)
@@ -105,6 +157,8 @@ func NewGame() *Game {
 	rootContainer.AddComponent(btn)
 	btn2.SetPosision(5, 75)
 	rootContainer.AddComponent(btn2)
+	rootContainer.AddComponent(sliderContainer)
+	rootContainer.AddComponent(sliderContainer2)
 
 	gui.SetRootContainer(rootContainer)
 
@@ -112,8 +166,8 @@ func NewGame() *Game {
 }
 
 func (g *Game) getWindowSize() (int, int) {
-	var factor float32 = 2
-	return int(float32(g.screenWidth) * factor), int(float32(g.screenHeight) * factor)
+	var factor float64 = 2
+	return int(float64(g.screenWidth) * factor), int(float64(g.screenHeight) * factor)
 }
 
 // Layout implements ebiten.Game's Layout.

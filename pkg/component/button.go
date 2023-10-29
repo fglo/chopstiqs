@@ -27,6 +27,9 @@ type Button struct {
 }
 
 type ButtonOptions struct {
+	Width  *int
+	Height *int
+
 	Color         color.Color
 	ColorPressed  color.Color
 	ColorHovered  color.Color
@@ -57,9 +60,6 @@ type ButtonReleasedHandlerFunc func(args *ButtonReleasedEventArgs)
 type ButtonClickedHandlerFunc func(args *ButtonClickedEventArgs)
 
 func NewButton(options *ButtonOptions) *Button {
-	width := 45
-	height := 15
-
 	b := &Button{
 		PressedEvent:  &event.Event{},
 		ReleasedEvent: &event.Event{},
@@ -71,9 +71,18 @@ func NewButton(options *ButtonOptions) *Button {
 		colorDisabled: color.RGBA{150, 150, 150, 255},
 	}
 
-	b.component = b.createComponent(width, height, options)
+	b.width = 45
+	b.height = 15
 
 	if options != nil {
+		if options.Width != nil {
+			b.width = *options.Width
+		}
+
+		if options.Height != nil {
+			b.height = *options.Height
+		}
+
 		if options.Label != nil {
 			b.SetLabel(options.Label)
 
@@ -103,10 +112,12 @@ func NewButton(options *ButtonOptions) *Button {
 		}
 	}
 
+	b.setUpComponent(options)
+
 	return b
 }
 
-func (b *Button) createComponent(width, height int, options *ButtonOptions) component {
+func (b *Button) setUpComponent(options *ButtonOptions) {
 	var componentOptions ComponentOptions
 
 	if options != nil {
@@ -115,19 +126,19 @@ func (b *Button) createComponent(width, height int, options *ButtonOptions) comp
 		}
 	}
 
-	component := NewComponent(width, height, &componentOptions)
+	b.component.setUpComponent(&componentOptions)
 
-	component.AddCursorEnterHandler(func(args *ComponentCursorEnterEventArgs) {
+	b.component.AddCursorEnterHandler(func(args *ComponentCursorEnterEventArgs) {
 		if !b.disabled {
 			b.hovering = true
 		}
 	})
 
-	component.AddCursorExitHandler(func(args *ComponentCursorExitEventArgs) {
+	b.component.AddCursorExitHandler(func(args *ComponentCursorExitEventArgs) {
 		b.hovering = false
 	})
 
-	component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
+	b.component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
 		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = true
 			b.PressedEvent.Fire(&ButtonPressedEventArgs{
@@ -136,7 +147,7 @@ func (b *Button) createComponent(width, height int, options *ButtonOptions) comp
 		}
 	})
 
-	component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
+	b.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = false
 			b.ReleasedEvent.Fire(&ButtonReleasedEventArgs{
@@ -149,8 +160,6 @@ func (b *Button) createComponent(width, height int, options *ButtonOptions) comp
 			})
 		}
 	})
-
-	return *component
 }
 
 func (b *Button) AddPressedHandler(f ButtonPressedHandlerFunc) *Button {
