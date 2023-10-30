@@ -54,7 +54,7 @@ func NewGame() *Game {
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
 
-	component.SetDefaultPadding(2, 2, 2, 2)
+	// component.SetDefaultPadding(2, 2, 2, 2)
 
 	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: to.Ptr(200), Height: to.Ptr(200)})
 	rootContainer := component.NewContainer(&component.ContainerOptions{
