@@ -1,7 +1,5 @@
 package event
 
-import "fmt"
-
 // Event represents an event that can be fired.
 type Event struct {
 	idCounter uint32
@@ -91,14 +89,6 @@ func HandleFired() {
 	for len(firedEvents) > 0 {
 		fired := firedEvents[0]
 		firedEvents = firedEvents[1:]
-
-		if fired == nil {
-			fmt.Println("test")
-		}
-
-		if fired.event == nil {
-			fmt.Println("test2")
-		}
 
 		for _, handler := range fired.event.handlers {
 			handler.handle(fired.args)
