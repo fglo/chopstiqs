@@ -135,7 +135,7 @@ func NewGame() *Game {
 		Max:          to.Ptr(1.),
 		Step:         to.Ptr(.05),
 		DefaultValue: to.Ptr(.5),
-		Width:        to.Ptr(150),
+		Width:        to.Ptr(100),
 		Height:       to.Ptr(15),
 	})
 

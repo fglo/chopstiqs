@@ -140,7 +140,8 @@ func NewSlider(options *SliderOptions) *Slider {
 	s.lastPixelRowId = s.height + s.padding.Top - 4
 	s.penultimatePixelRowId = s.lastPixelRowId - 1
 
-	s.stepPixels = int(math.Round(float64(s.component.width-4) / math.Round((s.max+1-s.min)/s.step)))
+	steps := math.Round((s.max-s.min)/s.step) + 1
+	s.stepPixels = int(math.Round(float64(s.component.width-4) / steps))
 
 	s.handle = NewButton(&ButtonOptions{Width: to.Ptr(7), Height: &s.component.height})
 	s.handle.SetPosision(s.value/s.step*float64(s.stepPixels), 0)
@@ -288,10 +289,8 @@ func (s *Slider) Draw() *ebiten.Image {
 
 	s.image.WritePixels(arr)
 
-	if s.sliding {
-		if s.handle.posX >= 0 && s.handle.posX <= float64(s.width) {
-			s.updateHandlePosition()
-		}
+	if s.sliding && s.handle.posX >= 0 && s.handle.posX <= float64(s.width) {
+		s.updateHandlePosition()
 	}
 
 	op := &ebiten.DrawImageOptions{}
@@ -329,26 +328,23 @@ func (s *Slider) updateHandlePosition() {
 	case currCursorPosX < s.rect.Min.X:
 		s.setToMin()
 	default:
-		diff := currCursorPosX - int(s.handle.absPosX)
-		steps := int(math.Round(float64(diff) / float64(s.stepPixels)))
-		displacement := steps * s.stepPixels
+		diff := currCursorPosX - int(s.absPosX)
+		steps := math.Round(float64(diff) / float64(s.stepPixels))
+		newHandlePosX := steps * float64(s.stepPixels)
 
-		if displacement != 0 {
-			newHandlePosX := s.handle.posX + float64(displacement)
-			s.value += float64(steps) * s.step
+		s.value = float64(steps) * s.step
 
-			switch {
-			case s.value == s.max || newHandlePosX > float64(s.rect.Max.X-s.handle.width)-s.absPosX:
-				s.setToMax()
-			case s.value == s.min || newHandlePosX < float64(s.rect.Min.X)-s.absPosX:
-				s.setToMin()
-			default:
-				s.handle.SetPosX(newHandlePosX)
-				s.SlidedEvent.Fire(&SliderSlidedEventArgs{
-					Slider: s,
-					Value:  s.value,
-				})
-			}
+		switch {
+		case s.value >= s.max || newHandlePosX >= float64(s.rect.Max.X-s.handle.width)-s.absPosX:
+			s.setToMax()
+		case s.value <= s.min || newHandlePosX <= float64(s.rect.Min.X)-s.absPosX:
+			s.setToMin()
+		default:
+			s.handle.SetPosX(newHandlePosX)
+			s.SlidedEvent.Fire(&SliderSlidedEventArgs{
+				Slider: s,
+				Value:  s.value,
+			})
 		}
 	}
 }
