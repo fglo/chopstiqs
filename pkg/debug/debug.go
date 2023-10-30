@@ -4,7 +4,6 @@ var (
 	Debug                = false
 	ShowComponentBorders = false
 	ShowComponentPadding = false
-	ShowGridCells        = false
 )
 
 func TurnDebugOn() {
