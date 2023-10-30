@@ -132,7 +132,6 @@ func NewGame() *Game {
 		},
 	})
 
-	//TODO: fix float slider (is it really a problem with floats?)
 	slider2 := component.NewSlider(&component.SliderOptions{
 		Min:          to.Ptr(0.),
 		Max:          to.Ptr(1.),
