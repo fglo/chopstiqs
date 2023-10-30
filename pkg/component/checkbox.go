@@ -16,8 +16,8 @@ type CheckBox struct {
 
 	label *Label
 
-	width  int
-	height int
+	cbWidth  int
+	cbHeight int
 
 	firstPixelRowId       int
 	secondPixelRowId      int
@@ -47,31 +47,30 @@ type CheckBoxToggledEventArgs struct {
 type CheckBoxToggledHandlerFunc func(args *CheckBoxToggledEventArgs)
 
 func NewCheckBox(options *CheckBoxOptions) *CheckBox {
-	width := 10
-	height := 10
 
 	cb := &CheckBox{
 		Checked:      false,
 		ToggledEvent: &event.Event{},
 
-		width:  width,
-		height: height,
+		cbWidth:  10,
+		cbHeight: 10,
 
 		color: color.RGBA{230, 230, 230, 255},
 	}
 
-	cb.component = cb.createComponent(width, height, options)
+	cb.component.width = 10
+	cb.component.height = 10
 
 	cb.firstPixelColId = cb.padding.Left * 4
 	cb.secondPixelColId = cb.firstPixelColId + 4
 
-	cb.lastPixelColId = (width+cb.padding.Left)*4 - 4
+	cb.lastPixelColId = (cb.cbWidth+cb.padding.Left)*4 - 4
 	cb.penultimatePixelColId = cb.lastPixelColId - 4
 
 	cb.firstPixelRowId = cb.padding.Top
 	cb.secondPixelRowId = cb.firstPixelRowId + 1
 
-	cb.lastPixelRowId = height + cb.padding.Top - 1
+	cb.lastPixelRowId = cb.cbHeight + cb.padding.Top - 1
 	cb.penultimatePixelRowId = cb.lastPixelRowId - 1
 
 	if options != nil {
@@ -84,10 +83,12 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 		}
 	}
 
+	cb.setUpComponent(options)
+
 	return cb
 }
 
-func (cb *CheckBox) createComponent(width, height int, options *CheckBoxOptions) component {
+func (cb *CheckBox) setUpComponent(options *CheckBoxOptions) {
 	var componentOptions ComponentOptions
 
 	if options != nil {
@@ -96,9 +97,9 @@ func (cb *CheckBox) createComponent(width, height int, options *CheckBoxOptions)
 		}
 	}
 
-	component := NewComponent(width, height, &componentOptions)
+	cb.component.setUpComponent(&componentOptions)
 
-	component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
+	cb.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if !cb.disabled && args.Inside {
 			cb.Checked = !cb.Checked
 			cb.ToggledEvent.Fire(&CheckBoxToggledEventArgs{
@@ -106,8 +107,6 @@ func (cb *CheckBox) createComponent(width, height int, options *CheckBoxOptions)
 			})
 		}
 	})
-
-	return *component
 }
 
 func (cb *CheckBox) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox {
@@ -118,9 +117,6 @@ func (cb *CheckBox) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox {
 
 // SetLabel sets the label of the checkbox and adjusts the checkbox's dimensions accordingly.
 func (cb *CheckBox) SetLabel(label *Label) {
-	width := 10
-	height := 10
-
 	cb.label = label
 	cb.label.alignHorizontally = cb.label.alignToLeft
 	cb.label.alignVertically = cb.label.centerVertically
@@ -131,18 +127,18 @@ func (cb *CheckBox) SetLabel(label *Label) {
 
 	cb.label.SetPosistion(10+float64(cb.label.padding.Left), 4.5)
 
-	cb.SetDimensions(width+cb.label.widthWithPadding, height)
+	cb.SetDimensions(cb.cbWidth+cb.label.widthWithPadding, cb.cbHeight)
 
 	cb.firstPixelColId = cb.padding.Left * 4
 	cb.secondPixelColId = cb.firstPixelColId + 4
 
-	cb.lastPixelColId = (width+cb.padding.Left)*4 - 4
+	cb.lastPixelColId = (cb.cbWidth+cb.padding.Left)*4 - 4
 	cb.penultimatePixelColId = cb.lastPixelColId - 4
 
 	cb.firstPixelRowId = cb.padding.Top
 	cb.secondPixelRowId = cb.firstPixelRowId + 1
 
-	cb.lastPixelRowId = height + cb.padding.Top - 1
+	cb.lastPixelRowId = cb.cbHeight + cb.padding.Top - 1
 	cb.penultimatePixelRowId = cb.lastPixelRowId - 1
 }
 

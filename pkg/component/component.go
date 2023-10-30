@@ -116,12 +116,8 @@ type ComponentOptions struct {
 	Hidden   bool
 }
 
-// NewComponent creates a new component.
-func NewComponent(width, height int, options *ComponentOptions) *component {
-	c := &component{
-		padding: DefaultPadding,
-	}
-
+// SetupComponent sets up the component.
+func (c *component) setUpComponent(options *ComponentOptions) {
 	if options != nil {
 		if options.Padding != nil {
 			options.Padding.Validate()
@@ -132,14 +128,15 @@ func NewComponent(width, height int, options *ComponentOptions) *component {
 		c.hidden = options.Hidden
 	}
 
-	c.SetDimensions(width, height)
-
-	return c
+	c.SetDimensions(c.width, c.height)
 }
 
 // setContainer sets the component's container.
 func (c *component) setContainer(container Container) {
 	c.container = container
+	c.absPosX = c.posX + c.container.AbsPosX()
+	c.absPosY = c.posY + c.container.AbsPosY()
+	c.setRect()
 }
 
 func (c *component) Draw() *ebiten.Image {
@@ -189,7 +186,7 @@ func (c *component) Draw() *ebiten.Image {
 func (c *component) SetPosX(posX float64) {
 	c.posX = posX
 	if c.container != nil {
-		c.absPosX = posX + c.container.PosX()
+		c.absPosX = posX + c.container.AbsPosX()
 	} else {
 		c.absPosX = posX
 	}
@@ -201,7 +198,7 @@ func (c *component) SetPosX(posX float64) {
 func (c *component) SetPosY(posY float64) {
 	c.posY = posY
 	if c.container != nil {
-		c.absPosY = posY + c.container.PosY()
+		c.absPosY = posY + c.container.AbsPosY()
 	} else {
 		c.absPosY = posY
 	}
@@ -213,14 +210,14 @@ func (c *component) SetPosY(posY float64) {
 func (c *component) SetPosision(posX, posY float64) {
 	c.posX = posX
 	if c.container != nil {
-		c.absPosX = posX + c.container.PosX()
+		c.absPosX = posX + c.container.AbsPosX()
 	} else {
 		c.absPosX = posX
 	}
 
 	c.posY = posY
 	if c.container != nil {
-		c.absPosY = posY + c.container.PosY()
+		c.absPosY = posY + c.container.AbsPosY()
 	} else {
 		c.absPosY = posY
 	}

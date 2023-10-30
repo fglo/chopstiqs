@@ -41,7 +41,8 @@ func NewContainer(options *ContainerOptions) Container {
 		components: make([]Component, 0),
 	}
 
-	c.component = c.createComponent(1, 1, options)
+	c.component.width = 1
+	c.component.height = 1
 
 	if options != nil {
 		if options.Layout != nil {
@@ -60,10 +61,12 @@ func NewContainer(options *ContainerOptions) Container {
 		}
 	}
 
+	c.setUpComponent(options)
+
 	return c
 }
 
-func (c *container) createComponent(width, height int, options *ContainerOptions) component {
+func (c *container) setUpComponent(options *ContainerOptions) {
 	var componentOptions ComponentOptions
 
 	if options != nil {
@@ -72,9 +75,7 @@ func (c *container) createComponent(width, height int, options *ContainerOptions
 		}
 	}
 
-	component := NewComponent(width, height, &componentOptions)
-
-	return *component
+	c.component.setUpComponent(&componentOptions)
 }
 
 // setContainer sets the component's container.

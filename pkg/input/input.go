@@ -3,10 +3,8 @@ package input
 import ebiten "github.com/hajimehoshi/ebiten/v2"
 
 var (
-	CursorPosX           int
-	CursorPosY           int
-	CursorPosXNormalized float32
-	CursorPosYNormalized float32
+	CursorPosX int
+	CursorPosY int
 
 	MouseLeftButtonPressed           bool
 	MouseLeftButtonJustPressed       bool

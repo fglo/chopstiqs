@@ -59,23 +59,14 @@ type LabelOptions struct {
 }
 
 func NewLabel(labelText string, options *LabelOptions) *Label {
-	// TODO: change deprecated function
-	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
-
-	width := bounds.Dx()
-	height := bounds.Dy()
-
 	l := &Label{
-		text:       labelText,
-		color:      color.RGBA{230, 230, 230, 255},
-		font:       fontutils.DefaultFontFace,
-		textPosX:   0,
-		textPosY:   -bounds.Min.Y,
-		textBounds: bounds,
-		Inverted:   false,
+		color:    color.RGBA{230, 230, 230, 255},
+		font:     fontutils.DefaultFontFace,
+		textPosX: 0,
+		Inverted: false,
 	}
 
-	l.component = l.createComponent(width, height, options)
+	l.SetText(labelText)
 
 	if options != nil {
 		if options.Color != nil {
@@ -106,10 +97,12 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 
 	l.align()
 
+	l.setUpComponent(options)
+
 	return l
 }
 
-func (l *Label) createComponent(width, height int, options *LabelOptions) component {
+func (l *Label) setUpComponent(options *LabelOptions) {
 	var componentOptions ComponentOptions
 
 	if options != nil {
@@ -118,9 +111,7 @@ func (l *Label) createComponent(width, height int, options *LabelOptions) compon
 		}
 	}
 
-	component := NewComponent(width, height, &componentOptions)
-
-	return *component
+	l.component.setUpComponent(&componentOptions)
 }
 
 func (l *Label) align() {
@@ -155,6 +146,26 @@ func (l *Label) alignToTop() {
 
 func (l *Label) alignToBottom() {
 	l.posY = l.posY - float64(l.textBounds.Dy())
+}
+
+func (l *Label) SetText(labelText string) {
+	// TODO: change deprecated function
+	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
+
+	l.text = labelText
+
+	l.textPosY = -bounds.Min.Y
+	l.textBounds = bounds
+
+	if l.container != nil {
+		l.container.SetWidth(l.container.Width() - l.component.width)
+	}
+
+	l.SetDimensions(bounds.Dx(), bounds.Dy())
+
+	if l.container != nil {
+		l.container.SetWidth(l.container.Width() + l.component.width)
+	}
 }
 
 func (l *Label) InvertColor() {
