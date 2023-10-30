@@ -118,6 +118,8 @@ type ComponentOptions struct {
 
 // SetupComponent sets up the component.
 func (c *component) setUpComponent(options *ComponentOptions) {
+	c.padding = DefaultPadding
+
 	if options != nil {
 		if options.Padding != nil {
 			options.Padding.Validate()
@@ -139,39 +141,87 @@ func (c *component) setContainer(container Container) {
 	c.setRect()
 }
 
+func (c *component) drawBorders(arr []byte) []byte {
+	borderColor := color.RGBA{249, 192, 46, 255}
+
+	firstRowNumber := c.pixelCols * c.padding.Top
+	lastRowNumber := c.pixelCols * (c.pixelRows - c.padding.Bottom - 1)
+	for colId := c.padding.Left * 4; colId < c.pixelCols-c.padding.Right*4; colId += 4 {
+		arr[colId+firstRowNumber] = borderColor.R
+		arr[colId+1+firstRowNumber] = borderColor.G
+		arr[colId+2+firstRowNumber] = borderColor.B
+		arr[colId+3+firstRowNumber] = borderColor.A
+
+		arr[colId+lastRowNumber] = borderColor.R
+		arr[colId+1+lastRowNumber] = borderColor.G
+		arr[colId+2+lastRowNumber] = borderColor.B
+		arr[colId+3+lastRowNumber] = borderColor.A
+	}
+
+	firstColumnNumber := c.padding.Left * 4
+	lastColumnNumber := c.pixelCols - 4 - c.padding.Right*4
+	for rowId := c.padding.Top; rowId < c.pixelRows-c.padding.Bottom; rowId++ {
+		rowNumber := c.pixelCols * rowId
+
+		arr[firstColumnNumber+rowNumber] = borderColor.R
+		arr[firstColumnNumber+1+rowNumber] = borderColor.G
+		arr[firstColumnNumber+2+rowNumber] = borderColor.B
+		arr[firstColumnNumber+3+rowNumber] = borderColor.A
+
+		arr[lastColumnNumber+rowNumber] = borderColor.R
+		arr[lastColumnNumber+1+rowNumber] = borderColor.G
+		arr[lastColumnNumber+2+rowNumber] = borderColor.B
+		arr[lastColumnNumber+3+rowNumber] = borderColor.A
+	}
+
+	return arr
+}
+
+func (c *component) drawPadding(arr []byte) []byte {
+	paddingBorderColor := color.RGBA{255, 100, 100, 255}
+
+	lastRowNumber := c.pixelCols * (c.pixelRows - 1)
+	for colId := 0; colId < c.pixelCols; colId += 4 {
+		arr[colId] = paddingBorderColor.R
+		arr[colId+1] = paddingBorderColor.G
+		arr[colId+2] = paddingBorderColor.B
+		arr[colId+3] = paddingBorderColor.A
+
+		arr[colId+lastRowNumber] = paddingBorderColor.R
+		arr[colId+1+lastRowNumber] = paddingBorderColor.G
+		arr[colId+2+lastRowNumber] = paddingBorderColor.B
+		arr[colId+3+lastRowNumber] = paddingBorderColor.A
+	}
+
+	for rowId := 0; rowId < c.pixelRows; rowId++ {
+		rowNumber := c.pixelCols * rowId
+
+		arr[rowNumber] = paddingBorderColor.R
+		arr[1+rowNumber] = paddingBorderColor.G
+		arr[2+rowNumber] = paddingBorderColor.B
+		arr[3+rowNumber] = paddingBorderColor.A
+
+		arr[c.pixelCols-4+rowNumber] = paddingBorderColor.R
+		arr[c.pixelCols-4+1+rowNumber] = paddingBorderColor.G
+		arr[c.pixelCols-4+2+rowNumber] = paddingBorderColor.B
+		arr[c.pixelCols-4+3+rowNumber] = paddingBorderColor.A
+	}
+
+	return arr
+}
+
 func (c *component) Draw() *ebiten.Image {
 	if debug.Debug {
 		debugImage := ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
 
-		debugColor := color.RGBA{255, 100, 100, 255}
-
 		arr := make([]byte, c.pixelRows*c.pixelCols)
 
-		lastRowNumber := c.pixelCols * (c.pixelRows - 1)
-		for colId := 0; colId < c.pixelCols; colId += 4 {
-			arr[colId] = debugColor.R
-			arr[colId+1] = debugColor.G
-			arr[colId+2] = debugColor.B
-			arr[colId+3] = debugColor.A
-
-			arr[colId+lastRowNumber] = debugColor.R
-			arr[colId+1+lastRowNumber] = debugColor.G
-			arr[colId+2+lastRowNumber] = debugColor.B
-			arr[colId+3+lastRowNumber] = debugColor.A
+		if debug.ShowComponentBorders {
+			arr = c.drawBorders(arr)
 		}
 
-		for rowId := 0; rowId < c.pixelRows; rowId++ {
-			rowNumber := c.pixelCols * rowId
-
-			arr[rowNumber] = debugColor.R
-			arr[1+rowNumber] = debugColor.G
-			arr[2+rowNumber] = debugColor.B
-			arr[3+rowNumber] = debugColor.A
-
-			arr[c.pixelCols-4+rowNumber] = debugColor.R
-			arr[c.pixelCols-4+1+rowNumber] = debugColor.G
-			arr[c.pixelCols-4+2+rowNumber] = debugColor.B
-			arr[c.pixelCols-4+3+rowNumber] = debugColor.A
+		if debug.ShowComponentPadding {
+			arr = c.drawPadding(arr)
 		}
 
 		debugImage.WritePixels(arr)

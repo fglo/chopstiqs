@@ -1,7 +1,9 @@
 package debug
 
 var (
-	Debug = false
+	Debug                = false
+	ShowComponentBorders = false
+	ShowComponentPadding = false
 )
 
 func TurnDebugOn() {
