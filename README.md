@@ -17,6 +17,7 @@ Running example: <https://fglo.github.io/chopstiqs/>
 - buttons
 - checkboxes
 - labels
+- sliders
 - containers
 - container layouts
   - horizontal list
@@ -28,7 +29,6 @@ Running example: <https://fglo.github.io/chopstiqs/>
 What I want to achieve:
 
 - more components:
-  - sliders
   - tooltips
   - radiogroups
   - text inputs
