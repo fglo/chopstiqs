@@ -128,18 +128,6 @@ func NewSlider(options *SliderOptions) *Slider {
 		}
 	}
 
-	s.firstPixelColId = s.padding.Left * 4
-	s.secondPixelColId = s.firstPixelColId + 4
-
-	s.lastPixelColId = (s.width+s.padding.Left)*4 - 4
-	s.penultimatePixelColId = s.lastPixelColId - 4
-
-	s.firstPixelRowId = s.padding.Top + 3
-	s.secondPixelRowId = s.firstPixelRowId + 1
-
-	s.lastPixelRowId = s.height + s.padding.Top - 4
-	s.penultimatePixelRowId = s.lastPixelRowId - 1
-
 	steps := math.Round((s.max-s.min)/s.step) + 1
 	s.stepPixels = int(math.Round(float64(s.component.width-4) / steps))
 
@@ -147,6 +135,8 @@ func NewSlider(options *SliderOptions) *Slider {
 	s.handle.SetPosision(s.value/s.step*float64(s.stepPixels), 0)
 
 	s.setUpComponent(options)
+
+	s.setDrawingDimensions()
 
 	return s
 }
@@ -195,6 +185,14 @@ func (s *Slider) setUpComponent(options *SliderOptions) {
 		}
 	})
 
+	s.PressedEvent.AddHandler(func(args interface{}) {
+		s.sliding = true
+	})
+
+	s.ReleasedEvent.AddHandler(func(args interface{}) {
+		s.sliding = false
+	})
+
 	s.handle.AddPressedHandler(func(args *ButtonPressedEventArgs) {
 		s.sliding = true
 	})
@@ -202,6 +200,20 @@ func (s *Slider) setUpComponent(options *SliderOptions) {
 	s.handle.AddReleasedHandler(func(args *ButtonReleasedEventArgs) {
 		s.sliding = false
 	})
+}
+
+func (s *Slider) setDrawingDimensions() {
+	s.firstPixelColId = s.padding.Left * 4
+	s.secondPixelColId = s.firstPixelColId + 4
+
+	s.lastPixelColId = (s.width+s.padding.Left)*4 - 4
+	s.penultimatePixelColId = s.lastPixelColId - 4
+
+	s.firstPixelRowId = s.padding.Top + 3
+	s.secondPixelRowId = s.firstPixelRowId + 1
+
+	s.lastPixelRowId = s.height + s.padding.Top - 4
+	s.penultimatePixelRowId = s.lastPixelRowId - 1
 }
 
 func (s *Slider) AddComponent(Component) {
@@ -297,6 +309,8 @@ func (s *Slider) Draw() *ebiten.Image {
 	op.GeoM.Translate(s.handle.Position())
 	handleImg := s.handle.Draw()
 	s.image.DrawImage(handleImg, op)
+
+	s.component.Draw()
 
 	return s.image
 }

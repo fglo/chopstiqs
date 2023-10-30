@@ -29,12 +29,15 @@ Running example: <https://fglo.github.io/chopstiqs/>
 What I want to achieve:
 
 - more components:
+  - text inputs
   - tooltips
   - radiogroups
-  - text inputs
+  - modals and/or dialogs
   - ...
+- touchscreen support
 - container layouts
   - vertical scroll
   - horizontal scroll
   - flexbox
+- layers (mulitple containers on top of each other)
 - tests for components

@@ -1,7 +1,10 @@
 package debug
 
 var (
-	Debug = false
+	Debug                = false
+	ShowComponentBorders = false
+	ShowComponentPadding = false
+	ShowGridCells        = false
 )
 
 func TurnDebugOn() {

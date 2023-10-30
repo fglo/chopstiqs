@@ -95,9 +95,9 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 		l.alignVertically = l.alignToBottom
 	}
 
-	l.align()
-
 	l.setUpComponent(options)
+
+	l.align()
 
 	return l
 }

@@ -61,18 +61,6 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 	cb.component.width = 10
 	cb.component.height = 10
 
-	cb.firstPixelColId = cb.padding.Left * 4
-	cb.secondPixelColId = cb.firstPixelColId + 4
-
-	cb.lastPixelColId = (cb.cbWidth+cb.padding.Left)*4 - 4
-	cb.penultimatePixelColId = cb.lastPixelColId - 4
-
-	cb.firstPixelRowId = cb.padding.Top
-	cb.secondPixelRowId = cb.firstPixelRowId + 1
-
-	cb.lastPixelRowId = cb.cbHeight + cb.padding.Top - 1
-	cb.penultimatePixelRowId = cb.lastPixelRowId - 1
-
 	if options != nil {
 		if options.Label != nil {
 			cb.SetLabel(options.Label)
@@ -84,6 +72,8 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 	}
 
 	cb.setUpComponent(options)
+
+	cb.setDrawingDimensions()
 
 	return cb
 }
@@ -109,6 +99,20 @@ func (cb *CheckBox) setUpComponent(options *CheckBoxOptions) {
 	})
 }
 
+func (cb *CheckBox) setDrawingDimensions() {
+	cb.firstPixelColId = cb.padding.Left * 4
+	cb.secondPixelColId = cb.firstPixelColId + 4
+
+	cb.lastPixelColId = (cb.cbWidth+cb.padding.Left)*4 - 4
+	cb.penultimatePixelColId = cb.lastPixelColId - 4
+
+	cb.firstPixelRowId = cb.padding.Top
+	cb.secondPixelRowId = cb.firstPixelRowId + 1
+
+	cb.lastPixelRowId = cb.cbHeight + cb.padding.Top - 1
+	cb.penultimatePixelRowId = cb.lastPixelRowId - 1
+}
+
 func (cb *CheckBox) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox {
 	cb.ToggledEvent.AddHandler(func(args interface{}) { f(args.(*CheckBoxToggledEventArgs)) })
 
@@ -128,18 +132,6 @@ func (cb *CheckBox) SetLabel(label *Label) {
 	cb.label.SetPosistion(10+float64(cb.label.padding.Left), 4.5)
 
 	cb.SetDimensions(cb.cbWidth+cb.label.widthWithPadding, cb.cbHeight)
-
-	cb.firstPixelColId = cb.padding.Left * 4
-	cb.secondPixelColId = cb.firstPixelColId + 4
-
-	cb.lastPixelColId = (cb.cbWidth+cb.padding.Left)*4 - 4
-	cb.penultimatePixelColId = cb.lastPixelColId - 4
-
-	cb.firstPixelRowId = cb.padding.Top
-	cb.secondPixelRowId = cb.firstPixelRowId + 1
-
-	cb.lastPixelRowId = cb.cbHeight + cb.padding.Top - 1
-	cb.penultimatePixelRowId = cb.lastPixelRowId - 1
 }
 
 func (cb *CheckBox) Set(checked bool) {

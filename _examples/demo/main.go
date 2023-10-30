@@ -18,6 +18,8 @@ import (
 var Terminated = errors.New("terminated")
 
 func main() {
+	debug.Debug = true
+
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		if err == Terminated {
 			return
@@ -34,8 +36,9 @@ type Game struct {
 	screenWidth  int
 	screenHeight int
 
-	quitIsPressed  bool
-	debugIsPressed bool
+	quitIsPressed        bool
+	showBordersIsPressed bool
+	showPaddingIsPressed bool
 
 	backgroundColor color.RGBA
 }
@@ -51,7 +54,7 @@ func NewGame() *Game {
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
 
-	// component.SetDefaultPadding(3, 3, 3, 3)
+	component.SetDefaultPadding(2, 2, 2, 2)
 
 	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: to.Ptr(200), Height: to.Ptr(200)})
 	rootContainer := component.NewContainer(&component.ContainerOptions{
@@ -63,7 +66,7 @@ func NewGame() *Game {
 
 	lblTitle := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
 
-	lblInstructions := component.NewLabel("d - debug\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: component.AlignmentTop})
+	lblInstructions := component.NewLabel("b - show borders\np - show padding\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: component.AlignmentTop})
 
 	cbOpts := &component.CheckBoxOptions{
 		Color: color.RGBA{255, 100, 50, 255},
@@ -179,7 +182,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func (g *Game) Update() error {
 	gui.Update()
 
-	g.checkDebugButton()
+	g.checkShowBordersButton()
+	g.checkShowPaddingButton()
 
 	return g.checkQuitButton()
 }
@@ -195,13 +199,23 @@ func (g *Game) checkQuitButton() error {
 	return nil
 }
 
-func (g *Game) checkDebugButton() {
-	if !g.debugIsPressed && inpututil.IsKeyJustPressed(ebiten.KeyD) {
-		g.debugIsPressed = true
+func (g *Game) checkShowBordersButton() {
+	if !g.showBordersIsPressed && inpututil.IsKeyJustPressed(ebiten.KeyB) {
+		g.showBordersIsPressed = true
 	}
-	if g.debugIsPressed && inpututil.IsKeyJustReleased(ebiten.KeyD) {
-		g.debugIsPressed = false
-		debug.Debug = !debug.Debug
+	if g.showBordersIsPressed && inpututil.IsKeyJustReleased(ebiten.KeyB) {
+		g.showBordersIsPressed = false
+		debug.ShowComponentBorders = !debug.ShowComponentBorders
+	}
+}
+
+func (g *Game) checkShowPaddingButton() {
+	if !g.showPaddingIsPressed && inpututil.IsKeyJustPressed(ebiten.KeyP) {
+		g.showPaddingIsPressed = true
+	}
+	if g.showPaddingIsPressed && inpututil.IsKeyJustReleased(ebiten.KeyP) {
+		g.showPaddingIsPressed = false
+		debug.ShowComponentPadding = !debug.ShowComponentPadding
 	}
 }
 
