@@ -33,11 +33,6 @@ type Slider struct {
 	ReleasedEvent *event.Event
 	ClickedEvent  *event.Event
 
-	color color.RGBA
-	// colorPressed  color.RGBA
-	// colorHovered  color.RGBA
-	// colorDisabled color.RGBA
-
 	firstPixelRowId       int
 	secondPixelRowId      int
 	lastPixelRowId        int
@@ -47,6 +42,9 @@ type Slider struct {
 	secondPixelColId      int
 	lastPixelColId        int
 	penultimatePixelColId int
+
+	drawer       SliderDrawer
+	handleDrawer ButtonDrawer
 }
 
 type SliderOptions struct {
@@ -59,6 +57,9 @@ type SliderOptions struct {
 	Height *int
 
 	Padding *Padding
+
+	Drawer       SliderDrawer
+	HandleDrawer ButtonDrawer
 }
 
 type SliderSlidedEventArgs struct {
@@ -94,7 +95,15 @@ func NewSlider(options *SliderOptions) *Slider {
 		ReleasedEvent: &event.Event{},
 		ClickedEvent:  &event.Event{},
 
-		color: color.RGBA{R: 230, G: 230, B: 230, A: 255},
+		drawer: DefaultSliderDrawer{
+			Color: color.RGBA{R: 230, G: 230, B: 230, A: 255},
+		},
+		handleDrawer: DefaultButtonDrawer{
+			Color:         color.RGBA{230, 230, 230, 255},
+			ColorPressed:  color.RGBA{200, 200, 200, 255},
+			ColorHovered:  color.RGBA{250, 250, 250, 255},
+			ColorDisabled: color.RGBA{150, 150, 150, 255},
+		},
 	}
 
 	s.component.width = 45
@@ -126,12 +135,20 @@ func NewSlider(options *SliderOptions) *Slider {
 		if options.Height != nil {
 			s.component.height = *options.Height
 		}
+
+		if options.Drawer != nil {
+			s.drawer = options.Drawer
+		}
+
+		if options.HandleDrawer != nil {
+			s.handleDrawer = options.HandleDrawer
+		}
 	}
 
 	steps := math.Round((s.max-s.min)/s.step) + 1
 	s.stepPixels = int(math.Round(float64(s.component.width-4) / steps))
 
-	s.handle = NewButton(&ButtonOptions{Width: to.Ptr(7), Height: &s.component.height})
+	s.handle = NewButton(&ButtonOptions{Width: to.Ptr(7), Height: &s.component.height, Drawer: s.handleDrawer})
 	s.handle.SetPosision(s.value/s.step*float64(s.stepPixels), 0)
 
 	s.setUpComponent(options)
@@ -273,33 +290,11 @@ func (s *Slider) FireEvents() {
 }
 
 func (s *Slider) Draw() *ebiten.Image {
-	arr := make([]byte, s.pixelRows*s.pixelCols)
-	backgroundColor := s.container.GetBackgroundColor()
-
-	for rowId := s.firstPixelRowId; rowId <= s.lastPixelRowId; rowId++ {
-		rowNumber := s.pixelCols * rowId
-
-		for colId := s.firstPixelColId; colId <= s.lastPixelColId; colId += 4 {
-			if s.isCorner(rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if s.isBorder(rowId, colId) || (s.isColored(rowId, colId) && colId <= int(s.handle.posX)*4) {
-				arr[colId+rowNumber] = s.color.R
-				arr[colId+1+rowNumber] = s.color.G
-				arr[colId+2+rowNumber] = s.color.B
-				arr[colId+3+rowNumber] = s.color.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			}
-		}
+	if s.hidden {
+		return s.image
 	}
 
-	s.image.WritePixels(arr)
+	s.drawer.Draw(s)
 
 	if s.sliding && s.handle.posX >= 0 && s.handle.posX <= float64(s.width) {
 		s.updateHandlePosition()
