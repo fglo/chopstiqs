@@ -3,7 +3,6 @@ package component
 import (
 	"image/color"
 
-	"github.com/fglo/chopstiqs/internal/colorutils"
 	"github.com/fglo/chopstiqs/pkg/event"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
@@ -29,15 +28,15 @@ type CheckBox struct {
 	lastPixelColId        int
 	penultimatePixelColId int
 
-	color color.RGBA
+	drawer CheckBoxDrawer
 }
 
 type CheckBoxOptions struct {
-	Color color.Color
-
 	Label *Label
 
 	Padding *Padding
+
+	Drawer CheckBoxDrawer
 }
 
 type CheckBoxToggledEventArgs struct {
@@ -55,7 +54,9 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 		cbWidth:  10,
 		cbHeight: 10,
 
-		color: color.RGBA{230, 230, 230, 255},
+		drawer: DefaultCheckBoxDrawer{
+			Color: color.RGBA{230, 230, 230, 255},
+		},
 	}
 
 	cb.component.width = 10
@@ -66,8 +67,8 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 			cb.SetLabel(options.Label)
 		}
 
-		if options.Color != nil {
-			cb.color = colorutils.ColorToRGBA(options.Color)
+		if options.Drawer != nil {
+			cb.drawer = options.Drawer
 		}
 	}
 
@@ -150,11 +151,7 @@ func (cb *CheckBox) Draw() *ebiten.Image {
 		return cb.image
 	}
 
-	if cb.Checked {
-		cb.image.WritePixels(cb.drawChecked())
-	} else {
-		cb.image.WritePixels(cb.drawUnchecked())
-	}
+	cb.drawer.Draw(cb)
 
 	if cb.label != nil {
 		op := &ebiten.DrawImageOptions{}
@@ -165,62 +162,4 @@ func (cb *CheckBox) Draw() *ebiten.Image {
 	cb.component.Draw()
 
 	return cb.image
-}
-
-func (cb *CheckBox) isBorder(rowId, colId int) bool {
-	return rowId == cb.firstPixelRowId || rowId == cb.lastPixelRowId || colId == cb.firstPixelColId || colId == cb.lastPixelColId
-}
-
-func (cb *CheckBox) isColored(rowId, colId int) bool {
-	return colId > cb.secondPixelColId && colId < cb.penultimatePixelColId && rowId > cb.secondPixelRowId && rowId < cb.penultimatePixelRowId
-}
-
-func (cb *CheckBox) drawUnchecked() []byte {
-	arr := make([]byte, cb.component.pixelRows*cb.component.pixelCols)
-	backgroundColor := cb.container.GetBackgroundColor()
-
-	for rowId := cb.firstPixelRowId; rowId <= cb.lastPixelRowId; rowId++ {
-		rowNumber := cb.component.pixelCols * rowId
-
-		for colId := cb.firstPixelColId; colId <= cb.lastPixelColId; colId += 4 {
-			if cb.isBorder(rowId, colId) {
-				arr[colId+rowNumber] = cb.color.R
-				arr[colId+1+rowNumber] = cb.color.G
-				arr[colId+2+rowNumber] = cb.color.B
-				arr[colId+3+rowNumber] = cb.color.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			}
-		}
-	}
-
-	return arr
-}
-
-func (cb *CheckBox) drawChecked() []byte {
-	arr := make([]byte, cb.component.pixelRows*cb.component.pixelCols)
-	backgroundColor := cb.container.GetBackgroundColor()
-
-	for rowId := cb.firstPixelRowId; rowId <= cb.lastPixelRowId; rowId++ {
-		rowNumber := cb.component.pixelCols * rowId
-
-		for colId := cb.firstPixelColId; colId <= cb.lastPixelColId; colId += 4 {
-			if cb.isBorder(rowId, colId) || cb.isColored(rowId, colId) {
-				arr[colId+rowNumber] = cb.color.R
-				arr[colId+1+rowNumber] = cb.color.G
-				arr[colId+2+rowNumber] = cb.color.B
-				arr[colId+3+rowNumber] = cb.color.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			}
-		}
-	}
-
-	return arr
 }

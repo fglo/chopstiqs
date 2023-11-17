@@ -69,15 +69,12 @@ func NewGame() *Game {
 	lblInstructions := component.NewLabel("b - show borders\np - show padding\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: component.AlignmentTop})
 
 	cbOpts := &component.CheckBoxOptions{
-		Color: color.RGBA{255, 100, 50, 255},
+		Drawer: component.DefaultCheckBoxDrawer{
+			Color: color.RGBA{255, 100, 50, 255},
+		},
 	}
 	cb := component.NewCheckBox(cbOpts)
 	cb.Toggle()
-
-	cb2Opts := &component.CheckBoxOptions{
-		Color: color.RGBA{230, 230, 230, 255},
-		Label: component.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
-	}
 
 	btn := component.NewButton(&component.ButtonOptions{
 		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{25, 25, 25, 255}}),
@@ -85,21 +82,13 @@ func NewGame() *Game {
 	btn.AddClickedHandler(func(args *component.ButtonClickedEventArgs) { g.toggleBackground() })
 
 	btn2 := component.NewButton(&component.ButtonOptions{
-		Color:         color.RGBA{100, 180, 90, 255},
-		ColorPressed:  color.RGBA{90, 160, 80, 255},
-		ColorHovered:  color.RGBA{120, 190, 100, 255},
-		ColorDisabled: color.RGBA{80, 100, 70, 255},
+		Drawer: component.DefaultButtonDrawer{
+			Color:         color.RGBA{100, 180, 90, 255},
+			ColorPressed:  color.RGBA{90, 160, 80, 255},
+			ColorHovered:  color.RGBA{120, 190, 100, 255},
+			ColorDisabled: color.RGBA{80, 100, 70, 255},
+		},
 	})
-
-	cb2 := component.NewCheckBox(cb2Opts)
-	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
-		btn.SetDisabled(args.CheckBox.Checked)
-		btn2.SetDisabled(args.CheckBox.Checked)
-	})
-
-	checkBoxContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
-	checkBoxContainer.AddComponent(cb)
-	checkBoxContainer.AddComponent(cb2)
 
 	sliderLabel := component.NewLabel("4", &component.LabelOptions{
 		Color: color.RGBA{230, 230, 230, 255},
@@ -148,6 +137,21 @@ func NewGame() *Game {
 	sliderContainer2 := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	sliderContainer2.AddComponent(slider2)
 	sliderContainer2.AddComponent(sliderLabel2)
+
+	cb2Opts := &component.CheckBoxOptions{
+		Label: component.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
+	}
+	cb2 := component.NewCheckBox(cb2Opts)
+	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
+		btn.SetDisabled(args.CheckBox.Checked)
+		btn2.SetDisabled(args.CheckBox.Checked)
+		sliderContainer.SetDisabled(args.CheckBox.Checked)
+		sliderContainer2.SetDisabled(args.CheckBox.Checked)
+	})
+
+	checkBoxContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	checkBoxContainer.AddComponent(cb)
+	checkBoxContainer.AddComponent(cb2)
 
 	lblTitle.SetPosision(5, 5)
 	rootContainer.AddComponent(lblTitle)

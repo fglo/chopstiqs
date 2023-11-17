@@ -86,6 +86,14 @@ func (c *container) setContainer(container Container) {
 	c.component.setContainer(container)
 }
 
+// SetDisabled sets the container's and its component disabled states
+func (c *container) SetDisabled(disabled bool) {
+	for _, component := range c.components {
+		component.SetDisabled(disabled)
+	}
+	c.component.SetDisabled(disabled)
+}
+
 // AddComponent adds a component to the container
 func (c *container) AddComponent(component Component) {
 	c.components = append(c.components, component)
