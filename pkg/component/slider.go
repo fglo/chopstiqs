@@ -96,9 +96,12 @@ func NewSlider(options *SliderOptions) *Slider {
 		ClickedEvent:  &event.Event{},
 
 		drawer: DefaultSliderDrawer{
-			Color: color.RGBA{R: 230, G: 230, B: 230, A: 255},
+			Color:         color.RGBA{230, 230, 230, 255},
+			ColorPressed:  color.RGBA{230, 230, 230, 255},
+			ColorHovered:  color.RGBA{230, 230, 230, 255},
+			ColorDisabled: color.RGBA{150, 150, 150, 255},
 		},
-		handleDrawer: DefaultButtonDrawer{
+		handleDrawer: &DefaultButtonDrawer{
 			Color:         color.RGBA{230, 230, 230, 255},
 			ColorPressed:  color.RGBA{200, 200, 200, 255},
 			ColorHovered:  color.RGBA{250, 250, 250, 255},
@@ -253,6 +256,11 @@ func (s *Slider) SetPosision(posX, posY float64) {
 func (s *Slider) setContainer(container Container) {
 	s.component.setContainer(container)
 	s.handle.setContainer(s)
+}
+
+func (s *Slider) SetDisabled(disabled bool) {
+	s.handle.SetDisabled(disabled)
+	s.component.SetDisabled(disabled)
 }
 
 func (s *Slider) AddSlidedHandler(f SliderSlidedHandlerFunc) *Slider {

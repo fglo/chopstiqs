@@ -76,10 +76,6 @@ func NewGame() *Game {
 	cb := component.NewCheckBox(cbOpts)
 	cb.Toggle()
 
-	cb2Opts := &component.CheckBoxOptions{
-		Label: component.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
-	}
-
 	btn := component.NewButton(&component.ButtonOptions{
 		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{25, 25, 25, 255}}),
 	})
@@ -93,16 +89,6 @@ func NewGame() *Game {
 			ColorDisabled: color.RGBA{80, 100, 70, 255},
 		},
 	})
-
-	cb2 := component.NewCheckBox(cb2Opts)
-	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
-		btn.SetDisabled(args.CheckBox.Checked)
-		btn2.SetDisabled(args.CheckBox.Checked)
-	})
-
-	checkBoxContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
-	checkBoxContainer.AddComponent(cb)
-	checkBoxContainer.AddComponent(cb2)
 
 	sliderLabel := component.NewLabel("4", &component.LabelOptions{
 		Color: color.RGBA{230, 230, 230, 255},
@@ -151,6 +137,21 @@ func NewGame() *Game {
 	sliderContainer2 := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	sliderContainer2.AddComponent(slider2)
 	sliderContainer2.AddComponent(sliderLabel2)
+
+	cb2Opts := &component.CheckBoxOptions{
+		Label: component.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
+	}
+	cb2 := component.NewCheckBox(cb2Opts)
+	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
+		btn.SetDisabled(args.CheckBox.Checked)
+		btn2.SetDisabled(args.CheckBox.Checked)
+		sliderContainer.SetDisabled(args.CheckBox.Checked)
+		sliderContainer2.SetDisabled(args.CheckBox.Checked)
+	})
+
+	checkBoxContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	checkBoxContainer.AddComponent(cb)
+	checkBoxContainer.AddComponent(cb2)
 
 	lblTitle.SetPosision(5, 5)
 	rootContainer.AddComponent(lblTitle)

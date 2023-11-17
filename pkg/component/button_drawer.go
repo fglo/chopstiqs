@@ -7,7 +7,7 @@ import (
 )
 
 type ButtonDrawer interface {
-	Draw(button *Button) *ebiten.Image
+	Draw(*Button) *ebiten.Image
 }
 
 type DefaultButtonDrawer struct {
@@ -31,19 +31,19 @@ func (d DefaultButtonDrawer) Draw(bttn *Button) *ebiten.Image {
 	return bttn.image
 }
 
-func (d DefaultButtonDrawer) isCorner(bttn *Button, rowId, colId int) bool {
+func (d *DefaultButtonDrawer) isCorner(bttn *Button, rowId, colId int) bool {
 	return (rowId == bttn.firstPixelRowId || rowId == bttn.lastPixelRowId) && (colId == bttn.firstPixelColId || colId == bttn.lastPixelColId)
 }
 
-func (d DefaultButtonDrawer) isBorder(bttn *Button, rowId, colId int) bool {
+func (d *DefaultButtonDrawer) isBorder(bttn *Button, rowId, colId int) bool {
 	return rowId == bttn.firstPixelRowId || rowId == bttn.lastPixelRowId || colId == bttn.firstPixelColId || colId == bttn.lastPixelColId
 }
 
-func (d DefaultButtonDrawer) isColored(bttn *Button, rowId, colId int) bool {
+func (d *DefaultButtonDrawer) isColored(bttn *Button, rowId, colId int) bool {
 	return colId > bttn.secondPixelColId && colId < bttn.penultimatePixelColId && rowId > bttn.secondPixelRowId && rowId < bttn.penultimatePixelRowId
 }
 
-func (d DefaultButtonDrawer) draw(bttn *Button) []byte {
+func (d *DefaultButtonDrawer) draw(bttn *Button) []byte {
 	arr := make([]byte, bttn.pixelRows*bttn.pixelCols)
 	backgroundColor := bttn.container.GetBackgroundColor()
 
@@ -73,7 +73,7 @@ func (d DefaultButtonDrawer) draw(bttn *Button) []byte {
 	return arr
 }
 
-func (d DefaultButtonDrawer) drawPressed(bttn *Button) []byte {
+func (d *DefaultButtonDrawer) drawPressed(bttn *Button) []byte {
 	arr := make([]byte, bttn.pixelRows*bttn.pixelCols)
 	backgroundColor := bttn.container.GetBackgroundColor()
 
@@ -103,7 +103,7 @@ func (d DefaultButtonDrawer) drawPressed(bttn *Button) []byte {
 	return arr
 }
 
-func (d DefaultButtonDrawer) drawHovered(bttn *Button) []byte {
+func (d *DefaultButtonDrawer) drawHovered(bttn *Button) []byte {
 	arr := make([]byte, bttn.pixelRows*bttn.pixelCols)
 	backgroundColor := bttn.container.GetBackgroundColor()
 
@@ -133,7 +133,7 @@ func (d DefaultButtonDrawer) drawHovered(bttn *Button) []byte {
 	return arr
 }
 
-func (d DefaultButtonDrawer) drawDisabled(bttn *Button) []byte {
+func (d *DefaultButtonDrawer) drawDisabled(bttn *Button) []byte {
 	arr := make([]byte, bttn.pixelRows*bttn.pixelCols)
 	backgroundColor := bttn.container.GetBackgroundColor()
 

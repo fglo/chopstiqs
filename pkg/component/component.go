@@ -281,11 +281,7 @@ func (c *component) SetWidth(width int) {
 	c.widthWithPadding = width + c.padding.Left + c.padding.Right
 	c.pixelCols = c.widthWithPadding * 4
 
-	c.firstPixelColId = c.padding.Left * 4
-	c.secondPixelColId = c.firstPixelColId + 4
-
-	c.lastPixelColId = c.pixelCols - c.padding.Right*4 - 4
-	c.penultimatePixelColId = c.pixelCols - c.padding.Right*4 - 8
+	c.calcPixelColIds()
 
 	c.setImage()
 	c.setRect()
@@ -297,11 +293,7 @@ func (c *component) SetHeight(height int) {
 	c.heightWithPadding = height + c.padding.Top + c.padding.Bottom
 	c.pixelRows = c.heightWithPadding
 
-	c.firstPixelRowId = c.padding.Top
-	c.secondPixelRowId = c.firstPixelRowId + 1
-
-	c.lastPixelRowId = c.pixelRows - c.padding.Bottom - 1
-	c.penultimatePixelRowId = c.pixelRows - c.padding.Bottom - 2
+	c.calcPixelRowIds()
 
 	c.setImage()
 	c.setRect()
@@ -314,25 +306,32 @@ func (c *component) SetDimensions(width, height int) {
 		c.widthWithPadding = width + c.padding.Left + c.padding.Right
 		c.pixelCols = c.widthWithPadding * 4
 
-		c.firstPixelColId = c.padding.Left * 4
-		c.secondPixelColId = c.firstPixelColId + 4
-
-		c.lastPixelColId = c.pixelCols - c.padding.Right*4 - 4
-		c.penultimatePixelColId = c.lastPixelColId - 4
-
 		c.height = height
 		c.heightWithPadding = height + c.padding.Top + c.padding.Bottom
 		c.pixelRows = c.heightWithPadding
 
-		c.firstPixelRowId = c.padding.Top
-		c.secondPixelRowId = c.firstPixelRowId + 1
-
-		c.lastPixelRowId = c.pixelRows - c.padding.Bottom - 1
-		c.penultimatePixelRowId = c.lastPixelRowId - 1
+		c.calcPixelColIds()
+		c.calcPixelRowIds()
 
 		c.setImage()
 		c.setRect()
 	}
+}
+
+func (c *component) calcPixelColIds() {
+	c.firstPixelColId = c.padding.Left * 4
+	c.secondPixelColId = c.firstPixelColId + 4
+
+	c.lastPixelColId = c.pixelCols - c.padding.Right*4 - 4
+	c.penultimatePixelColId = c.lastPixelColId - 4
+}
+
+func (c *component) calcPixelRowIds() {
+	c.firstPixelRowId = c.padding.Top
+	c.secondPixelRowId = c.firstPixelRowId + 1
+
+	c.lastPixelRowId = c.pixelRows - c.padding.Bottom - 1
+	c.penultimatePixelRowId = c.lastPixelRowId - 1
 }
 
 func (c *component) setImage() {

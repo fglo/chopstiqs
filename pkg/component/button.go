@@ -58,7 +58,7 @@ func NewButton(options *ButtonOptions) *Button {
 		ReleasedEvent: &event.Event{},
 		ClickedEvent:  &event.Event{},
 
-		drawer: DefaultButtonDrawer{
+		drawer: &DefaultButtonDrawer{
 			Color:         color.RGBA{230, 230, 230, 255},
 			ColorPressed:  color.RGBA{200, 200, 200, 255},
 			ColorHovered:  color.RGBA{250, 250, 250, 255},
