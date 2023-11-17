@@ -279,18 +279,6 @@ func (s *Slider) GetValue() float64 {
 	return s.value
 }
 
-func (s *Slider) isCorner(rowId, colId int) bool {
-	return (rowId == s.firstPixelRowId || rowId == s.lastPixelRowId) && (colId == s.firstPixelColId || colId == s.lastPixelColId)
-}
-
-func (s *Slider) isBorder(rowId, colId int) bool {
-	return rowId == s.firstPixelRowId || rowId == s.lastPixelRowId || colId == s.firstPixelColId || colId == s.lastPixelColId
-}
-
-func (s *Slider) isColored(rowId, colId int) bool {
-	return colId > s.secondPixelColId && colId < s.penultimatePixelColId && rowId > s.secondPixelRowId && rowId < s.penultimatePixelRowId
-}
-
 // FireEvents checks if the mouse cursor is inside the component and fires events accordingly.
 func (s *Slider) FireEvents() {
 	s.component.FireEvents()

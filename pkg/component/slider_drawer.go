@@ -39,12 +39,12 @@ func (d *DefaultSliderDrawer) draw(slider *Slider) []byte {
 		rowNumber := slider.pixelCols * rowId
 
 		for colId := slider.firstPixelColId; colId <= slider.lastPixelColId; colId += 4 {
-			if slider.isCorner(rowId, colId) {
+			if d.isCorner(slider, rowId, colId) {
 				arr[colId+rowNumber] = backgroundColor.R
 				arr[colId+1+rowNumber] = backgroundColor.G
 				arr[colId+2+rowNumber] = backgroundColor.B
 				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if slider.isBorder(rowId, colId) || (slider.isColored(rowId, colId) && colId <= int(slider.handle.posX)*4) {
+			} else if d.isBorder(slider, rowId, colId) || (d.isColored(slider, rowId, colId) && colId <= int(slider.handle.posX)*4) {
 				arr[colId+rowNumber] = d.Color.R
 				arr[colId+1+rowNumber] = d.Color.G
 				arr[colId+2+rowNumber] = d.Color.B
@@ -69,12 +69,12 @@ func (d *DefaultSliderDrawer) drawPressed(slider *Slider) []byte {
 		rowNumber := slider.pixelCols * rowId
 
 		for colId := slider.firstPixelColId; colId <= slider.lastPixelColId; colId += 4 {
-			if slider.isCorner(rowId, colId) {
+			if d.isCorner(slider, rowId, colId) {
 				arr[colId+rowNumber] = backgroundColor.R
 				arr[colId+1+rowNumber] = backgroundColor.G
 				arr[colId+2+rowNumber] = backgroundColor.B
 				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if slider.isBorder(rowId, colId) || (slider.isColored(rowId, colId) && colId <= int(slider.handle.posX)*4) {
+			} else if d.isBorder(slider, rowId, colId) || (d.isColored(slider, rowId, colId) && colId <= int(slider.handle.posX)*4) {
 				arr[colId+rowNumber] = d.ColorPressed.R
 				arr[colId+1+rowNumber] = d.ColorPressed.G
 				arr[colId+2+rowNumber] = d.ColorPressed.B
@@ -99,12 +99,12 @@ func (d *DefaultSliderDrawer) drawHovered(slider *Slider) []byte {
 		rowNumber := slider.pixelCols * rowId
 
 		for colId := slider.firstPixelColId; colId <= slider.lastPixelColId; colId += 4 {
-			if slider.isCorner(rowId, colId) {
+			if d.isCorner(slider, rowId, colId) {
 				arr[colId+rowNumber] = backgroundColor.R
 				arr[colId+1+rowNumber] = backgroundColor.G
 				arr[colId+2+rowNumber] = backgroundColor.B
 				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if slider.isBorder(rowId, colId) || (slider.isColored(rowId, colId) && colId <= int(slider.handle.posX)*4) {
+			} else if d.isBorder(slider, rowId, colId) || (d.isColored(slider, rowId, colId) && colId <= int(slider.handle.posX)*4) {
 				arr[colId+rowNumber] = d.ColorHovered.R
 				arr[colId+1+rowNumber] = d.ColorHovered.G
 				arr[colId+2+rowNumber] = d.ColorHovered.B
@@ -129,12 +129,12 @@ func (d *DefaultSliderDrawer) drawDisabled(slider *Slider) []byte {
 		rowNumber := slider.pixelCols * rowId
 
 		for colId := slider.firstPixelColId; colId <= slider.lastPixelColId; colId += 4 {
-			if slider.isCorner(rowId, colId) {
+			if d.isCorner(slider, rowId, colId) {
 				arr[colId+rowNumber] = backgroundColor.R
 				arr[colId+1+rowNumber] = backgroundColor.G
 				arr[colId+2+rowNumber] = backgroundColor.B
 				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if slider.isBorder(rowId, colId) || (slider.isColored(rowId, colId) && colId <= int(slider.handle.posX)*4) {
+			} else if d.isBorder(slider, rowId, colId) || (d.isColored(slider, rowId, colId) && colId <= int(slider.handle.posX)*4) {
 				arr[colId+rowNumber] = d.ColorDisabled.R
 				arr[colId+1+rowNumber] = d.ColorDisabled.G
 				arr[colId+2+rowNumber] = d.ColorDisabled.B
