@@ -157,10 +157,6 @@ func (l *Label) SetText(labelText string) {
 	l.textPosY = -bounds.Min.Y
 	l.textBounds = bounds
 
-	if l.container != nil {
-		l.container.SetWidth(l.container.Width() - l.component.width)
-	}
-
 	l.SetDimensions(bounds.Dx(), bounds.Dy())
 
 	if l.container != nil {

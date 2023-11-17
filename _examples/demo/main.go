@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	_ "embed"
 	"errors"
 	"fmt"
 	"image/color"
@@ -12,8 +14,12 @@ import (
 	"github.com/fglo/chopstiqs/pkg/gui"
 	"github.com/fglo/chopstiqs/pkg/to"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
+
+//go:embed img/chopstiqs-logo-1-1x1.png
+var chopstiqsLogo []byte
 
 var Terminated = errors.New("terminated")
 
@@ -153,6 +159,10 @@ func NewGame() *Game {
 	checkBoxContainer.AddComponent(cb)
 	checkBoxContainer.AddComponent(cb2)
 
+	img, _, _ := ebitenutil.NewImageFromReader(bytes.NewReader(chopstiqsLogo))
+	sprite := component.NewSprite(img, nil)
+
+	rootContainer.AddComponent(sprite)
 	lblTitle.SetPosision(5, 5)
 	rootContainer.AddComponent(lblTitle)
 	lblInstructions.SetPosision(5, 15)
