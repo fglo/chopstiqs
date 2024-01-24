@@ -32,6 +32,9 @@ type CheckBox struct {
 }
 
 type CheckBoxOptions struct {
+	Width  *int
+	Height *int
+
 	Label *Label
 
 	Padding *Padding
@@ -63,6 +66,16 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 	cb.component.height = cb.cbHeight
 
 	if options != nil {
+		if options.Width != nil {
+			cb.cbWidth = *options.Width
+			cb.component.width = cb.cbWidth
+		}
+
+		if options.Height != nil {
+			cb.cbHeight = *options.Height
+			cb.component.height = cb.cbHeight
+		}
+
 		if options.Label != nil {
 			cb.SetLabel(options.Label)
 		}
