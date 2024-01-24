@@ -6,7 +6,7 @@ import (
 
 	"github.com/fglo/chopstiqs/pkg/event"
 	"github.com/fglo/chopstiqs/pkg/input"
-	"github.com/fglo/chopstiqs/pkg/to"
+	"github.com/fglo/chopstiqs/pkg/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -48,13 +48,13 @@ type Slider struct {
 }
 
 type SliderOptions struct {
-	Min          *float64
-	Max          *float64
-	Step         *float64
-	DefaultValue *float64
+	Min          option.OptFloat
+	Max          option.OptFloat
+	Step         option.OptFloat
+	DefaultValue option.OptFloat
 
-	Width  *int
-	Height *int
+	Width  option.OptInt
+	Height option.OptInt
 
 	Padding *Padding
 
@@ -63,8 +63,9 @@ type SliderOptions struct {
 }
 
 type SliderSlidedEventArgs struct {
-	Slider *Slider
-	Value  float64
+	Slider    *Slider
+	PrevValue float64
+	Value     float64
 }
 
 type SliderPressedEventArgs struct {
@@ -113,30 +114,30 @@ func NewSlider(options *SliderOptions) *Slider {
 	s.component.height = 15
 
 	if options != nil {
-		if options.Min != nil {
-			s.min = *options.Min
+		if options.Min.HasVal() {
+			s.min = options.Min.Val()
 		}
 
-		if options.Max != nil {
-			s.max = *options.Max
+		if options.Max.HasVal() {
+			s.max = options.Max.Val()
 		}
 
-		if options.Step != nil {
-			s.step = *options.Step
+		if options.Step.HasVal() {
+			s.step = options.Step.Val()
 		}
 
-		if options.DefaultValue != nil {
-			s.Set(*options.DefaultValue)
+		if options.DefaultValue.HasVal() {
+			s.Set(options.DefaultValue.Val())
 		} else {
 			s.Set(s.min)
 		}
 
-		if options.Width != nil {
-			s.component.width = *options.Width
+		if options.Width.HasVal() {
+			s.component.width = options.Width.Val()
 		}
 
-		if options.Height != nil {
-			s.component.height = *options.Height
+		if options.Height.HasVal() {
+			s.component.height = options.Height.Val()
 		}
 
 		if options.Drawer != nil {
@@ -148,10 +149,10 @@ func NewSlider(options *SliderOptions) *Slider {
 		}
 	}
 
-	steps := math.Round((s.max-s.min)/s.step) + 1
-	s.stepPixels = int(math.Round(float64(s.component.width-4) / steps))
+	steps := math.Round((s.max - s.min) / s.step)
+	s.stepPixels = int(math.Floor(float64(s.component.width-4) / steps))
 
-	s.handle = NewButton(&ButtonOptions{Width: to.Ptr(7), Height: &s.component.height, Drawer: s.handleDrawer})
+	s.handle = NewButton(&ButtonOptions{Width: option.Int(7), Height: option.Int(s.component.height), Drawer: s.handleDrawer})
 	s.handle.SetPosision(s.value/s.step*float64(s.stepPixels), 0)
 
 	s.setUpComponent(options)
@@ -308,19 +309,23 @@ func (s *Slider) Draw() *ebiten.Image {
 
 func (s *Slider) setToMin() {
 	s.handle.SetPosX(2)
+	prevValue := s.value
 	s.value = s.min
 	s.SlidedEvent.Fire(&SliderSlidedEventArgs{
-		Slider: s,
-		Value:  s.value,
+		Slider:    s,
+		PrevValue: prevValue,
+		Value:     s.value,
 	})
 }
 
 func (s *Slider) setToMax() {
 	s.handle.SetPosX(float64(s.width-s.handle.width) - 2)
 	s.value = s.max
+	prevValue := s.value
 	s.SlidedEvent.Fire(&SliderSlidedEventArgs{
-		Slider: s,
-		Value:  s.value,
+		Slider:    s,
+		PrevValue: prevValue,
+		Value:     s.value,
 	})
 }
 
@@ -337,6 +342,7 @@ func (s *Slider) updateHandlePosition() {
 		steps := math.Round(float64(diff) / float64(s.stepPixels))
 		newHandlePosX := steps*float64(s.stepPixels) - float64(s.handle.width)/2
 
+		prevValue := s.value
 		s.value = float64(steps) * s.step
 
 		switch {
@@ -347,8 +353,9 @@ func (s *Slider) updateHandlePosition() {
 		default:
 			s.handle.SetPosX(newHandlePosX)
 			s.SlidedEvent.Fire(&SliderSlidedEventArgs{
-				Slider: s,
-				Value:  s.value,
+				Slider:    s,
+				PrevValue: prevValue,
+				Value:     s.value,
 			})
 		}
 	}
