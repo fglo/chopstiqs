@@ -83,7 +83,7 @@ func NewGame() *Game {
 	cb.Toggle()
 
 	btn := component.NewButton(&component.ButtonOptions{
-		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{25, 25, 25, 255}}),
+		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{50, 50, 50, 255}}),
 	})
 	btn.AddClickedHandler(func(args *component.ButtonClickedEventArgs) { g.toggleBackground() })
 
@@ -120,7 +120,7 @@ func NewGame() *Game {
 	sliderContainer.AddComponent(slider)
 	sliderContainer.AddComponent(sliderLabel)
 
-	sliderLabel2 := component.NewLabel("0.5", &component.LabelOptions{
+	sliderLabel2 := component.NewLabel("0.50", &component.LabelOptions{
 		Color: color.RGBA{230, 230, 230, 255},
 		Padding: &component.Padding{
 			Top: 4,

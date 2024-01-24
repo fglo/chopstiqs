@@ -59,8 +59,8 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 		},
 	}
 
-	cb.component.width = 10
-	cb.component.height = 10
+	cb.component.width = cb.cbWidth
+	cb.component.height = cb.cbHeight
 
 	if options != nil {
 		if options.Label != nil {
@@ -127,10 +127,10 @@ func (cb *CheckBox) SetLabel(label *Label) {
 	cb.label.alignVertically = cb.label.centerVertically
 
 	if cb.label.padding.Left == 0 {
-		cb.label.padding.Left = 3
+		cb.label.SetPaddingLeft(3)
 	}
 
-	cb.label.SetPosistion(10+float64(cb.label.padding.Left), 4.5)
+	cb.label.SetPosistion(float64(cb.cbWidth), float64(cb.cbHeight)/2)
 
 	cb.SetDimensions(cb.cbWidth+cb.label.widthWithPadding, cb.cbHeight)
 }
