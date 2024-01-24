@@ -16,7 +16,7 @@ type Slider struct {
 	max float64
 
 	step       float64
-	stepPixels int
+	stepPixels float64
 
 	value float64
 
@@ -127,9 +127,9 @@ func NewSlider(options *SliderOptions) *Slider {
 		}
 
 		if options.DefaultValue.IsSet() {
-			s.Set(options.DefaultValue.Val())
+			s.value = options.DefaultValue.Val()
 		} else {
-			s.Set(s.min)
+			s.value = s.min
 		}
 
 		if options.Width.IsSet() {
@@ -149,17 +149,21 @@ func NewSlider(options *SliderOptions) *Slider {
 		}
 	}
 
-	steps := math.Round((s.max - s.min) / s.step)
-	s.stepPixels = int(math.Floor(float64(s.component.width-4) / steps))
+	steps := math.Round((s.max-s.min)/s.step) + 1
+	s.stepPixels = float64(s.component.width-4) / steps
 
 	s.handle = NewButton(&ButtonOptions{Width: option.Int(7), Height: option.Int(s.component.height), Drawer: s.handleDrawer})
-	s.handle.SetPosision(s.value/s.step*float64(s.stepPixels), 0)
+	s.handle.SetPosision(s.calcHandlePosition(), 0)
 
 	s.setUpComponent(options)
 
 	s.setDrawingDimensions()
 
 	return s
+}
+
+func (s *Slider) calcHandlePosition() float64 {
+	return (s.value / s.step) * s.stepPixels
 }
 
 func (s *Slider) setUpComponent(options *SliderOptions) {
@@ -273,7 +277,14 @@ func (s *Slider) AddSlidedHandler(f SliderSlidedHandlerFunc) *Slider {
 }
 
 func (s *Slider) Set(value float64) {
+	prevValue := s.value
 	s.value = value
+	s.handle.SetPosision(s.calcHandlePosition(), 0)
+	s.SlidedEvent.Fire(&SliderSlidedEventArgs{
+		Slider:    s,
+		PrevValue: prevValue,
+		Value:     s.value,
+	})
 }
 
 func (s *Slider) GetValue() float64 {
@@ -333,30 +344,33 @@ func (s *Slider) updateHandlePosition() {
 	currCursorPosX := input.CursorPosX
 
 	switch {
-	case currCursorPosX > s.rect.Max.X:
+	case currCursorPosX >= s.rect.Max.X:
 		s.setToMax()
-	case currCursorPosX < s.rect.Min.X:
+	case currCursorPosX <= s.rect.Min.X:
 		s.setToMin()
 	default:
-		diff := currCursorPosX - int(s.absPosX)
-		steps := math.Round(float64(diff) / float64(s.stepPixels))
-		newHandlePosX := steps*float64(s.stepPixels) - float64(s.handle.width)/2
+		diff := float64(currCursorPosX) - s.absPosX
+		steps := math.Floor(diff / s.stepPixels)
 
 		prevValue := s.value
 		s.value = float64(steps) * s.step
 
-		switch {
-		case s.value >= s.max || newHandlePosX >= float64(s.rect.Max.X-s.handle.width)-s.absPosX:
-			s.setToMax()
-		case s.value <= s.min || newHandlePosX <= float64(s.rect.Min.X)-s.absPosX:
-			s.setToMin()
-		default:
-			s.handle.SetPosX(newHandlePosX)
-			s.SlidedEvent.Fire(&SliderSlidedEventArgs{
-				Slider:    s,
-				PrevValue: prevValue,
-				Value:     s.value,
-			})
+		if prevValue != s.value {
+			newHandlePosX := s.calcHandlePosition()
+
+			switch {
+			case s.value >= s.max || newHandlePosX >= float64(s.rect.Max.X-s.handle.width)-s.absPosX:
+				s.setToMax()
+			case s.value <= s.min || newHandlePosX <= float64(s.rect.Min.X)-s.absPosX:
+				s.setToMin()
+			default:
+				s.handle.SetPosX(newHandlePosX)
+				s.SlidedEvent.Fire(&SliderSlidedEventArgs{
+					Slider:    s,
+					PrevValue: prevValue,
+					Value:     s.value,
+				})
+			}
 		}
 	}
 }

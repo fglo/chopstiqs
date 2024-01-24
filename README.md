@@ -33,6 +33,7 @@ What I want to achieve:
   - tooltips
   - radiogroups
   - modals and/or dialogs
+  - range sliders
   - ...
 - touchscreen support
 - container layouts
