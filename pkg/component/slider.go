@@ -183,7 +183,7 @@ func (s *Slider) setUpComponent(options *SliderOptions) {
 	})
 
 	s.component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
-		if !s.disabled && args.Button == ebiten.MouseButtonLeft {
+		if !s.disabled && args.Button == ebiten.MouseButtonLeft && !s.handle.pressed {
 			s.pressed = true
 			s.PressedEvent.Fire(&SliderPressedEventArgs{
 				Slider: s,
@@ -335,7 +335,7 @@ func (s *Slider) updateHandlePosition() {
 	default:
 		diff := currCursorPosX - int(s.absPosX)
 		steps := math.Round(float64(diff) / float64(s.stepPixels))
-		newHandlePosX := steps * float64(s.stepPixels)
+		newHandlePosX := steps*float64(s.stepPixels) - float64(s.handle.width)/2
 
 		s.value = float64(steps) * s.step
 

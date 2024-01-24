@@ -58,6 +58,16 @@ type Component interface {
 	SetPosY(posY float64)
 	// SetPosision sets the component's position (x and y)
 	SetPosision(posX, posY float64)
+	// SetPadding sets the component's padding.
+	SetPadding(padding Padding)
+	// SetPaddingTop sets the component's padding top.
+	SetPaddingTop(padding int)
+	// SetPaddingBottom sets the component's padding bottom.
+	SetPaddingBottom(padding int)
+	// SetPaddingLeft sets the component's padding left.
+	SetPaddingLeft(padding int)
+	// SetPaddingRight sets the component's padding right.
+	SetPaddingRight(padding int)
 
 	setContainer(Container)
 }
@@ -273,6 +283,37 @@ func (c *component) SetPosision(posX, posY float64) {
 	}
 
 	c.setRect()
+}
+
+// SetPadding sets the component's padding.
+func (c *component) SetPadding(padding Padding) {
+	padding.Validate()
+	c.padding = padding
+	c.SetDimensions(c.width, c.height)
+}
+
+// SetPaddingTop sets the component's padding top.
+func (c *component) SetPaddingTop(padding int) {
+	c.padding.Top = padding
+	c.SetDimensions(c.width, c.height)
+}
+
+// SetPaddingBottom sets the component's padding bottom.
+func (c *component) SetPaddingBottom(padding int) {
+	c.padding.Bottom = padding
+	c.SetDimensions(c.width, c.height)
+}
+
+// SetPaddingLeft sets the component's padding left.
+func (c *component) SetPaddingLeft(padding int) {
+	c.padding.Left = padding
+	c.SetDimensions(c.width, c.height)
+}
+
+// SetPaddingRight sets the component's padding right.
+func (c *component) SetPaddingRight(padding int) {
+	c.padding.Right = padding
+	c.SetDimensions(c.width, c.height)
 }
 
 // SetWidth sets the component's width.
