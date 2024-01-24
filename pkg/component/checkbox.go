@@ -67,12 +67,12 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 	cb.component.height = cb.cbHeight
 
 	if options != nil {
-		if options.Width.HasVal() {
+		if options.Width.IsSet() {
 			cb.cbWidth = options.Width.Val()
 			cb.component.width = cb.cbWidth
 		}
 
-		if options.Height.HasVal() {
+		if options.Height.IsSet() {
 			cb.cbHeight = options.Height.Val()
 			cb.component.height = cb.cbHeight
 		}

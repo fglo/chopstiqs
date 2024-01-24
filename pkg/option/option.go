@@ -1,16 +1,16 @@
 package option
 
 type OptInt struct {
-	val    int
-	hasVal bool
+	val   int
+	isSet bool
 }
 
 var EmptyInt = OptInt{}
 
 func Int(val int) OptInt {
 	return OptInt{
-		val:    val,
-		hasVal: true,
+		val:   val,
+		isSet: true,
 	}
 }
 
@@ -19,24 +19,24 @@ func (i OptInt) Val() int {
 }
 
 func (i OptInt) IsEmpty() bool {
-	return !i.hasVal
+	return !i.isSet
 }
 
-func (i OptInt) HasVal() bool {
-	return i.hasVal
+func (i OptInt) IsSet() bool {
+	return i.isSet
 }
 
 type OptFloat struct {
-	val    float64
-	hasVal bool
+	val   float64
+	isSet bool
 }
 
 var EmptyFloat = OptFloat{}
 
 func Float(val float64) OptFloat {
 	return OptFloat{
-		val:    val,
-		hasVal: true,
+		val:   val,
+		isSet: true,
 	}
 }
 
@@ -45,9 +45,9 @@ func (f OptFloat) Val() float64 {
 }
 
 func (f OptFloat) IsEmpty() bool {
-	return !f.hasVal
+	return !f.isSet
 }
 
-func (f OptFloat) HasVal() bool {
-	return f.hasVal
+func (f OptFloat) IsSet() bool {
+	return f.isSet
 }

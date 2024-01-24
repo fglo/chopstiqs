@@ -53,11 +53,11 @@ func NewContainer(options *ContainerOptions) Container {
 			c.layout = options.Layout
 		}
 
-		if options.Width.HasVal() {
+		if options.Width.IsSet() {
 			c.SetWidth(options.Width.Val())
 		}
 
-		if options.Height.HasVal() {
+		if options.Height.IsSet() {
 			c.SetHeight(options.Height.Val())
 		}
 	}

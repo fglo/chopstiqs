@@ -62,7 +62,7 @@ func NewGame() *Game {
 
 	// component.SetDefaultPadding(2, 2, 2, 2)
 
-	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: option.NewInt(200), Height: option.NewInt(200)})
+	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: option.Int(200), Height: option.Int(200)})
 	rootContainer := component.NewContainer(&component.ContainerOptions{
 		Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
 		Layout:  &component.VerticalListLayout{RowGap: 5}})

@@ -114,29 +114,29 @@ func NewSlider(options *SliderOptions) *Slider {
 	s.component.height = 15
 
 	if options != nil {
-		if options.Min.HasVal() {
+		if options.Min.IsSet() {
 			s.min = options.Min.Val()
 		}
 
-		if options.Max.HasVal() {
+		if options.Max.IsSet() {
 			s.max = options.Max.Val()
 		}
 
-		if options.Step.HasVal() {
+		if options.Step.IsSet() {
 			s.step = options.Step.Val()
 		}
 
-		if options.DefaultValue.HasVal() {
+		if options.DefaultValue.IsSet() {
 			s.Set(options.DefaultValue.Val())
 		} else {
 			s.Set(s.min)
 		}
 
-		if options.Width.HasVal() {
+		if options.Width.IsSet() {
 			s.component.width = options.Width.Val()
 		}
 
-		if options.Height.HasVal() {
+		if options.Height.IsSet() {
 			s.component.height = options.Height.Val()
 		}
 

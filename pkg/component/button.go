@@ -71,11 +71,11 @@ func NewButton(options *ButtonOptions) *Button {
 	b.height = 15
 
 	if options != nil {
-		if options.Width.HasVal() {
+		if options.Width.IsSet() {
 			b.width = options.Width.Val()
 		}
 
-		if options.Height.HasVal() {
+		if options.Height.IsSet() {
 			b.height = options.Height.Val()
 		}
 
