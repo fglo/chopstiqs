@@ -4,6 +4,7 @@ import (
 	imgColor "image/color"
 
 	"github.com/fglo/chopstiqs/pkg/event"
+	"github.com/fglo/chopstiqs/pkg/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -29,8 +30,8 @@ type container struct {
 type ContainerOptions struct {
 	Layout Layout
 
-	Width  *int
-	Height *int
+	Width  option.OptInt
+	Height option.OptInt
 
 	Padding *Padding
 }
@@ -52,12 +53,12 @@ func NewContainer(options *ContainerOptions) Container {
 			c.layout = options.Layout
 		}
 
-		if options.Width != nil {
-			c.SetWidth(*options.Width)
+		if options.Width.IsSet() {
+			c.SetWidth(options.Width.Val())
 		}
 
-		if options.Height != nil {
-			c.SetHeight(*options.Height)
+		if options.Height.IsSet() {
+			c.SetHeight(options.Height.Val())
 		}
 	}
 

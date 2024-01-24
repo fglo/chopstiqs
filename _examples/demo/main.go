@@ -12,7 +12,7 @@ import (
 	"github.com/fglo/chopstiqs/pkg/component"
 	"github.com/fglo/chopstiqs/pkg/debug"
 	"github.com/fglo/chopstiqs/pkg/gui"
-	"github.com/fglo/chopstiqs/pkg/to"
+	"github.com/fglo/chopstiqs/pkg/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -62,7 +62,7 @@ func NewGame() *Game {
 
 	// component.SetDefaultPadding(2, 2, 2, 2)
 
-	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: to.Ptr(200), Height: to.Ptr(200)})
+	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: option.Int(200), Height: option.Int(200)})
 	rootContainer := component.NewContainer(&component.ContainerOptions{
 		Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
 		Layout:  &component.VerticalListLayout{RowGap: 5}})
@@ -78,7 +78,7 @@ func NewGame() *Game {
 		Drawer: component.DefaultCheckBoxDrawer{
 			Color: color.RGBA{255, 100, 50, 255},
 		},
-		Width: to.Ptr(15),
+		Width: option.Int(15),
 	}
 	cb := component.NewCheckBox(cbOpts)
 	cb.Toggle()
@@ -105,16 +105,20 @@ func NewGame() *Game {
 	})
 
 	slider := component.NewSlider(&component.SliderOptions{
-		Min:          to.Ptr(0.),
-		Max:          to.Ptr(10.),
-		Step:         to.Ptr(1.),
-		DefaultValue: to.Ptr(4.),
-		Width:        to.Ptr(100),
-		Height:       to.Ptr(15),
+		Min:          option.Float(0.),
+		Max:          option.Float(10.),
+		Step:         option.Float(1.),
+		DefaultValue: option.Float(4.),
+		Width:        option.Int(100),
+		Height:       option.Int(15),
 	})
 
 	slider.AddSlidedHandler(func(args *component.SliderSlidedEventArgs) {
 		sliderLabel.SetText(strconv.Itoa(int(args.Value)))
+		newBackgroundG := int8(g.backgroundColor.G) + int8(args.Value-args.PrevValue)*5
+		if newBackgroundG > 0 {
+			g.backgroundColor.G = uint8(newBackgroundG)
+		}
 	})
 
 	sliderContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
@@ -129,12 +133,12 @@ func NewGame() *Game {
 	})
 
 	slider2 := component.NewSlider(&component.SliderOptions{
-		Min:          to.Ptr(0.),
-		Max:          to.Ptr(1.),
-		Step:         to.Ptr(.05),
-		DefaultValue: to.Ptr(.5),
-		Width:        to.Ptr(100),
-		Height:       to.Ptr(15),
+		Min:          option.Float(0.),
+		Max:          option.Float(1.),
+		Step:         option.Float(.05),
+		DefaultValue: option.Float(.5),
+		Width:        option.Int(100),
+		Height:       option.Int(15),
 	})
 
 	slider2.AddSlidedHandler(func(args *component.SliderSlidedEventArgs) {

@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"github.com/fglo/chopstiqs/pkg/event"
+	"github.com/fglo/chopstiqs/pkg/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -23,8 +24,8 @@ type Button struct {
 }
 
 type ButtonOptions struct {
-	Width  *int
-	Height *int
+	Width  option.OptInt
+	Height option.OptInt
 
 	Drawer ButtonDrawer
 
@@ -70,12 +71,12 @@ func NewButton(options *ButtonOptions) *Button {
 	b.height = 15
 
 	if options != nil {
-		if options.Width != nil {
-			b.width = *options.Width
+		if options.Width.IsSet() {
+			b.width = options.Width.Val()
 		}
 
-		if options.Height != nil {
-			b.height = *options.Height
+		if options.Height.IsSet() {
+			b.height = options.Height.Val()
 		}
 
 		if options.Label != nil {

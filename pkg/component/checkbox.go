@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"github.com/fglo/chopstiqs/pkg/event"
+	"github.com/fglo/chopstiqs/pkg/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -32,8 +33,8 @@ type CheckBox struct {
 }
 
 type CheckBoxOptions struct {
-	Width  *int
-	Height *int
+	Width  option.OptInt
+	Height option.OptInt
 
 	Label *Label
 
@@ -66,13 +67,13 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 	cb.component.height = cb.cbHeight
 
 	if options != nil {
-		if options.Width != nil {
-			cb.cbWidth = *options.Width
+		if options.Width.IsSet() {
+			cb.cbWidth = options.Width.Val()
 			cb.component.width = cb.cbWidth
 		}
 
-		if options.Height != nil {
-			cb.cbHeight = *options.Height
+		if options.Height.IsSet() {
+			cb.cbHeight = options.Height.Val()
 			cb.component.height = cb.cbHeight
 		}
 
