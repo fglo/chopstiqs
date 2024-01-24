@@ -78,6 +78,7 @@ func NewGame() *Game {
 		Drawer: component.DefaultCheckBoxDrawer{
 			Color: color.RGBA{255, 100, 50, 255},
 		},
+		Width: to.Ptr(15),
 	}
 	cb := component.NewCheckBox(cbOpts)
 	cb.Toggle()
