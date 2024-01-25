@@ -73,6 +73,10 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 			l.color = colorutils.ColorToRGBA(options.Color)
 		}
 
+		if options.Font != nil {
+			l.font = options.Font
+		}
+
 		l.horizontalAlignment = options.HorizontalAlignment
 		l.verticalAlignment = options.VerticalAlignment
 	}

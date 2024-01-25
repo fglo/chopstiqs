@@ -53,7 +53,7 @@ type Game struct {
 func NewGame() *Game {
 	g := &Game{
 		screenWidth:     200,
-		screenHeight:    200,
+		screenHeight:    250,
 		backgroundColor: color.RGBA{32, 32, 32, 255},
 	}
 
@@ -167,6 +167,9 @@ func NewGame() *Game {
 	img, _, _ := ebitenutil.NewImageFromReader(bytes.NewReader(chopstiqsLogo))
 	sprite := component.NewSprite(img, nil)
 
+	textInput := component.NewTextInput(&component.TextInputOptions{})
+	textInput.SetValue("Lorem Ipsum dolor sit amet")
+
 	rootContainer.AddComponent(sprite)
 	lblTitle.SetPosision(5, 5)
 	rootContainer.AddComponent(lblTitle)
@@ -180,6 +183,7 @@ func NewGame() *Game {
 	rootContainer.AddComponent(btn2)
 	rootContainer.AddComponent(sliderContainer)
 	rootContainer.AddComponent(sliderContainer2)
+	rootContainer.AddComponent(textInput)
 
 	gui.SetRootContainer(rootContainer)
 
