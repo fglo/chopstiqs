@@ -41,5 +41,8 @@ jobs:
       - name: Test
         run: go test -p=1 -v ./...
 
+      - name: Build example
+        run: go build -v _examples/demo/main.go
+
       - name: Build
         run: go build -v ./...
