@@ -154,10 +154,10 @@ func NewGame() *Game {
 	}
 	cb2 := component.NewCheckBox(cb2Opts)
 	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
-		btn.SetDisabled(args.CheckBox.Checked)
-		btn2.SetDisabled(args.CheckBox.Checked)
-		sliderContainer.SetDisabled(args.CheckBox.Checked)
-		sliderContainer2.SetDisabled(args.CheckBox.Checked)
+		btn.SetDisabled(args.CheckBox.Checked())
+		btn2.SetDisabled(args.CheckBox.Checked())
+		sliderContainer.SetDisabled(args.CheckBox.Checked())
+		sliderContainer2.SetDisabled(args.CheckBox.Checked())
 	})
 
 	checkBoxContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
