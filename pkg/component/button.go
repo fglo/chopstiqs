@@ -123,7 +123,7 @@ func (b *Button) setUpComponent(options *ButtonOptions) {
 	})
 
 	b.component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
-		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
+		if !b.disabled && !b.pressed && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = true
 			b.PressedEvent.Fire(&ButtonPressedEventArgs{
 				Button: b,
@@ -132,7 +132,7 @@ func (b *Button) setUpComponent(options *ButtonOptions) {
 	})
 
 	b.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
-		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
+		if !b.disabled && b.pressed && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = false
 			b.ReleasedEvent.Fire(&ButtonReleasedEventArgs{
 				Button: b,
