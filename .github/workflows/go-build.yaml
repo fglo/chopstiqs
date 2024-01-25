@@ -29,10 +29,11 @@ jobs:
           packages: libasound2-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
           version: 1.0
 
+      - name: Xvfb
+        run: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+
       - name: Test
         run: go test -v ./...
-        env:
-          DISPLAY: ":0"
 
       - name: Build
         run: go build -v ./...
