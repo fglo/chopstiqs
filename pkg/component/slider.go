@@ -63,9 +63,9 @@ type SliderOptions struct {
 }
 
 type SliderSlidedEventArgs struct {
-	Slider    *Slider
-	PrevValue float64
-	Value     float64
+	Slider *Slider
+	Value  float64
+	Change float64
 }
 
 type SliderPressedEventArgs struct {
@@ -276,17 +276,6 @@ func (s *Slider) AddSlidedHandler(f SliderSlidedHandlerFunc) *Slider {
 	return s
 }
 
-func (s *Slider) Set(value float64) {
-	prevValue := s.value
-	s.value = value
-	s.handle.SetPosision(s.calcHandlePosition(), 0)
-	s.SlidedEvent.Fire(&SliderSlidedEventArgs{
-		Slider:    s,
-		PrevValue: prevValue,
-		Value:     s.value,
-	})
-}
-
 func (s *Slider) GetValue() float64 {
 	return s.value
 }
@@ -318,26 +307,40 @@ func (s *Slider) Draw() *ebiten.Image {
 	return s.image
 }
 
-func (s *Slider) setToMin() {
-	s.handle.SetPosX(2)
+func (s *Slider) Set(value float64) {
 	prevValue := s.value
-	s.value = s.min
-	s.SlidedEvent.Fire(&SliderSlidedEventArgs{
-		Slider:    s,
-		PrevValue: prevValue,
-		Value:     s.value,
-	})
+	s.value = value
+	s.handle.SetPosision(s.calcHandlePosition(), 0)
+	s.fireEventOnChange(prevValue)
 }
 
-func (s *Slider) setToMax() {
-	s.handle.SetPosX(float64(s.width-s.handle.width) - 2)
-	s.value = s.max
+func (s *Slider) SetToMin() {
 	prevValue := s.value
-	s.SlidedEvent.Fire(&SliderSlidedEventArgs{
-		Slider:    s,
-		PrevValue: prevValue,
-		Value:     s.value,
-	})
+	s.value = s.min
+	s.handle.SetPosX(2)
+	s.fireEventOnChange(prevValue)
+}
+
+func (s *Slider) SetToMax() {
+	prevValue := s.value
+	s.value = s.max
+	s.handle.SetPosX(float64(s.width-s.handle.width) - 2)
+	s.fireEventOnChange(prevValue)
+}
+
+func (s *Slider) fireEventOnChange(prevValue float64) {
+	change := math.Round((s.value - prevValue) / s.step)
+	if math.Abs(change) < s.step {
+		change = 0
+	}
+
+	if change != 0 {
+		s.SlidedEvent.Fire(&SliderSlidedEventArgs{
+			Slider: s,
+			Change: change,
+			Value:  s.value,
+		})
+	}
 }
 
 func (s *Slider) updateHandlePosition() {
@@ -345,32 +348,22 @@ func (s *Slider) updateHandlePosition() {
 
 	switch {
 	case currCursorPosX >= s.rect.Max.X:
-		s.setToMax()
+		s.SetToMax()
 	case currCursorPosX <= s.rect.Min.X:
-		s.setToMin()
+		s.SetToMin()
 	default:
 		diff := float64(currCursorPosX) - s.absPosX
 		steps := math.Floor(diff / s.stepPixels)
+		value := float64(steps) * s.step
+		newHandlePosX := s.calcHandlePosition()
 
-		prevValue := s.value
-		s.value = float64(steps) * s.step
-
-		if prevValue != s.value {
-			newHandlePosX := s.calcHandlePosition()
-
-			switch {
-			case s.value >= s.max || newHandlePosX >= float64(s.rect.Max.X-s.handle.width)-s.absPosX:
-				s.setToMax()
-			case s.value <= s.min || newHandlePosX <= float64(s.rect.Min.X)-s.absPosX:
-				s.setToMin()
-			default:
-				s.handle.SetPosX(newHandlePosX)
-				s.SlidedEvent.Fire(&SliderSlidedEventArgs{
-					Slider:    s,
-					PrevValue: prevValue,
-					Value:     s.value,
-				})
-			}
+		switch {
+		case value >= s.max || newHandlePosX > float64(s.rect.Max.X-s.handle.width)-s.absPosX:
+			s.SetToMax()
+		case value <= s.min || newHandlePosX < float64(s.rect.Min.X)-s.absPosX:
+			s.SetToMin()
+		default:
+			s.Set(value)
 		}
 	}
 }
