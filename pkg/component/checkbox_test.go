@@ -10,21 +10,21 @@ import (
 func TestCheckbox_Click(t *testing.T) {
 	is := is.New(t)
 
-	eventFiredCounter := 0
+	firedEventsCounter := 0
 
 	cb := NewCheckBox(&CheckBoxOptions{})
 	cb.AddToggledHandler(func(args *CheckBoxToggledEventArgs) {
-		eventFiredCounter++
+		firedEventsCounter++
 	})
 
 	leftMouseButtonClick(t, &cb.component)
-	is.Equal(eventFiredCounter, 1)
+	is.Equal(firedEventsCounter, 1)
 
 	leftMouseButtonPress(t, &cb.component)
-	is.Equal(eventFiredCounter, 1)
+	is.Equal(firedEventsCounter, 1)
 
 	leftMouseButtonRelease(t, &cb.component)
-	is.Equal(eventFiredCounter, 2)
+	is.Equal(firedEventsCounter, 2)
 }
 
 func TestCheckbox_Toggle(t *testing.T) {
@@ -45,28 +45,28 @@ func TestCheckbox_Toggle(t *testing.T) {
 func TestCheckbox_SetChecked(t *testing.T) {
 	is := is.New(t)
 
-	eventFiredCounter := 0
+	firedEventsCounter := 0
 
 	cb := NewCheckBox(&CheckBoxOptions{})
 	cb.AddToggledHandler(func(args *CheckBoxToggledEventArgs) {
-		eventFiredCounter++
+		firedEventsCounter++
 	})
 
 	cb.Set(false)
 	event.HandleFired()
 
 	is.Equal(cb.Checked(), false)
-	is.Equal(eventFiredCounter, 0)
+	is.Equal(firedEventsCounter, 0)
 
 	cb.Set(true)
 	event.HandleFired()
 
 	is.Equal(cb.Checked(), true)
-	is.Equal(eventFiredCounter, 1)
+	is.Equal(firedEventsCounter, 1)
 
 	cb.Set(false)
 	event.HandleFired()
 
 	is.Equal(cb.Checked(), false)
-	is.Equal(eventFiredCounter, 2)
+	is.Equal(firedEventsCounter, 2)
 }

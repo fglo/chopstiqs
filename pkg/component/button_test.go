@@ -9,59 +9,59 @@ import (
 func TestButton_Clicked(t *testing.T) {
 	is := is.New(t)
 
-	eventFiredCounter := 0
+	firedEventsCounter := 0
 
 	cb := NewButton(&ButtonOptions{})
 	cb.AddClickedHandler(func(args *ButtonClickedEventArgs) {
-		eventFiredCounter++
+		firedEventsCounter++
 	})
 
 	leftMouseButtonClick(t, &cb.component)
-	is.Equal(eventFiredCounter, 1)
+	is.Equal(firedEventsCounter, 1)
 
 	leftMouseButtonPress(t, &cb.component)
-	is.Equal(eventFiredCounter, 1)
+	is.Equal(firedEventsCounter, 1)
 
 	leftMouseButtonRelease(t, &cb.component)
-	is.Equal(eventFiredCounter, 2)
+	is.Equal(firedEventsCounter, 2)
 }
 
 func TestButton_Pressed(t *testing.T) {
 	is := is.New(t)
 
-	eventFiredCounter := 0
+	firedEventsCounter := 0
 
 	cb := NewButton(&ButtonOptions{})
 	cb.AddPressedHandler(func(args *ButtonPressedEventArgs) {
-		eventFiredCounter++
+		firedEventsCounter++
 	})
 
 	leftMouseButtonClick(t, &cb.component)
-	is.Equal(eventFiredCounter, 1)
+	is.Equal(firedEventsCounter, 1)
 
 	leftMouseButtonPress(t, &cb.component)
-	is.Equal(eventFiredCounter, 2)
+	is.Equal(firedEventsCounter, 2)
 
 	leftMouseButtonRelease(t, &cb.component)
-	is.Equal(eventFiredCounter, 2)
+	is.Equal(firedEventsCounter, 2)
 }
 
 func TestButton_Released(t *testing.T) {
 	is := is.New(t)
 
-	eventFiredCounter := 0
+	firedEventsCounter := 0
 
 	cb := NewButton(&ButtonOptions{})
 	cb.AddReleasedHandler(func(args *ButtonReleasedEventArgs) {
-		eventFiredCounter++
+		firedEventsCounter++
 	})
 
 	leftMouseButtonClick(t, &cb.component)
-	is.Equal(eventFiredCounter, 1)
+	is.Equal(firedEventsCounter, 1)
 
 	leftMouseButtonPress(t, &cb.component)
-	is.Equal(eventFiredCounter, 1)
+	is.Equal(firedEventsCounter, 1)
 
 	leftMouseButtonRelease(t, &cb.component)
-	is.Equal(eventFiredCounter, 2)
+	is.Equal(firedEventsCounter, 2)
 }
