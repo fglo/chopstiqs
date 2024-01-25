@@ -115,7 +115,7 @@ func NewGame() *Game {
 
 	slider.AddSlidedHandler(func(args *component.SliderSlidedEventArgs) {
 		sliderLabel.SetText(strconv.Itoa(int(args.Value)))
-		newBackgroundG := int8(g.backgroundColor.G) + int8(args.Value-args.PrevValue)*5
+		newBackgroundG := int8(g.backgroundColor.G) + int8(args.Change)*5
 		if newBackgroundG > 0 {
 			g.backgroundColor.G = uint8(newBackgroundG)
 		}
