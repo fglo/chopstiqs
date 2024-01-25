@@ -10,7 +10,7 @@ import (
 
 type CheckBox struct {
 	component
-	Checked bool
+	checked bool
 
 	ToggledEvent *event.Event
 
@@ -52,7 +52,7 @@ type CheckBoxToggledHandlerFunc func(args *CheckBoxToggledEventArgs)
 func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 
 	cb := &CheckBox{
-		Checked:      false,
+		checked:      false,
 		ToggledEvent: &event.Event{},
 
 		cbWidth:  10,
@@ -106,7 +106,7 @@ func (cb *CheckBox) setUpComponent(options *CheckBoxOptions) {
 
 	cb.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if !cb.disabled && args.Inside {
-			cb.Checked = !cb.Checked
+			cb.checked = !cb.checked
 			cb.ToggledEvent.Fire(&CheckBoxToggledEventArgs{
 				CheckBox: cb,
 			})
@@ -150,11 +150,21 @@ func (cb *CheckBox) SetLabel(label *Label) {
 }
 
 func (cb *CheckBox) Set(checked bool) {
-	cb.Checked = checked
+	prevState := cb.checked
+	cb.checked = checked
+	if prevState != cb.checked {
+		cb.ToggledEvent.Fire(&CheckBoxToggledEventArgs{
+			CheckBox: cb,
+		})
+	}
+}
+
+func (cb *CheckBox) Checked() bool {
+	return cb.checked
 }
 
 func (cb *CheckBox) Toggle() {
-	cb.Checked = !cb.Checked
+	cb.checked = !cb.checked
 	cb.ToggledEvent.Fire(&CheckBoxToggledEventArgs{
 		CheckBox: cb,
 	})

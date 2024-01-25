@@ -8,6 +8,8 @@
 
 Chopstiqs aims to be a minimalistic GUI package for the [ebiten](https://ebitengine.org/) engine. Rather than using separate image files, it draws interface elements using built-in drawing functions. This allows for quick prototyping and use in projects that do not need polished graphics.
 
+Chopstiqs is heavily inspired by [ebitenui](https://github.com/ebitenui/ebitenui/).
+
 ## Examples
 
 Running example: <https://fglo.github.io/chopstiqs/>
@@ -41,4 +43,3 @@ What I want to achieve:
   - horizontal scroll
   - flexbox
 - layers (mulitple containers on top of each other)
-- tests for components

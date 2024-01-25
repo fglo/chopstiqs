@@ -15,7 +15,7 @@ type DefaultCheckBoxDrawer struct {
 }
 
 func (d DefaultCheckBoxDrawer) Draw(cb *CheckBox) *ebiten.Image {
-	if cb.Checked {
+	if cb.Checked() {
 		cb.image.WritePixels(d.drawChecked(cb))
 	} else {
 		cb.image.WritePixels(d.drawUnchecked(cb))
