@@ -31,17 +31,19 @@ type Label struct {
 	component
 	text  string
 	color color.RGBA
-	font  font.Face
+
+	font    font.Face
+	metrics fontutils.Metrics
 
 	horizontalAlignment HorizontalAlignment
 	verticalAlignment   VerticalAlignment
 
 	alignHorizontally func()
 	alignVertically   func()
-	textPosX          int
-	textPosY          int
+	textOriginX       int
+	textOriginY       int
 
-	textBounds image.Rectangle
+	bounds image.Rectangle
 
 	Inverted bool
 }
@@ -60,10 +62,11 @@ type LabelOptions struct {
 
 func NewLabel(labelText string, options *LabelOptions) *Label {
 	l := &Label{
-		color:    color.RGBA{230, 230, 230, 255},
-		font:     fontutils.DefaultFontFace,
-		textPosX: 0,
-		Inverted: false,
+		color:       color.RGBA{230, 230, 230, 255},
+		font:        fontutils.DefaultFontFace,
+		metrics:     fontutils.NewMetrics(fontutils.DefaultFontFace.Metrics()),
+		textOriginX: 0,
+		Inverted:    false,
 	}
 
 	l.SetText(labelText)
@@ -75,6 +78,7 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 
 		if options.Font != nil {
 			l.font = options.Font
+			l.metrics = fontutils.NewMetrics(l.font.Metrics())
 		}
 
 		l.horizontalAlignment = options.HorizontalAlignment
@@ -129,11 +133,11 @@ func (l *Label) align() {
 }
 
 func (l *Label) centerHorizontally() {
-	l.posX = l.posX - float64(l.textBounds.Dx())/2
+	l.posX = l.posX - float64(l.bounds.Dx())/2
 }
 
 func (l *Label) centerVertically() {
-	l.posY = l.posY - float64(l.textBounds.Dy())/2
+	l.posY = l.posY - float64(l.bounds.Dy())/2
 }
 
 func (l *Label) alignToLeft() {
@@ -141,7 +145,7 @@ func (l *Label) alignToLeft() {
 }
 
 func (l *Label) alignToRight() {
-	l.posX = l.posX - float64(l.textBounds.Dx())
+	l.posX = l.posX - float64(l.bounds.Dx())
 }
 
 func (l *Label) alignToTop() {
@@ -149,19 +153,16 @@ func (l *Label) alignToTop() {
 }
 
 func (l *Label) alignToBottom() {
-	l.posY = l.posY - float64(l.textBounds.Dy())
+	l.posY = l.posY - float64(l.bounds.Dy())
 }
 
 func (l *Label) SetText(labelText string) {
 	// TODO: change deprecated function
-	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
-
+	l.bounds = text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
 	l.text = labelText
+	l.textOriginY = -l.bounds.Min.Y
 
-	l.textPosY = -bounds.Min.Y
-	l.textBounds = bounds
-
-	l.SetDimensions(bounds.Dx(), bounds.Dy())
+	l.SetDimensions(l.bounds.Dx(), l.bounds.Dy())
 
 	if l.container != nil {
 		l.container.SetWidth(l.container.Width() + l.component.width)
@@ -180,9 +181,9 @@ func (l *Label) Draw() *ebiten.Image {
 	l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
 
 	if l.Inverted {
-		text.Draw(l.image, l.text, l.font, l.textPosX+l.padding.Left, l.textPosY+l.padding.Top, color.RGBA{255 - l.color.R, 255 - l.color.G, 255 - l.color.B, l.color.A})
+		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, color.RGBA{255 - l.color.R, 255 - l.color.G, 255 - l.color.B, l.color.A})
 	} else {
-		text.Draw(l.image, l.text, l.font, l.textPosX+l.padding.Left, l.textPosY+l.padding.Top, l.color)
+		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, l.color)
 	}
 
 	l.component.Draw()
