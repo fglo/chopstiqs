@@ -1,4 +1,4 @@
-package colorutils
+package color
 
 import imgColor "image/color"
 

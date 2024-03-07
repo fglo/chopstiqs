@@ -49,7 +49,7 @@ type CheckBoxToggledEventArgs struct {
 
 type CheckBoxToggledHandlerFunc func(args *CheckBoxToggledEventArgs)
 
-func NewCheckBox(options *CheckBoxOptions) *CheckBox {
+func NewCheckBox(opt *CheckBoxOptions) *CheckBox {
 
 	cb := &CheckBox{
 		checked:      false,
@@ -66,39 +66,39 @@ func NewCheckBox(options *CheckBoxOptions) *CheckBox {
 	cb.component.width = cb.cbWidth
 	cb.component.height = cb.cbHeight
 
-	if options != nil {
-		if options.Width.IsSet() {
-			cb.cbWidth = options.Width.Val()
+	if opt != nil {
+		if opt.Width.IsSet() {
+			cb.cbWidth = opt.Width.Val()
 			cb.component.width = cb.cbWidth
 		}
 
-		if options.Height.IsSet() {
-			cb.cbHeight = options.Height.Val()
+		if opt.Height.IsSet() {
+			cb.cbHeight = opt.Height.Val()
 			cb.component.height = cb.cbHeight
 		}
 
-		if options.Label != nil {
-			cb.SetLabel(options.Label)
+		if opt.Label != nil {
+			cb.SetLabel(opt.Label)
 		}
 
-		if options.Drawer != nil {
-			cb.drawer = options.Drawer
+		if opt.Drawer != nil {
+			cb.drawer = opt.Drawer
 		}
 	}
 
-	cb.setUpComponent(options)
+	cb.setUpComponent(opt)
 
 	cb.setDrawingDimensions()
 
 	return cb
 }
 
-func (cb *CheckBox) setUpComponent(options *CheckBoxOptions) {
+func (cb *CheckBox) setUpComponent(opt *CheckBoxOptions) {
 	var componentOptions ComponentOptions
 
-	if options != nil {
+	if opt != nil {
 		componentOptions = ComponentOptions{
-			Padding: options.Padding,
+			Padding: opt.Padding,
 		}
 	}
 
@@ -107,7 +107,7 @@ func (cb *CheckBox) setUpComponent(options *CheckBoxOptions) {
 	cb.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if !cb.disabled && args.Inside {
 			cb.checked = !cb.checked
-			cb.ToggledEvent.Fire(&CheckBoxToggledEventArgs{
+			cb.eventManager.Fire(cb.ToggledEvent, &CheckBoxToggledEventArgs{
 				CheckBox: cb,
 			})
 		}
@@ -153,7 +153,7 @@ func (cb *CheckBox) Set(checked bool) {
 	prevState := cb.checked
 	cb.checked = checked
 	if prevState != cb.checked {
-		cb.ToggledEvent.Fire(&CheckBoxToggledEventArgs{
+		cb.eventManager.Fire(cb.ToggledEvent, &CheckBoxToggledEventArgs{
 			CheckBox: cb,
 		})
 	}
@@ -165,7 +165,7 @@ func (cb *CheckBox) Checked() bool {
 
 func (cb *CheckBox) Toggle() {
 	cb.checked = !cb.checked
-	cb.ToggledEvent.Fire(&CheckBoxToggledEventArgs{
+	cb.eventManager.Fire(cb.ToggledEvent, &CheckBoxToggledEventArgs{
 		CheckBox: cb,
 	})
 }

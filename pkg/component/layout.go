@@ -143,6 +143,10 @@ func (gl *GridLayout) Rearrange(c *container) {
 	currRowId = 0
 
 	for _, component := range c.components {
+		if currRowId >= gl.Rows {
+			break
+		}
+
 		component.SetPosision(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top+c.lastComponentPosY))
 
 		c.lastComponentPosX += gl.ColumnsWidths[currColId] + gl.ColumnGap

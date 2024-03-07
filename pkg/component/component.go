@@ -70,11 +70,16 @@ type Component interface {
 	SetPaddingRight(padding int)
 
 	setContainer(Container)
+
+	EventManager() *event.Manager
+	SetEventManager(*event.Manager)
 }
 
 // component is an abstraction of a user interface component, like a button or checkbox.
 type component struct {
 	container Container
+
+	eventManager *event.Manager
 
 	image *ebiten.Image
 
@@ -113,10 +118,10 @@ type component struct {
 	lastUpdateMouseRightButtonPressed bool
 	lastUpdateCursorEntered           bool
 
-	MouseButtonPressedEvent  event.Event
-	MouseButtonReleasedEvent event.Event
-	CursorEnterEvent         event.Event
-	CursorExitEvent          event.Event
+	MouseButtonPressedEvent  *event.Event
+	MouseButtonReleasedEvent *event.Event
+	CursorEnterEvent         *event.Event
+	CursorExitEvent          *event.Event
 }
 
 // ComponentOptions is a struct that holds component options.
@@ -127,17 +132,22 @@ type ComponentOptions struct {
 }
 
 // SetupComponent sets up the component.
-func (c *component) setUpComponent(options *ComponentOptions) {
+func (c *component) setUpComponent(opt *ComponentOptions) {
+	c.MouseButtonPressedEvent = &event.Event{}
+	c.MouseButtonReleasedEvent = &event.Event{}
+	c.CursorEnterEvent = &event.Event{}
+	c.CursorExitEvent = &event.Event{}
+
 	c.padding = DefaultPadding
 
-	if options != nil {
-		if options.Padding != nil {
-			options.Padding.Validate()
-			c.padding = *options.Padding
+	if opt != nil {
+		if opt.Padding != nil {
+			opt.Padding.Validate()
+			c.padding = *opt.Padding
 		}
 
-		c.disabled = options.Disabled
-		c.hidden = options.Hidden
+		c.disabled = opt.Disabled
+		c.hidden = opt.Hidden
 	}
 
 	c.SetDimensions(c.width, c.height)
@@ -149,6 +159,15 @@ func (c *component) setContainer(container Container) {
 	c.absPosX = c.posX + c.container.AbsPosX()
 	c.absPosY = c.posY + c.container.AbsPosY()
 	c.setRect()
+	c.eventManager = container.EventManager()
+}
+
+func (c *component) EventManager() *event.Manager {
+	return c.eventManager
+}
+
+func (c *component) SetEventManager(eventManager *event.Manager) {
+	c.eventManager = eventManager
 }
 
 func (c *component) drawBorders(arr []byte) []byte {
@@ -468,33 +487,33 @@ func (c *component) FireEvents() {
 
 		if input.MouseLeftButtonJustPressed {
 			c.lastUpdateMouseLeftButtonPressed = true
-			c.MouseButtonPressedEvent.Fire(&ComponentMouseButtonPressedEventArgs{
+			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
 				Component: c,
 				Button:    ebiten.MouseButtonLeft,
 			})
 		} else {
-			c.CursorEnterEvent.Fire(&ComponentCursorEnterEventArgs{
+			c.eventManager.Fire(c.CursorEnterEvent, &ComponentCursorEnterEventArgs{
 				Component: c,
 			})
 		}
 
 		if input.MouseRightButtonJustPressed {
 			c.lastUpdateMouseRightButtonPressed = true
-			c.MouseButtonPressedEvent.Fire(&ComponentMouseButtonPressedEventArgs{
+			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
 				Component: c,
 				Button:    ebiten.MouseButtonRight,
 			})
 		}
 	} else {
 		c.lastUpdateCursorEntered = false
-		c.CursorExitEvent.Fire(&ComponentCursorExitEventArgs{
+		c.eventManager.Fire(c.CursorExitEvent, &ComponentCursorExitEventArgs{
 			Component: c,
 		})
 	}
 
 	if !input.MouseLeftButtonPressed && c.lastUpdateMouseLeftButtonPressed {
 		c.lastUpdateMouseLeftButtonPressed = false
-		c.MouseButtonReleasedEvent.Fire(&ComponentMouseButtonReleasedEventArgs{
+		c.eventManager.Fire(c.MouseButtonReleasedEvent, &ComponentMouseButtonReleasedEventArgs{
 			Component: c,
 			Inside:    mouseEntered,
 			Button:    ebiten.MouseButtonLeft,
@@ -503,7 +522,7 @@ func (c *component) FireEvents() {
 
 	if !input.MouseRightButtonPressed && c.lastUpdateMouseRightButtonPressed {
 		c.lastUpdateMouseRightButtonPressed = false
-		c.MouseButtonReleasedEvent.Fire(&ComponentMouseButtonReleasedEventArgs{
+		c.eventManager.Fire(c.MouseButtonReleasedEvent, &ComponentMouseButtonReleasedEventArgs{
 			Component: c,
 			Inside:    mouseEntered,
 			Button:    ebiten.MouseButtonRight,

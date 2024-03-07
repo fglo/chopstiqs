@@ -37,6 +37,8 @@ func main() {
 
 // Game encapsulates game logic
 type Game struct {
+	gui *gui.GUI
+
 	bgColorToggled bool
 
 	screenWidth  int
@@ -52,6 +54,7 @@ type Game struct {
 // New generates a new Game object.
 func NewGame() *Game {
 	g := &Game{
+		gui:             gui.New(),
 		screenWidth:     200,
 		screenHeight:    200,
 		backgroundColor: color.RGBA{32, 32, 32, 255},
@@ -62,17 +65,19 @@ func NewGame() *Game {
 
 	// component.SetDefaultPadding(2, 2, 2, 2)
 
-	// rootContainer := component.NewContainer(&component.ContainerOptions{Width: option.Int(200), Height: option.Int(200)})
-	rootContainer := component.NewContainer(&component.ContainerOptions{
+	// rootContainer := g.gui.NewContainer(&component.ContainerOptions{Width: option.Int(200), Height: option.Int(200)})
+	rootContainer := g.gui.NewContainer(&component.ContainerOptions{
 		Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
 		Layout:  &component.VerticalListLayout{RowGap: 5}})
-	// rootContainer := component.NewContainer(&component.ContainerOptions{
+	// rootContainer := g.gui.NewContainer(&component.ContainerOptions{
 	// 	Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
 	// 	Layout:  &component.GridLayout{Columns: 2, ColumnGap: 5, Rows: 2, RowGap: 5}})
 
-	lblTitle := component.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
+	g.gui.SetRootContainer(rootContainer)
 
-	lblInstructions := component.NewLabel("b - show borders\np - show padding\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: component.AlignmentTop})
+	lblTitle := g.gui.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
+
+	lblInstructions := g.gui.NewLabel("b - show borders\np - show padding\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: component.AlignmentTop})
 
 	cbOpts := &component.CheckBoxOptions{
 		Drawer: component.DefaultCheckBoxDrawer{
@@ -80,15 +85,15 @@ func NewGame() *Game {
 		},
 		Width: option.Int(15),
 	}
-	cb := component.NewCheckBox(cbOpts)
+	cb := g.gui.NewCheckBox(cbOpts)
 	cb.Toggle()
 
-	btn := component.NewButton(&component.ButtonOptions{
-		Label: component.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{50, 50, 50, 255}}),
+	btn := g.gui.NewButton(&component.ButtonOptions{
+		Label: g.gui.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{50, 50, 50, 255}}),
 	})
 	btn.AddClickedHandler(func(args *component.ButtonClickedEventArgs) { g.toggleBackground() })
 
-	btn2 := component.NewButton(&component.ButtonOptions{
+	btn2 := g.gui.NewButton(&component.ButtonOptions{
 		Drawer: component.DefaultButtonDrawer{
 			Color:         color.RGBA{100, 180, 90, 255},
 			ColorPressed:  color.RGBA{90, 160, 80, 255},
@@ -97,14 +102,14 @@ func NewGame() *Game {
 		},
 	})
 
-	sliderLabel := component.NewLabel("4", &component.LabelOptions{
+	sliderLabel := g.gui.NewLabel("4", &component.LabelOptions{
 		Color: color.RGBA{230, 230, 230, 255},
 		Padding: &component.Padding{
 			Top: 4,
 		},
 	})
 
-	slider := component.NewSlider(&component.SliderOptions{
+	slider := g.gui.NewSlider(&component.SliderOptions{
 		Min:          option.Float(0.),
 		Max:          option.Float(10.),
 		Step:         option.Float(1.),
@@ -121,18 +126,18 @@ func NewGame() *Game {
 		}
 	})
 
-	sliderContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	sliderContainer := g.gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	sliderContainer.AddComponent(slider)
 	sliderContainer.AddComponent(sliderLabel)
 
-	sliderLabel2 := component.NewLabel("0.50", &component.LabelOptions{
+	sliderLabel2 := g.gui.NewLabel("0.50", &component.LabelOptions{
 		Color: color.RGBA{230, 230, 230, 255},
 		Padding: &component.Padding{
 			Top: 4,
 		},
 	})
 
-	slider2 := component.NewSlider(&component.SliderOptions{
+	slider2 := g.gui.NewSlider(&component.SliderOptions{
 		Min:          option.Float(0.),
 		Max:          option.Float(1.),
 		Step:         option.Float(.05),
@@ -145,14 +150,14 @@ func NewGame() *Game {
 		sliderLabel2.SetText(fmt.Sprintf("%.2f", args.Value))
 	})
 
-	sliderContainer2 := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	sliderContainer2 := g.gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	sliderContainer2.AddComponent(slider2)
 	sliderContainer2.AddComponent(sliderLabel2)
 
 	cb2Opts := &component.CheckBoxOptions{
-		Label: component.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
+		Label: g.gui.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
 	}
-	cb2 := component.NewCheckBox(cb2Opts)
+	cb2 := g.gui.NewCheckBox(cb2Opts)
 	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
 		btn.SetDisabled(args.CheckBox.Checked())
 		btn2.SetDisabled(args.CheckBox.Checked())
@@ -160,7 +165,7 @@ func NewGame() *Game {
 		sliderContainer2.SetDisabled(args.CheckBox.Checked())
 	})
 
-	checkBoxContainer := component.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	checkBoxContainer := g.gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	checkBoxContainer.AddComponent(cb)
 	checkBoxContainer.AddComponent(cb2)
 
@@ -181,8 +186,6 @@ func NewGame() *Game {
 	rootContainer.AddComponent(sliderContainer)
 	rootContainer.AddComponent(sliderContainer2)
 
-	gui.SetRootContainer(rootContainer)
-
 	return g
 }
 
@@ -198,7 +201,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 // Update updates the current game state.
 func (g *Game) Update() error {
-	gui.Update()
+	g.gui.Update()
 
 	g.checkShowBordersButton()
 	g.checkShowPaddingButton()
@@ -250,5 +253,5 @@ func (g *Game) toggleBackground() {
 // Draw draws the current game to the given screen.
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(g.backgroundColor)
-	gui.Draw(screen)
+	g.gui.Draw(screen)
 }

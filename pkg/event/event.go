@@ -13,20 +13,8 @@ type handler struct {
 	handle HandlerFunc
 }
 
-// Fire fires an event to all registered handlers. Arbitrary event arguments may be passed
-// which are in turn passed on to event handlers.
-//
-// Events are not fired directly, but are put into a deferred queue. This queue is then
-// processed by the GUI.
-func (e *Event) Fire(args interface{}) {
-	firedEvents = append(firedEvents, &FiredEvent{
-		event: e,
-		args:  args,
-	})
-}
-
 // A HandlerFunc is a function that receives and handles an event. When firing an event using
-// Event.Fire, arbitrary event arguments may be passed that are in turn passed on to the handler function.
+// EventManager.Fire, arbitrary event arguments may be passed that are in turn passed on to the handler function.
 type HandlerFunc func(args interface{})
 
 // RemoveHandlerFunc is a function that removes a handler from an event.
@@ -48,6 +36,18 @@ func (e *Event) AddHandler(h HandlerFunc) RemoveHandlerFunc {
 	}
 }
 
+// AddOneTimeHandler registers event handler with event. When event fires, handler is removed from it immediately.
+func (e *Event) AddOneTimeHandler(handler HandlerFunc) {
+	var removeHandler RemoveHandlerFunc
+
+	oneShotHandlerWrapperFunc := func(args interface{}) {
+		removeHandler()
+		handler(args)
+	}
+
+	removeHandler = e.AddHandler(oneShotHandlerWrapperFunc)
+}
+
 func (e *Event) removeHandler(id uint32) {
 	index := -1
 	for i, handler := range e.handlers {
@@ -62,39 +62,4 @@ func (e *Event) removeHandler(id uint32) {
 	}
 
 	e.handlers = append(e.handlers[:index], e.handlers[index+1:]...)
-}
-
-var firedEvents []*FiredEvent
-
-// FiredEvent represents an event that has been fired.
-type FiredEvent struct {
-	event *Event
-	args  interface{}
-}
-
-// AddEventHandlerOneShot registers event handler with event. When event fires, handler is removed from it immediately.
-func AddEventHandlerOneShot(event *Event, handler HandlerFunc) {
-	var removeHandler RemoveHandlerFunc
-
-	oneShotHandlerWrapperFunc := func(args interface{}) {
-		removeHandler()
-		handler(args)
-	}
-
-	removeHandler = event.AddHandler(oneShotHandlerWrapperFunc)
-}
-
-// HandleFired processes the queue of fired events and calls their handlers.
-func HandleFired() {
-	for len(firedEvents) > 0 {
-		fired := firedEvents[0]
-		firedEvents = firedEvents[1:]
-
-		for _, handler := range fired.event.handlers {
-			handler.handle(fired.args)
-		}
-	}
-
-	// resetting the deferredActions slice
-	firedEvents = firedEvents[:0]
 }
