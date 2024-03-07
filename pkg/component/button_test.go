@@ -3,6 +3,7 @@ package component
 import (
 	"testing"
 
+	"github.com/fglo/chopstiqs/pkg/event"
 	"github.com/matryer/is"
 )
 
@@ -11,18 +12,21 @@ func TestButton_Clicked(t *testing.T) {
 
 	firedEventsCounter := 0
 
-	cb := NewButton(&ButtonOptions{})
-	cb.AddClickedHandler(func(args *ButtonClickedEventArgs) {
+	eventManager := event.NewManager()
+
+	b := NewButton(&ButtonOptions{})
+	b.SetEventManager(eventManager)
+	b.AddClickedHandler(func(args *ButtonClickedEventArgs) {
 		firedEventsCounter++
 	})
 
-	leftMouseButtonClick(t, &cb.component)
+	leftMouseButtonClick(t, &b.component)
 	is.Equal(firedEventsCounter, 1)
 
-	leftMouseButtonPress(t, &cb.component)
+	leftMouseButtonPress(t, &b.component)
 	is.Equal(firedEventsCounter, 1)
 
-	leftMouseButtonRelease(t, &cb.component)
+	leftMouseButtonRelease(t, &b.component)
 	is.Equal(firedEventsCounter, 2)
 }
 
@@ -31,18 +35,21 @@ func TestButton_Pressed(t *testing.T) {
 
 	firedEventsCounter := 0
 
-	cb := NewButton(&ButtonOptions{})
-	cb.AddPressedHandler(func(args *ButtonPressedEventArgs) {
+	eventManager := event.NewManager()
+
+	b := NewButton(&ButtonOptions{})
+	b.SetEventManager(eventManager)
+	b.AddPressedHandler(func(args *ButtonPressedEventArgs) {
 		firedEventsCounter++
 	})
 
-	leftMouseButtonClick(t, &cb.component)
+	leftMouseButtonClick(t, &b.component)
 	is.Equal(firedEventsCounter, 1)
 
-	leftMouseButtonPress(t, &cb.component)
+	leftMouseButtonPress(t, &b.component)
 	is.Equal(firedEventsCounter, 2)
 
-	leftMouseButtonRelease(t, &cb.component)
+	leftMouseButtonRelease(t, &b.component)
 	is.Equal(firedEventsCounter, 2)
 }
 
@@ -51,17 +58,20 @@ func TestButton_Released(t *testing.T) {
 
 	firedEventsCounter := 0
 
-	cb := NewButton(&ButtonOptions{})
-	cb.AddReleasedHandler(func(args *ButtonReleasedEventArgs) {
+	eventManager := event.NewManager()
+
+	b := NewButton(&ButtonOptions{})
+	b.SetEventManager(eventManager)
+	b.AddReleasedHandler(func(args *ButtonReleasedEventArgs) {
 		firedEventsCounter++
 	})
 
-	leftMouseButtonClick(t, &cb.component)
+	leftMouseButtonClick(t, &b.component)
 	is.Equal(firedEventsCounter, 1)
 
-	leftMouseButtonPress(t, &cb.component)
+	leftMouseButtonPress(t, &b.component)
 	is.Equal(firedEventsCounter, 1)
 
-	leftMouseButtonRelease(t, &cb.component)
+	leftMouseButtonRelease(t, &b.component)
 	is.Equal(firedEventsCounter, 2)
 }

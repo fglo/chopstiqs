@@ -53,7 +53,7 @@ type ButtonReleasedHandlerFunc func(args *ButtonReleasedEventArgs)
 
 type ButtonClickedHandlerFunc func(args *ButtonClickedEventArgs)
 
-func NewButton(options *ButtonOptions) *Button {
+func NewButton(opt *ButtonOptions) *Button {
 	b := &Button{
 		PressedEvent:  &event.Event{},
 		ReleasedEvent: &event.Event{},
@@ -70,17 +70,17 @@ func NewButton(options *ButtonOptions) *Button {
 	b.width = 45
 	b.height = 15
 
-	if options != nil {
-		if options.Width.IsSet() {
-			b.width = options.Width.Val()
+	if opt != nil {
+		if opt.Width.IsSet() {
+			b.width = opt.Width.Val()
 		}
 
-		if options.Height.IsSet() {
-			b.height = options.Height.Val()
+		if opt.Height.IsSet() {
+			b.height = opt.Height.Val()
 		}
 
-		if options.Label != nil {
-			b.SetLabel(options.Label)
+		if opt.Label != nil {
+			b.SetLabel(opt.Label)
 
 			b.PressedEvent.AddHandler(func(args interface{}) {
 				b.label.Inverted = true
@@ -91,22 +91,22 @@ func NewButton(options *ButtonOptions) *Button {
 			})
 		}
 
-		if options.Drawer != nil {
-			b.drawer = options.Drawer
+		if opt.Drawer != nil {
+			b.drawer = opt.Drawer
 		}
 	}
 
-	b.setUpComponent(options)
+	b.setUpComponent(opt)
 
 	return b
 }
 
-func (b *Button) setUpComponent(options *ButtonOptions) {
+func (b *Button) setUpComponent(opt *ButtonOptions) {
 	var componentOptions ComponentOptions
 
-	if options != nil {
+	if opt != nil {
 		componentOptions = ComponentOptions{
-			Padding: options.Padding,
+			Padding: opt.Padding,
 		}
 	}
 
@@ -125,7 +125,7 @@ func (b *Button) setUpComponent(options *ButtonOptions) {
 	b.component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
 		if !b.disabled && !b.pressed && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = true
-			b.PressedEvent.Fire(&ButtonPressedEventArgs{
+			b.eventManager.Fire(b.PressedEvent, &ButtonPressedEventArgs{
 				Button: b,
 			})
 		}
@@ -134,12 +134,12 @@ func (b *Button) setUpComponent(options *ButtonOptions) {
 	b.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if !b.disabled && b.pressed && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = false
-			b.ReleasedEvent.Fire(&ButtonReleasedEventArgs{
+			b.eventManager.Fire(b.ReleasedEvent, &ButtonReleasedEventArgs{
 				Button: b,
 				Inside: args.Inside,
 			})
 
-			b.ClickedEvent.Fire(&ButtonClickedEventArgs{
+			b.eventManager.Fire(b.ClickedEvent, &ButtonClickedEventArgs{
 				Button: b,
 			})
 		}

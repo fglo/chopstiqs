@@ -89,7 +89,7 @@ type SliderReleasedHandlerFunc func(args *SliderReleasedEventArgs)
 
 type SliderClickedHandlerFunc func(args *SliderClickedEventArgs)
 
-func NewSlider(options *SliderOptions) *Slider {
+func NewSlider(opt *SliderOptions) *Slider {
 	s := &Slider{
 		SlidedEvent:   &event.Event{},
 		PressedEvent:  &event.Event{},
@@ -113,39 +113,39 @@ func NewSlider(options *SliderOptions) *Slider {
 	s.component.width = 45
 	s.component.height = 15
 
-	if options != nil {
-		if options.Min.IsSet() {
-			s.min = options.Min.Val()
+	if opt != nil {
+		if opt.Min.IsSet() {
+			s.min = opt.Min.Val()
 		}
 
-		if options.Max.IsSet() {
-			s.max = options.Max.Val()
+		if opt.Max.IsSet() {
+			s.max = opt.Max.Val()
 		}
 
-		if options.Step.IsSet() {
-			s.step = options.Step.Val()
+		if opt.Step.IsSet() {
+			s.step = opt.Step.Val()
 		}
 
-		if options.DefaultValue.IsSet() {
-			s.value = options.DefaultValue.Val()
+		if opt.DefaultValue.IsSet() {
+			s.value = opt.DefaultValue.Val()
 		} else {
 			s.value = s.min
 		}
 
-		if options.Width.IsSet() {
-			s.component.width = options.Width.Val()
+		if opt.Width.IsSet() {
+			s.component.width = opt.Width.Val()
 		}
 
-		if options.Height.IsSet() {
-			s.component.height = options.Height.Val()
+		if opt.Height.IsSet() {
+			s.component.height = opt.Height.Val()
 		}
 
-		if options.Drawer != nil {
-			s.drawer = options.Drawer
+		if opt.Drawer != nil {
+			s.drawer = opt.Drawer
 		}
 
-		if options.HandleDrawer != nil {
-			s.handleDrawer = options.HandleDrawer
+		if opt.HandleDrawer != nil {
+			s.handleDrawer = opt.HandleDrawer
 		}
 	}
 
@@ -155,23 +155,19 @@ func NewSlider(options *SliderOptions) *Slider {
 	s.handle = NewButton(&ButtonOptions{Width: option.Int(7), Height: option.Int(s.component.height), Drawer: s.handleDrawer})
 	s.handle.SetPosision(s.calcHandlePosition(), 0)
 
-	s.setUpComponent(options)
+	s.setUpComponent(opt)
 
 	s.setDrawingDimensions()
 
 	return s
 }
 
-func (s *Slider) calcHandlePosition() float64 {
-	return (s.value / s.step) * s.stepPixels
-}
-
-func (s *Slider) setUpComponent(options *SliderOptions) {
+func (s *Slider) setUpComponent(opt *SliderOptions) {
 	var componentOptions ComponentOptions
 
-	if options != nil {
+	if opt != nil {
 		componentOptions = ComponentOptions{
-			Padding: options.Padding,
+			Padding: opt.Padding,
 		}
 	}
 
@@ -190,7 +186,7 @@ func (s *Slider) setUpComponent(options *SliderOptions) {
 	s.component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
 		if !s.disabled && args.Button == ebiten.MouseButtonLeft && !s.handle.pressed {
 			s.pressed = true
-			s.PressedEvent.Fire(&SliderPressedEventArgs{
+			s.eventManager.Fire(s.PressedEvent, &SliderPressedEventArgs{
 				Slider: s,
 			})
 		}
@@ -199,12 +195,12 @@ func (s *Slider) setUpComponent(options *SliderOptions) {
 	s.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if !s.disabled && args.Button == ebiten.MouseButtonLeft {
 			s.pressed = false
-			s.ReleasedEvent.Fire(&SliderReleasedEventArgs{
+			s.eventManager.Fire(s.ReleasedEvent, &SliderReleasedEventArgs{
 				Slider: s,
 				Inside: args.Inside,
 			})
 
-			s.ClickedEvent.Fire(&SliderClickedEventArgs{
+			s.eventManager.Fire(s.ClickedEvent, &SliderClickedEventArgs{
 				Slider: s,
 			})
 		}
@@ -225,6 +221,10 @@ func (s *Slider) setUpComponent(options *SliderOptions) {
 	s.handle.AddReleasedHandler(func(args *ButtonReleasedEventArgs) {
 		s.sliding = false
 	})
+}
+
+func (s *Slider) calcHandlePosition() float64 {
+	return (s.value / s.step) * s.stepPixels
 }
 
 func (s *Slider) setDrawingDimensions() {
@@ -335,7 +335,7 @@ func (s *Slider) fireEventOnChange(prevValue float64) {
 	}
 
 	if change != 0 {
-		s.SlidedEvent.Fire(&SliderSlidedEventArgs{
+		s.eventManager.Fire(s.SlidedEvent, &SliderSlidedEventArgs{
 			Slider: s,
 			Change: change,
 			Value:  s.value,

@@ -4,8 +4,8 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/fglo/chopstiqs/internal/colorutils"
-	"github.com/fglo/chopstiqs/internal/fontutils"
+	color1 "github.com/fglo/chopstiqs/internal/color"
+	font1 "github.com/fglo/chopstiqs/internal/font"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
@@ -58,23 +58,23 @@ type LabelOptions struct {
 	Padding *Padding
 }
 
-func NewLabel(labelText string, options *LabelOptions) *Label {
+func NewLabel(text string, opt *LabelOptions) *Label {
 	l := &Label{
 		color:    color.RGBA{230, 230, 230, 255},
-		font:     fontutils.DefaultFontFace,
+		font:     font1.DefaultFontFace,
 		textPosX: 0,
 		Inverted: false,
 	}
 
-	l.SetText(labelText)
+	l.SetText(text)
 
-	if options != nil {
-		if options.Color != nil {
-			l.color = colorutils.ColorToRGBA(options.Color)
+	if opt != nil {
+		if opt.Color != nil {
+			l.color = color1.ColorToRGBA(opt.Color)
 		}
 
-		l.horizontalAlignment = options.HorizontalAlignment
-		l.verticalAlignment = options.VerticalAlignment
+		l.horizontalAlignment = opt.HorizontalAlignment
+		l.verticalAlignment = opt.VerticalAlignment
 	}
 
 	switch l.horizontalAlignment {
@@ -95,19 +95,19 @@ func NewLabel(labelText string, options *LabelOptions) *Label {
 		l.alignVertically = l.alignToBottom
 	}
 
-	l.setUpComponent(options)
+	l.setUpComponent(opt)
 
 	l.align()
 
 	return l
 }
 
-func (l *Label) setUpComponent(options *LabelOptions) {
+func (l *Label) setUpComponent(opt *LabelOptions) {
 	var componentOptions ComponentOptions
 
-	if options != nil {
+	if opt != nil {
 		componentOptions = ComponentOptions{
-			Padding: options.Padding,
+			Padding: opt.Padding,
 		}
 	}
 
@@ -150,7 +150,7 @@ func (l *Label) alignToBottom() {
 
 func (l *Label) SetText(labelText string) {
 	// TODO: change deprecated function
-	bounds := text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
+	bounds := text.BoundString(font1.DefaultFontFace, labelText) // nolint
 
 	l.text = labelText
 
