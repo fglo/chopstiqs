@@ -1,15 +1,47 @@
 package component
 
+import (
+	"encoding/xml"
+	"fmt"
+	"strconv"
+
+	xmlutils "github.com/fglo/chopstiqs/pkg/xml"
+)
+
 type Layout interface {
-	Rearrange(*container)
-	Arrange(*container, Component)
+	Rearrange(*Container)
+	Arrange(*Container, Component)
+	MarshalXMLAttr(name xml.Name) (xml.Attr, error)
+}
+
+func UnmarshalLayout(attr xml.Attr) (Layout, error) {
+	attrMap := xmlutils.ParseAttrMap(attr.Value)
+
+	layoutType, found := attrMap["name"]
+	if !found {
+		return nil, fmt.Errorf("attribute field 'name' not found")
+	}
+
+	switch layoutType {
+	case "horizontalList":
+		hl := &HorizontalListLayout{}
+		return hl, hl.UnmarshalXMLAttr(attr)
+	case "verticalList":
+		vl := &VerticalListLayout{}
+		return vl, vl.UnmarshalXMLAttr(attr)
+	case "grid":
+		gl := &GridLayout{}
+		return gl, gl.UnmarshalXMLAttr(attr)
+	}
+
+	return nil, fmt.Errorf("unknown layout type: %s", layoutType)
 }
 
 type HorizontalListLayout struct {
 	ColumnGap int
 }
 
-func (hl *HorizontalListLayout) Rearrange(c *container) {
+func (hl *HorizontalListLayout) Rearrange(c *Container) {
 	width := 0
 	height := 0
 
@@ -22,12 +54,12 @@ func (hl *HorizontalListLayout) Rearrange(c *container) {
 	c.SetDimensions(width, height)
 }
 
-func (hl *HorizontalListLayout) Arrange(c *container, component Component) {
+func (hl *HorizontalListLayout) Arrange(c *Container, component Component) {
 	width, height := hl.arrange(c, component, c.width, c.height)
 	c.SetDimensions(width, height)
 }
 
-func (hl *HorizontalListLayout) arrange(c *container, component Component, width, height int) (int, int) {
+func (hl *HorizontalListLayout) arrange(c *Container, component Component, width, height int) (int, int) {
 	component.SetPosision(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top))
 	c.lastComponentPosX += component.WidthWithPadding() + hl.ColumnGap
 
@@ -38,11 +70,33 @@ func (hl *HorizontalListLayout) arrange(c *container, component Component, width
 	return c.lastComponentPosX, height
 }
 
+func (hl *HorizontalListLayout) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	return xml.Attr{
+		Name:  xml.Name{Local: "layout"},
+		Value: fmt.Sprintf("name: horizontalList, columnGap: %d", hl.ColumnGap),
+	}, nil
+}
+
+func (hl *HorizontalListLayout) UnmarshalXMLAttr(attr xml.Attr) error {
+	attrMap := xmlutils.ParseAttrMap(attr.Value)
+
+	if colGapStr, found := attrMap["columnGap"]; found {
+		colGap, err := strconv.Atoi(colGapStr)
+		if err != nil {
+			return fmt.Errorf("error parsing 'columnGap' attribute field: %w", err)
+		}
+
+		hl.ColumnGap = colGap
+	}
+
+	return nil
+}
+
 type VerticalListLayout struct {
 	RowGap int
 }
 
-func (vl *VerticalListLayout) Rearrange(c *container) {
+func (vl *VerticalListLayout) Rearrange(c *Container) {
 	width := 0
 	height := 0
 
@@ -55,12 +109,12 @@ func (vl *VerticalListLayout) Rearrange(c *container) {
 	c.SetDimensions(width, height)
 }
 
-func (vl *VerticalListLayout) Arrange(c *container, component Component) {
+func (vl *VerticalListLayout) Arrange(c *Container, component Component) {
 	width, height := vl.arrange(c, component, c.width, c.height)
 	c.SetDimensions(width, height)
 }
 
-func (vl *VerticalListLayout) arrange(c *container, component Component, width, height int) (int, int) {
+func (vl *VerticalListLayout) arrange(c *Container, component Component, width, height int) (int, int) {
 	component.SetPosision(float64(c.padding.Left), float64(c.lastComponentPosY+c.padding.Top))
 	c.lastComponentPosY += component.HeightWithPadding() + vl.RowGap
 
@@ -69,6 +123,28 @@ func (vl *VerticalListLayout) arrange(c *container, component Component, width, 
 	}
 
 	return width, c.lastComponentPosY
+}
+
+func (vl *VerticalListLayout) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	return xml.Attr{
+		Name:  xml.Name{Local: "layout"},
+		Value: fmt.Sprintf("name: verticalList, rowGap: %d", vl.RowGap),
+	}, nil
+}
+
+func (vl *VerticalListLayout) UnmarshalXMLAttr(attr xml.Attr) error {
+	attrMap := xmlutils.ParseAttrMap(attr.Value)
+
+	if rowGapStr, found := attrMap["rowGap"]; found {
+		rowGap, err := strconv.Atoi(rowGapStr)
+		if err != nil {
+			return fmt.Errorf("error parsing 'rowGap' attribute field: %w", err)
+		}
+
+		vl.RowGap = rowGap
+	}
+
+	return nil
 }
 
 type GridLayout struct {
@@ -100,7 +176,7 @@ func (gl *GridLayout) Setup() {
 	}
 }
 
-func (gl *GridLayout) Rearrange(c *container) {
+func (gl *GridLayout) Rearrange(c *Container) {
 	width := 0
 	height := 0
 
@@ -167,6 +243,25 @@ func (gl *GridLayout) Rearrange(c *container) {
 	c.SetDimensions(width, height)
 }
 
-func (gl *GridLayout) Arrange(c *container, component Component) {
+func (gl *GridLayout) Arrange(c *Container, component Component) {
 	gl.Rearrange(c)
+}
+
+//	  Columns       int
+//		ColumnsWidths []int
+//		ColumnGap     int
+//		Rows          int
+//		RowsHeights   []int
+//		RowGap        int
+//		fixedColumnWidths bool
+//		fixedRowHeights   bool
+func (gl *GridLayout) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	return xml.Attr{
+		Name:  xml.Name{Local: "layout"},
+		Value: fmt.Sprintf("name: grid, columns: %d, rows: %d", gl.Columns, gl.Rows),
+	}, nil
+}
+
+func (gl *GridLayout) UnmarshalXMLAttr(attr xml.Attr) error {
+	return nil
 }

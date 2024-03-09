@@ -1,29 +1,32 @@
 package component
 
 import (
+	"encoding/xml"
+	"fmt"
 	imgColor "image/color"
+	"strconv"
 
 	"github.com/fglo/chopstiqs/pkg/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
-type Container interface {
-	Component
-	// SetDisabled sets the container's and its component disabled states
-	SetDisabled(disabled bool)
-	// AddComponent adds a component to the container
-	AddComponent(Component)
-	// FireEvents fires the container's components deferred events
-	FireEvents()
-	// Draw draws the container's components, executes deferred events and returns the image.
-	Draw() *ebiten.Image
-	// SetBackgroundColor sets the container's background color
-	SetBackgroundColor(imgColor.RGBA)
-	// GetBackgroundColor gets the container's background color
-	GetBackgroundColor() imgColor.RGBA
-}
+// type Container interface {
+// 	Component
+// 	// SetDisabled sets the container's and its component disabled states
+// 	SetDisabled(disabled bool)
+// 	// AddComponent adds a component to the container
+// 	AddComponent(Component)
+// 	// FireEvents fires the container's components deferred events
+// 	FireEvents()
+// 	// Draw draws the container's components, executes deferred events and returns the image.
+// 	Draw() *ebiten.Image
+// 	// SetBackgroundColor sets the container's background color
+// 	SetBackgroundColor(imgColor.RGBA)
+// 	// GetBackgroundColor gets the container's background color
+// 	GetBackgroundColor() imgColor.RGBA
+// }
 
-type container struct {
+type Container struct {
 	component
 
 	layout Layout
@@ -45,8 +48,8 @@ type ContainerOptions struct {
 }
 
 // Newcontainer creates a new simple container
-func NewContainer(opt *ContainerOptions) Container {
-	c := &container{
+func NewContainer(opt *ContainerOptions) *Container {
+	c := &Container{
 		components: make([]Component, 0),
 	}
 
@@ -78,7 +81,7 @@ func NewContainer(opt *ContainerOptions) Container {
 	return c
 }
 
-func (c *container) setUpComponent(opt *ContainerOptions) {
+func (c *Container) setUpComponent(opt *ContainerOptions) {
 	var componentOptions ComponentOptions
 
 	if opt != nil {
@@ -91,7 +94,7 @@ func (c *container) setUpComponent(opt *ContainerOptions) {
 }
 
 // setContainer sets the component's container.
-func (c *container) setContainer(container Container) {
+func (c *Container) setContainer(container *Container) {
 	if c.layout != nil {
 		c.layout.Rearrange(c)
 	}
@@ -99,7 +102,7 @@ func (c *container) setContainer(container Container) {
 }
 
 // SetDisabled sets the container's and its component disabled states
-func (c *container) SetDisabled(disabled bool) {
+func (c *Container) SetDisabled(disabled bool) {
 	for _, component := range c.components {
 		component.SetDisabled(disabled)
 	}
@@ -107,7 +110,7 @@ func (c *container) SetDisabled(disabled bool) {
 }
 
 // AddComponent adds a component to the container
-func (c *container) AddComponent(component Component) {
+func (c *Container) AddComponent(component Component) {
 	c.components = append(c.components, component)
 	if c.layout != nil {
 		c.layout.Arrange(c, component)
@@ -116,24 +119,24 @@ func (c *container) AddComponent(component Component) {
 }
 
 // SetBackgroundColor sets the container's background color
-func (c *container) SetBackgroundColor(color imgColor.RGBA) {
+func (c *Container) SetBackgroundColor(color imgColor.RGBA) {
 	c.backgroundColor = color
 }
 
 // GetBackgroundColor gets the container's background color
-func (c *container) GetBackgroundColor() imgColor.RGBA {
+func (c *Container) GetBackgroundColor() imgColor.RGBA {
 	return c.backgroundColor
 }
 
 // FireEvents fires the container's components deferred events
-func (c *container) FireEvents() {
+func (c *Container) FireEvents() {
 	for _, component := range c.components {
 		component.FireEvents()
 	}
 }
 
 // Draw draws the container's components, executes deferred events and returns the image.
-func (c *container) Draw() *ebiten.Image {
+func (c *Container) Draw() *ebiten.Image {
 	c.image.Fill(c.backgroundColor)
 
 	for _, component := range c.components {
@@ -147,4 +150,109 @@ func (c *container) Draw() *ebiten.Image {
 	c.component.Draw()
 
 	return c.image
+}
+
+func (c *Container) MarshalYAML() (interface{}, error) {
+	mComponents := make([]any, 0)
+
+	for _, component := range c.components {
+		mComponent, err := component.MarshalYAML()
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling component %T: %w", component, err)
+		}
+
+		mComponents = append(mComponents, mComponent)
+	}
+
+	return struct {
+		Container struct {
+			Layout     Layout
+			Width      option.OptInt
+			Height     option.OptInt
+			Padding    *Padding
+			Components []any
+		}
+	}{
+		Container: struct {
+			Layout     Layout
+			Width      option.OptInt
+			Height     option.OptInt
+			Padding    *Padding
+			Components []any
+		}{
+			Layout:     c.layout,
+			Width:      option.Int(c.width),
+			Height:     option.Int(c.height),
+			Padding:    &c.padding,
+			Components: mComponents,
+		},
+	}, nil
+}
+
+type ContainerXML struct {
+	XMLName    xml.Name      `xml:"container"`
+	Layout     Layout        `xml:"layout,attr"`
+	Width      option.OptInt `xml:"width,attr"`
+	Height     option.OptInt `xml:"height,attr"`
+	Padding    *Padding      `xml:"padding,attr"`
+	Components []Component
+}
+
+func (c *Container) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name.Local = "container"
+
+	return e.EncodeElement(ContainerXML{
+		Layout:     c.layout,
+		Width:      option.Int(c.width),
+		Height:     option.Int(c.height),
+		Padding:    &c.padding,
+		Components: c.components,
+	}, start)
+}
+
+func (c *Container) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	opt := ContainerOptions{
+		Padding: &Padding{},
+	}
+
+	for _, attr := range start.Attr {
+		switch attr.Name.Local {
+		case "layout":
+			l, err := UnmarshalLayout(attr)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling layout attribute: %w", err)
+			}
+
+			opt.Layout = l
+		case "width":
+			if len(attr.Value) > 0 {
+				width, err := strconv.Atoi(attr.Value)
+				if err != nil {
+					return fmt.Errorf("error unmarshaling width attribute: %w", err)
+				}
+				opt.Width = option.Int(width)
+			}
+		case "height":
+			if len(attr.Value) > 0 {
+				height, err := strconv.Atoi(attr.Value)
+				if err != nil {
+					return fmt.Errorf("error unmarshaling height attribute: %w", err)
+				}
+				opt.Height = option.Int(height)
+			}
+		case "padding":
+			err := opt.Padding.UnmarshalXMLAttr(attr)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling padding attribute: %w", err)
+			}
+		}
+	}
+
+	*c = *NewContainer(&opt)
+
+	if err := d.Skip(); err != nil {
+		return fmt.Errorf("failed to skip element: %w", err)
+	}
+
+	return nil
 }

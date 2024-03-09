@@ -1,6 +1,7 @@
 package component
 
 import (
+	"encoding/xml"
 	"image/color"
 
 	"github.com/fglo/chopstiqs/pkg/event"
@@ -50,7 +51,6 @@ type CheckBoxToggledEventArgs struct {
 type CheckBoxToggledHandlerFunc func(args *CheckBoxToggledEventArgs)
 
 func NewCheckBox(opt *CheckBoxOptions) *CheckBox {
-
 	cb := &CheckBox{
 		checked:      false,
 		ToggledEvent: &event.Event{},
@@ -186,4 +186,43 @@ func (cb *CheckBox) Draw() *ebiten.Image {
 	cb.component.Draw()
 
 	return cb.image
+}
+
+func (cb *CheckBox) MarshalYAML() (interface{}, error) {
+	return struct {
+		CheckBox CheckBoxOptions
+	}{
+		CheckBox: CheckBoxOptions{
+			Width:   option.Int(cb.width),
+			Height:  option.Int(cb.height),
+			Drawer:  cb.drawer,
+			Label:   cb.label,
+			Padding: &cb.padding,
+		},
+	}, nil
+}
+
+type CheckBoxXML struct {
+	XMLName xml.Name       `xml:"checkbox"`
+	Width   option.OptInt  `xml:"width,attr,omitempty"`
+	Height  option.OptInt  `xml:"height,attr,omitempty"`
+	Label   *Label         `xml:"label,omitempty"`
+	Padding *Padding       `xml:"padding,attr,omitempty"`
+	Drawer  CheckBoxDrawer `xml:"drawer,attr,omitempty"`
+}
+
+func (cb *CheckBox) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name.Local = "checkbox"
+
+	return e.EncodeElement(CheckBoxXML{
+		Width:   option.Int(cb.width),
+		Height:  option.Int(cb.height),
+		Drawer:  cb.drawer,
+		Label:   cb.label,
+		Padding: &cb.padding,
+	}, start)
+}
+
+func (cb *CheckBox) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	return nil
 }

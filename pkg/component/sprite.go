@@ -1,6 +1,8 @@
 package component
 
 import (
+	"encoding/xml"
+
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -44,4 +46,31 @@ func (s *Sprite) SetImage(image *ebiten.Image) {
 
 func (s *Sprite) Draw() *ebiten.Image {
 	return s.image
+}
+
+func (s *Sprite) MarshalYAML() (interface{}, error) {
+	return struct {
+		Sprite SpriteOptions
+	}{
+		Sprite: SpriteOptions{
+			Padding: &s.padding,
+		},
+	}, nil
+}
+
+type SpriteXML struct {
+	XMLName xml.Name `xml:"sprite"`
+	Padding *Padding `xml:"padding,attr,omitempty"`
+}
+
+func (s *Sprite) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name.Local = "sprite"
+
+	return e.EncodeElement(SpriteXML{
+		Padding: &s.padding,
+	}, start)
+}
+
+func (s *Sprite) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	return nil
 }

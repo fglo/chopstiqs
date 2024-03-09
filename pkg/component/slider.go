@@ -1,6 +1,7 @@
 package component
 
 import (
+	"encoding/xml"
 	"image/color"
 	"math"
 
@@ -11,7 +12,10 @@ import (
 )
 
 type Slider struct {
+	Container
+
 	component
+
 	min float64
 	max float64
 
@@ -258,9 +262,9 @@ func (s *Slider) SetPosision(posX, posY float64) {
 	s.handle.SetPosision(s.handle.posX, s.handle.posY)
 }
 
-func (s *Slider) setContainer(container Container) {
+func (s *Slider) setContainer(container *Container) {
 	s.component.setContainer(container)
-	s.handle.setContainer(s)
+	s.handle.setContainer(&s.Container)
 }
 
 func (s *Slider) SetDisabled(disabled bool) {
@@ -366,4 +370,55 @@ func (s *Slider) updateHandlePosition() {
 			s.Set(value)
 		}
 	}
+}
+
+func (s *Slider) MarshalYAML() (interface{}, error) {
+	return struct {
+		Slider SliderOptions
+	}{
+		Slider: SliderOptions{
+			Min:          option.Float(s.min),
+			Max:          option.Float(s.max),
+			Step:         option.Float(s.step),
+			DefaultValue: option.Float(s.value),
+			Width:        option.Int(s.width),
+			Height:       option.Int(s.height),
+			Drawer:       s.drawer,
+			HandleDrawer: s.handleDrawer,
+			Padding:      &s.padding,
+		},
+	}, nil
+}
+
+type SliderXML struct {
+	XMLName      xml.Name        `xml:"slider"`
+	Min          option.OptFloat `xml:"min,attr,omitempty"`
+	Max          option.OptFloat `xml:"max,attr,omitempty"`
+	Step         option.OptFloat `xml:"step,attr,omitempty"`
+	DefaultValue option.OptFloat `xml:"defaultValue,attr,omitempty"`
+	Width        option.OptInt   `xml:"width,attr,omitempty"`
+	Height       option.OptInt   `xml:"height,attr,omitempty"`
+	Padding      *Padding        `xml:"padding,attr,omitempty"`
+	Drawer       SliderDrawer    `xml:"drawer,attr,omitempty"`
+	HandleDrawer ButtonDrawer    `xml:"handleDrawer,attr,omitempty"`
+}
+
+func (s *Slider) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name.Local = "slider"
+
+	return e.EncodeElement(SliderXML{
+		Min:          option.Float(s.min),
+		Max:          option.Float(s.max),
+		Step:         option.Float(s.step),
+		DefaultValue: option.Float(s.value),
+		Width:        option.Int(s.width),
+		Height:       option.Int(s.height),
+		Drawer:       s.drawer,
+		HandleDrawer: s.handleDrawer,
+		Padding:      &s.padding,
+	}, start)
+}
+
+func (s *Slider) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	return nil
 }

@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"encoding/xml"
+
 	"github.com/fglo/chopstiqs/pkg/component"
 	"github.com/fglo/chopstiqs/pkg/event"
 	"github.com/fglo/chopstiqs/pkg/input"
@@ -9,7 +11,7 @@ import (
 
 type GUI struct {
 	// rootContainer is the gui main rootContainer that contains all other components
-	rootContainer component.Container
+	rootContainer *component.Container
 	// eventManager is a queue of events by GUI components
 	eventManager *event.Manager
 }
@@ -21,7 +23,7 @@ func New() *GUI {
 }
 
 // SetRootContainer sets the gui root container.
-func (gui *GUI) SetRootContainer(container component.Container) {
+func (gui *GUI) SetRootContainer(container *component.Container) {
 	container.SetEventManager(gui.eventManager)
 	gui.rootContainer = container
 }
@@ -43,7 +45,7 @@ func (gui *GUI) Draw(guiImage *ebiten.Image) {
 	guiImage.DrawImage(gui.rootContainer.Draw(), op)
 }
 
-func (gui *GUI) NewContainer(options *component.ContainerOptions) component.Container {
+func (gui *GUI) NewContainer(options *component.ContainerOptions) *component.Container {
 	c := component.NewContainer(options)
 	c.SetEventManager(gui.eventManager)
 	return c
@@ -71,4 +73,20 @@ func (gui *GUI) NewSlider(options *component.SliderOptions) *component.Slider {
 	s := component.NewSlider(options)
 	s.SetEventManager(gui.eventManager)
 	return s
+}
+
+func (gui *GUI) MarshalYAML() (interface{}, error) {
+	return gui.rootContainer.MarshalYAML()
+}
+
+func (gui *GUI) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	return e.EncodeElement(gui.rootContainer, start)
+}
+
+func (gui *GUI) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	if gui.rootContainer == nil {
+		gui.rootContainer = &component.Container{}
+	}
+
+	return d.DecodeElement(gui.rootContainer, &start)
 }

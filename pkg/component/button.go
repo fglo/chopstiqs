@@ -1,6 +1,7 @@
 package component
 
 import (
+	"encoding/xml"
 	"image/color"
 
 	"github.com/fglo/chopstiqs/pkg/event"
@@ -191,4 +192,43 @@ func (b *Button) Draw() *ebiten.Image {
 	b.component.Draw()
 
 	return b.image
+}
+
+func (b *Button) MarshalYAML() (interface{}, error) {
+	return struct {
+		Button ButtonOptions
+	}{
+		Button: ButtonOptions{
+			Width:   option.Int(b.width),
+			Height:  option.Int(b.height),
+			Drawer:  b.drawer,
+			Label:   b.label,
+			Padding: &b.padding,
+		},
+	}, nil
+}
+
+type ButtonXML struct {
+	XMLName xml.Name      `xml:"button"`
+	Width   option.OptInt `xml:"width,attr,omitempty"`
+	Height  option.OptInt `xml:"height,attr,omitempty"`
+	Drawer  ButtonDrawer  `xml:"drawer,attr,omitempty"`
+	Label   *Label        `xml:"label,omitempty"`
+	Padding *Padding      `xml:"padding,attr,omitempty"`
+}
+
+func (b *Button) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name.Local = "button"
+
+	return e.EncodeElement(ButtonXML{
+		Width:   option.Int(b.width),
+		Height:  option.Int(b.height),
+		Drawer:  b.drawer,
+		Label:   b.label,
+		Padding: &b.padding,
+	}, start)
+}
+
+func (b *Button) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	return nil
 }

@@ -5,8 +5,8 @@ go 1.19
 require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/hajimehoshi/ebiten/v2 v2.6.1
-	golang.org/x/image v0.12.0
 	github.com/matryer/is v1.4.1
+	golang.org/x/image v0.12.0
 )
 
 require (
@@ -16,4 +16,5 @@ require (
 	golang.org/x/mobile v0.0.0-20230922142353-e2f452493d57 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

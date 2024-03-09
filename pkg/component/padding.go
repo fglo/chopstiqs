@@ -1,5 +1,10 @@
 package component
 
+import (
+	"encoding/xml"
+	"fmt"
+)
+
 type Padding struct {
 	Top    int
 	Bottom int
@@ -62,4 +67,20 @@ func NewPadding(top, right, bottom, left int) *Padding {
 	p.Validate()
 
 	return p
+}
+
+func (p *Padding) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	if p.Top == 0 && p.Right == 0 && p.Bottom == 0 && p.Left == 0 {
+		return xml.Attr{}, nil
+	}
+
+	return xml.Attr{
+		Name:  name,
+		Value: fmt.Sprintf("%d,%d,%d,%d", p.Top, p.Right, p.Bottom, p.Left),
+	}, nil
+}
+
+func (p *Padding) UnmarshalXMLAttr(attr xml.Attr) error {
+	_, err := fmt.Sscanf(attr.Value, "%d,%d,%d,%d", &p.Top, &p.Right, &p.Bottom, &p.Left)
+	return err
 }
