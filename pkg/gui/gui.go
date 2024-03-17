@@ -9,7 +9,7 @@ import (
 
 type GUI struct {
 	// rootContainer is the gui main rootContainer that contains all other components
-	rootContainer component.Container
+	rootContainer *component.Container
 	// eventManager is a queue of events by GUI components
 	eventManager *event.Manager
 }
@@ -21,7 +21,7 @@ func New() *GUI {
 }
 
 // SetRootContainer sets the gui root container.
-func (gui *GUI) SetRootContainer(container component.Container) {
+func (gui *GUI) SetRootContainer(container *component.Container) {
 	container.SetEventManager(gui.eventManager)
 	gui.rootContainer = container
 }
@@ -43,7 +43,7 @@ func (gui *GUI) Draw(guiImage *ebiten.Image) {
 	guiImage.DrawImage(gui.rootContainer.Draw(), op)
 }
 
-func (gui *GUI) NewContainer(options *component.ContainerOptions) component.Container {
+func (gui *GUI) NewContainer(options *component.ContainerOptions) *component.Container {
 	c := component.NewContainer(options)
 	c.SetEventManager(gui.eventManager)
 	return c

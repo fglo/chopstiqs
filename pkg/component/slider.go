@@ -258,9 +258,9 @@ func (s *Slider) SetPosision(posX, posY float64) {
 	s.handle.SetPosision(s.handle.posX, s.handle.posY)
 }
 
-func (s *Slider) setContainer(container Container) {
+func (s *Slider) setContainer(container *Container) {
 	s.component.setContainer(container)
-	s.handle.setContainer(s)
+	s.handle.setContainer(s.container)
 }
 
 func (s *Slider) SetDisabled(disabled bool) {

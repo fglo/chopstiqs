@@ -69,7 +69,7 @@ type Component interface {
 	// SetPaddingRight sets the component's padding right.
 	SetPaddingRight(padding int)
 
-	setContainer(Container)
+	setContainer(*Container)
 
 	EventManager() *event.Manager
 	SetEventManager(*event.Manager)
@@ -77,7 +77,7 @@ type Component interface {
 
 // component is an abstraction of a user interface component, like a button or checkbox.
 type component struct {
-	container Container
+	container *Container
 
 	eventManager *event.Manager
 
@@ -154,7 +154,7 @@ func (c *component) setUpComponent(opt *ComponentOptions) {
 }
 
 // setContainer sets the component's container.
-func (c *component) setContainer(container Container) {
+func (c *component) setContainer(container *Container) {
 	c.container = container
 	c.absPosX = c.posX + c.container.AbsPosX()
 	c.absPosY = c.posY + c.container.AbsPosY()
