@@ -2,11 +2,9 @@ package main
 
 import (
 	_ "embed"
-	"encoding/xml"
 	"errors"
 	"image/color"
 	"log"
-	"os"
 
 	"github.com/fglo/chopstiqs/pkg/debug"
 	"github.com/fglo/chopstiqs/pkg/gui"
@@ -59,9 +57,8 @@ func NewGame() *Game {
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
 
-	file, _ := os.ReadFile("unmarshal_test.xml")
-
-	_ = xml.Unmarshal(file, g.gui)
+	err := g.gui.LoadFromFile("unmarshal_test.xml")
+	_ = err
 
 	return g
 }
