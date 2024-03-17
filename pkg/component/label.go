@@ -1,11 +1,12 @@
 package component
 
 import (
+	"encoding/xml"
 	"image"
 	"image/color"
 
-	color1 "github.com/fglo/chopstiqs/internal/color"
-	font1 "github.com/fglo/chopstiqs/internal/font"
+	colorutils "github.com/fglo/chopstiqs/pkg/color"
+	font1 "github.com/fglo/chopstiqs/pkg/font"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
@@ -70,7 +71,7 @@ func NewLabel(text string, opt *LabelOptions) *Label {
 
 	if opt != nil {
 		if opt.Color != nil {
-			l.color = color1.ColorToRGBA(opt.Color)
+			l.color = colorutils.ColorToRGBA(opt.Color)
 		}
 
 		l.horizontalAlignment = opt.HorizontalAlignment
@@ -199,4 +200,31 @@ func (l *Label) SetPosY(posY float64) {
 func (l *Label) SetPosistion(posX, posY float64) {
 	l.component.SetPosision(posX, posY)
 	l.align()
+}
+
+type LabelXML struct {
+	XMLName             xml.Name                    `xml:"label"`
+	Color               colorutils.RGBASerializable `xml:"color,attr,omitempty"`
+	Font                font.Face
+	HorizontalAlignment HorizontalAlignment `xml:"horizontalAlignment,attr,omitempty"`
+	VerticalAlignment   VerticalAlignment   `xml:"verticalAlignment,attr,omitempty"`
+	Inverted            bool                `xml:"inverted,attr,omitempty"`
+	Padding             *Padding            `xml:"padding,attr,omitempty"`
+}
+
+func (l *Label) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name.Local = "label"
+
+	return e.EncodeElement(LabelXML{
+		Color:               colorutils.RGBASerializable(l.color),
+		Font:                l.font,
+		HorizontalAlignment: l.horizontalAlignment,
+		VerticalAlignment:   l.verticalAlignment,
+		Inverted:            l.Inverted,
+		Padding:             &l.padding,
+	}, start)
+}
+
+func (l *Label) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	return nil
 }

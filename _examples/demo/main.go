@@ -186,6 +186,9 @@ func NewGame() *Game {
 	rootContainer.AddComponent(sliderContainer)
 	rootContainer.AddComponent(sliderContainer2)
 
+	err := g.gui.SaveToFile("gui.xml")
+	_ = err
+
 	return g
 }
 

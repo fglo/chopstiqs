@@ -1,17 +1,28 @@
 package component
 
 import (
+	"encoding/xml"
+	"fmt"
 	"image/color"
 
+	colorutils "github.com/fglo/chopstiqs/pkg/color"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
 type CheckBoxDrawer interface {
 	Draw(checkbox *CheckBox) *ebiten.Image
+	MarshalXMLAttr(name xml.Name) (xml.Attr, error)
 }
 
 type DefaultCheckBoxDrawer struct {
 	Color color.RGBA
+}
+
+func (d DefaultCheckBoxDrawer) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	return xml.Attr{
+		Name:  name,
+		Value: fmt.Sprintf("color: %s", colorutils.ToHex(d.Color)),
+	}, nil
 }
 
 func (d DefaultCheckBoxDrawer) Draw(cb *CheckBox) *ebiten.Image {

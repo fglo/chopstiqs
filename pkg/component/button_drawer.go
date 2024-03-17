@@ -1,13 +1,19 @@
 package component
 
 import (
+	"encoding/xml"
+	"fmt"
 	"image/color"
+	"strings"
+
+	colorutils "github.com/fglo/chopstiqs/pkg/color"
 
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
 type ButtonDrawer interface {
 	Draw(*Button) *ebiten.Image
+	MarshalXMLAttr(name xml.Name) (xml.Attr, error)
 }
 
 type DefaultButtonDrawer struct {
@@ -15,6 +21,25 @@ type DefaultButtonDrawer struct {
 	ColorPressed  color.RGBA
 	ColorHovered  color.RGBA
 	ColorDisabled color.RGBA
+}
+
+func (d DefaultButtonDrawer) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	valueBuilder := strings.Builder{}
+	valueBuilder.WriteString(fmt.Sprintf("color: %s", colorutils.ToHex(d.Color)))
+	if d.ColorPressed != d.Color {
+		valueBuilder.WriteString(fmt.Sprintf(", colorPressed: %s", colorutils.ToHex(d.ColorPressed)))
+	}
+	if d.ColorHovered != d.Color {
+		valueBuilder.WriteString(fmt.Sprintf(", colorHovered: %s", colorutils.ToHex(d.ColorHovered)))
+	}
+	if d.ColorDisabled != d.Color {
+		valueBuilder.WriteString(fmt.Sprintf(", colorDisabled: %s", colorutils.ToHex(d.ColorDisabled)))
+	}
+
+	return xml.Attr{
+		Name:  name,
+		Value: valueBuilder.String(),
+	}, nil
 }
 
 func (d DefaultButtonDrawer) Draw(bttn *Button) *ebiten.Image {
