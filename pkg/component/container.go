@@ -3,19 +3,11 @@ package component
 import (
 	imgColor "image/color"
 
-	"github.com/fglo/chopstiqs/pkg/event"
 	"github.com/fglo/chopstiqs/pkg/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
-type Container interface {
-	Component
-	AddComponent(Component)
-	SetBackgroundColor(imgColor.RGBA)
-	GetBackgroundColor() imgColor.RGBA
-}
-
-type container struct {
+type Container struct {
 	component
 
 	layout Layout
@@ -37,42 +29,45 @@ type ContainerOptions struct {
 }
 
 // Newcontainer creates a new simple container
-func NewContainer(options *ContainerOptions) Container {
-	c := &container{
+func NewContainer(opt *ContainerOptions) *Container {
+	c := &Container{
 		components: make([]Component, 0),
 	}
 
-	c.component.width = 1
-	c.component.height = 1
+	c.SetDimensions(1, 1)
 
-	if options != nil {
-		if options.Layout != nil {
-			if gl, ok := options.Layout.(*GridLayout); ok {
+	if opt != nil {
+		if opt.Layout != nil {
+			if gl, ok := opt.Layout.(*GridLayout); ok {
 				gl.Setup()
 			}
-			c.layout = options.Layout
+			c.layout = opt.Layout
 		}
 
-		if options.Width.IsSet() {
-			c.SetWidth(options.Width.Val())
-		}
+		if opt.Width.IsSet() && opt.Height.IsSet() {
+			c.SetDimensions(opt.Width.Val(), opt.Height.Val())
+		} else {
+			if opt.Width.IsSet() {
+				c.SetWidth(opt.Width.Val())
+			}
 
-		if options.Height.IsSet() {
-			c.SetHeight(options.Height.Val())
+			if opt.Height.IsSet() {
+				c.SetHeight(opt.Height.Val())
+			}
 		}
 	}
 
-	c.setUpComponent(options)
+	c.setUpComponent(opt)
 
 	return c
 }
 
-func (c *container) setUpComponent(options *ContainerOptions) {
+func (c *Container) setUpComponent(opt *ContainerOptions) {
 	var componentOptions ComponentOptions
 
-	if options != nil {
+	if opt != nil {
 		componentOptions = ComponentOptions{
-			Padding: options.Padding,
+			Padding: opt.Padding,
 		}
 	}
 
@@ -80,7 +75,7 @@ func (c *container) setUpComponent(options *ContainerOptions) {
 }
 
 // setContainer sets the component's container.
-func (c *container) setContainer(container Container) {
+func (c *Container) setContainer(container *Container) {
 	if c.layout != nil {
 		c.layout.Rearrange(c)
 	}
@@ -88,7 +83,7 @@ func (c *container) setContainer(container Container) {
 }
 
 // SetDisabled sets the container's and its component disabled states
-func (c *container) SetDisabled(disabled bool) {
+func (c *Container) SetDisabled(disabled bool) {
 	for _, component := range c.components {
 		component.SetDisabled(disabled)
 	}
@@ -96,7 +91,7 @@ func (c *container) SetDisabled(disabled bool) {
 }
 
 // AddComponent adds a component to the container
-func (c *container) AddComponent(component Component) {
+func (c *Container) AddComponent(component Component) {
 	c.components = append(c.components, component)
 	if c.layout != nil {
 		c.layout.Arrange(c, component)
@@ -104,25 +99,25 @@ func (c *container) AddComponent(component Component) {
 	component.setContainer(c)
 }
 
-func (c *container) SetBackgroundColor(color imgColor.RGBA) {
+// SetBackgroundColor sets the container's background color
+func (c *Container) SetBackgroundColor(color imgColor.RGBA) {
 	c.backgroundColor = color
 }
 
-func (c *container) GetBackgroundColor() imgColor.RGBA {
+// GetBackgroundColor gets the container's background color
+func (c *Container) GetBackgroundColor() imgColor.RGBA {
 	return c.backgroundColor
 }
 
 // FireEvents fires the container's components deferred events
-func (c *container) FireEvents() {
+func (c *Container) FireEvents() {
 	for _, component := range c.components {
 		component.FireEvents()
 	}
 }
 
 // Draw draws the container's components, executes deferred events and returns the image.
-func (c *container) Draw() *ebiten.Image {
-	event.HandleFired()
-
+func (c *Container) Draw() *ebiten.Image {
 	c.image.Fill(c.backgroundColor)
 
 	for _, component := range c.components {

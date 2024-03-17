@@ -1,15 +1,15 @@
 package component
 
 type Layout interface {
-	Rearrange(*container)
-	Arrange(*container, Component)
+	Rearrange(*Container)
+	Arrange(*Container, Component)
 }
 
 type HorizontalListLayout struct {
 	ColumnGap int
 }
 
-func (hl *HorizontalListLayout) Rearrange(c *container) {
+func (hl *HorizontalListLayout) Rearrange(c *Container) {
 	width := 0
 	height := 0
 
@@ -22,12 +22,12 @@ func (hl *HorizontalListLayout) Rearrange(c *container) {
 	c.SetDimensions(width, height)
 }
 
-func (hl *HorizontalListLayout) Arrange(c *container, component Component) {
+func (hl *HorizontalListLayout) Arrange(c *Container, component Component) {
 	width, height := hl.arrange(c, component, c.width, c.height)
 	c.SetDimensions(width, height)
 }
 
-func (hl *HorizontalListLayout) arrange(c *container, component Component, width, height int) (int, int) {
+func (hl *HorizontalListLayout) arrange(c *Container, component Component, width, height int) (int, int) {
 	component.SetPosision(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top))
 	c.lastComponentPosX += component.WidthWithPadding() + hl.ColumnGap
 
@@ -42,7 +42,7 @@ type VerticalListLayout struct {
 	RowGap int
 }
 
-func (vl *VerticalListLayout) Rearrange(c *container) {
+func (vl *VerticalListLayout) Rearrange(c *Container) {
 	width := 0
 	height := 0
 
@@ -55,12 +55,12 @@ func (vl *VerticalListLayout) Rearrange(c *container) {
 	c.SetDimensions(width, height)
 }
 
-func (vl *VerticalListLayout) Arrange(c *container, component Component) {
+func (vl *VerticalListLayout) Arrange(c *Container, component Component) {
 	width, height := vl.arrange(c, component, c.width, c.height)
 	c.SetDimensions(width, height)
 }
 
-func (vl *VerticalListLayout) arrange(c *container, component Component, width, height int) (int, int) {
+func (vl *VerticalListLayout) arrange(c *Container, component Component, width, height int) (int, int) {
 	component.SetPosision(float64(c.padding.Left), float64(c.lastComponentPosY+c.padding.Top))
 	c.lastComponentPosY += component.HeightWithPadding() + vl.RowGap
 
@@ -100,7 +100,7 @@ func (gl *GridLayout) Setup() {
 	}
 }
 
-func (gl *GridLayout) Rearrange(c *container) {
+func (gl *GridLayout) Rearrange(c *Container) {
 	width := 0
 	height := 0
 
@@ -143,6 +143,10 @@ func (gl *GridLayout) Rearrange(c *container) {
 	currRowId = 0
 
 	for _, component := range c.components {
+		if currRowId >= gl.Rows {
+			break
+		}
+
 		component.SetPosision(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top+c.lastComponentPosY))
 
 		c.lastComponentPosX += gl.ColumnsWidths[currColId] + gl.ColumnGap
@@ -163,6 +167,6 @@ func (gl *GridLayout) Rearrange(c *container) {
 	c.SetDimensions(width, height)
 }
 
-func (gl *GridLayout) Arrange(c *container, component Component) {
+func (gl *GridLayout) Arrange(c *Container, component Component) {
 	gl.Rearrange(c)
 }
