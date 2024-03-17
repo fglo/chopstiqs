@@ -3,12 +3,10 @@ package main
 import (
 	"bytes"
 	_ "embed"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"image/color"
 	"log"
-	"os"
 	"strconv"
 
 	"github.com/fglo/chopstiqs/pkg/component"
@@ -188,19 +186,8 @@ func NewGame() *Game {
 	rootContainer.AddComponent(sliderContainer)
 	rootContainer.AddComponent(sliderContainer2)
 
-	c := &component.Container{}
-
-	file, _ := os.ReadFile("unmarshal_test.xml")
-
-	err := xml.Unmarshal(file, c)
+	err := g.gui.SaveToFile("gui.xml")
 	_ = err
-
-	// serialized, _ := yaml.Marshal(g.gui)
-	// _ = os.WriteFile("gui.yml", serialized, 0644)
-	serialized, err := xml.MarshalIndent(g.gui, " ", "  ")
-	_ = err
-	_ = os.WriteFile("gui.xml", serialized, 0644)
-	// fmt.Println(string(serialized))
 
 	return g
 }

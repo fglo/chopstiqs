@@ -7,9 +7,9 @@ import (
 
 type Padding struct {
 	Top    int
+	Right  int
 	Bottom int
 	Left   int
-	Right  int
 }
 
 var DefaultPadding Padding = Padding{
@@ -59,9 +59,9 @@ func (p *Padding) Validate() {
 func NewPadding(top, right, bottom, left int) *Padding {
 	p := &Padding{
 		Top:    top,
+		Right:  right,
 		Bottom: bottom,
 		Left:   left,
-		Right:  right,
 	}
 
 	p.Validate()

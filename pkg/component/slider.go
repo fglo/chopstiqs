@@ -372,24 +372,6 @@ func (s *Slider) updateHandlePosition() {
 	}
 }
 
-func (s *Slider) MarshalYAML() (interface{}, error) {
-	return struct {
-		Slider SliderOptions
-	}{
-		Slider: SliderOptions{
-			Min:          option.Float(s.min),
-			Max:          option.Float(s.max),
-			Step:         option.Float(s.step),
-			DefaultValue: option.Float(s.value),
-			Width:        option.Int(s.width),
-			Height:       option.Int(s.height),
-			Drawer:       s.drawer,
-			HandleDrawer: s.handleDrawer,
-			Padding:      &s.padding,
-		},
-	}, nil
-}
-
 type SliderXML struct {
 	XMLName      xml.Name        `xml:"slider"`
 	Min          option.OptFloat `xml:"min,attr,omitempty"`

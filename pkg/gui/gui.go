@@ -2,6 +2,8 @@ package gui
 
 import (
 	"encoding/xml"
+	"fmt"
+	"os"
 
 	"github.com/fglo/chopstiqs/pkg/component"
 	"github.com/fglo/chopstiqs/pkg/event"
@@ -75,10 +77,6 @@ func (gui *GUI) NewSlider(options *component.SliderOptions) *component.Slider {
 	return s
 }
 
-func (gui *GUI) MarshalYAML() (interface{}, error) {
-	return gui.rootContainer.MarshalYAML()
-}
-
 func (gui *GUI) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement(gui.rootContainer, start)
 }
@@ -89,4 +87,26 @@ func (gui *GUI) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	}
 
 	return d.DecodeElement(gui.rootContainer, &start)
+}
+
+func (gui *GUI) SaveToFile(filepath string) error {
+	serialized, err := xml.MarshalIndent(gui, " ", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to serialize GUI: %w", err)
+	}
+
+	if err = os.WriteFile(filepath, serialized, 0644); err != nil {
+		return fmt.Errorf("failed to save file: %w", err)
+	}
+
+	return nil
+}
+
+func (gui *GUI) LoadFromFile(filepath string) error {
+	file, _ := os.ReadFile("unmarshal_test.xml")
+	if err := xml.Unmarshal(file, gui); err != nil {
+		return fmt.Errorf("failed to parse XML GUI file: %w", err)
+	}
+
+	return nil
 }

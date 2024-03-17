@@ -76,7 +76,6 @@ type Component interface {
 	EventManager() *event.Manager
 	SetEventManager(*event.Manager)
 
-	MarshalYAML() (interface{}, error)
 	MarshalXML(e *xml.Encoder, start xml.StartElement) error
 	UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 }

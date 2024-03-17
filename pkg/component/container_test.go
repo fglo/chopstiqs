@@ -14,14 +14,27 @@ func Test_UnmarshalXML(t *testing.T) {
 	}{
 		{
 			name:        "Unmarshal VerticalListLayout",
-			xmlContents: "<container layout=\"name: verticalList, rowGap: 5\" width=\"129\" height=\"170\" padding=\"5,5,5,5\"></container>",
+			xmlContents: "<container layout=\"name: verticalList, rowGap: 5\" width=\"129\" height=\"170\" padding=\"1,2,3,4\"></container>",
 			wantErr:     false,
 			want: &Container{
 				layout: &VerticalListLayout{RowGap: 5},
 				component: component{
 					width:   129,
 					height:  170,
-					padding: Padding{5, 5, 5, 5},
+					padding: Padding{Top: 1, Right: 2, Bottom: 3, Left: 4},
+				},
+			},
+		},
+		{
+			name:        "Unmarshal HorizontalListLayout",
+			xmlContents: "<container layout=\"name: horizontalList, columnGap: 5\" width=\"129\" height=\"170\" padding=\"1,2,3,4\"></container>",
+			wantErr:     false,
+			want: &Container{
+				layout: &HorizontalListLayout{ColumnGap: 5},
+				component: component{
+					width:   129,
+					height:  170,
+					padding: Padding{Top: 1, Right: 2, Bottom: 3, Left: 4},
 				},
 			},
 		},

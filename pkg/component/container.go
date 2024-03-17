@@ -152,43 +152,6 @@ func (c *Container) Draw() *ebiten.Image {
 	return c.image
 }
 
-func (c *Container) MarshalYAML() (interface{}, error) {
-	mComponents := make([]any, 0)
-
-	for _, component := range c.components {
-		mComponent, err := component.MarshalYAML()
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling component %T: %w", component, err)
-		}
-
-		mComponents = append(mComponents, mComponent)
-	}
-
-	return struct {
-		Container struct {
-			Layout     Layout
-			Width      option.OptInt
-			Height     option.OptInt
-			Padding    *Padding
-			Components []any
-		}
-	}{
-		Container: struct {
-			Layout     Layout
-			Width      option.OptInt
-			Height     option.OptInt
-			Padding    *Padding
-			Components []any
-		}{
-			Layout:     c.layout,
-			Width:      option.Int(c.width),
-			Height:     option.Int(c.height),
-			Padding:    &c.padding,
-			Components: mComponents,
-		},
-	}, nil
-}
-
 type ContainerXML struct {
 	XMLName    xml.Name      `xml:"container"`
 	Layout     Layout        `xml:"layout,attr"`

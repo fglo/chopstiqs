@@ -202,21 +202,6 @@ func (l *Label) SetPosistion(posX, posY float64) {
 	l.align()
 }
 
-func (l *Label) MarshalYAML() (interface{}, error) {
-	return struct {
-		Label LabelOptions
-	}{
-		Label: LabelOptions{
-			Color:               l.color,
-			Font:                l.font,
-			HorizontalAlignment: l.horizontalAlignment,
-			VerticalAlignment:   l.verticalAlignment,
-			Inverted:            l.Inverted,
-			Padding:             &l.padding,
-		},
-	}, nil
-}
-
 type LabelXML struct {
 	XMLName             xml.Name                    `xml:"label"`
 	Color               colorutils.RGBASerializable `xml:"color,attr,omitempty"`

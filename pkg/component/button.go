@@ -194,20 +194,6 @@ func (b *Button) Draw() *ebiten.Image {
 	return b.image
 }
 
-func (b *Button) MarshalYAML() (interface{}, error) {
-	return struct {
-		Button ButtonOptions
-	}{
-		Button: ButtonOptions{
-			Width:   option.Int(b.width),
-			Height:  option.Int(b.height),
-			Drawer:  b.drawer,
-			Label:   b.label,
-			Padding: &b.padding,
-		},
-	}, nil
-}
-
 type ButtonXML struct {
 	XMLName xml.Name      `xml:"button"`
 	Width   option.OptInt `xml:"width,attr,omitempty"`

@@ -48,16 +48,6 @@ func (s *Sprite) Draw() *ebiten.Image {
 	return s.image
 }
 
-func (s *Sprite) MarshalYAML() (interface{}, error) {
-	return struct {
-		Sprite SpriteOptions
-	}{
-		Sprite: SpriteOptions{
-			Padding: &s.padding,
-		},
-	}, nil
-}
-
 type SpriteXML struct {
 	XMLName xml.Name `xml:"sprite"`
 	Padding *Padding `xml:"padding,attr,omitempty"`

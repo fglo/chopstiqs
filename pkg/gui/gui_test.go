@@ -17,12 +17,12 @@ func Test_UnmarshalXML(t *testing.T) {
 	}{
 		{
 			name:        "Unmarshal VerticalListLayout",
-			xmlContents: "<container layout=\"name: verticalList, rowGap: 5\" width=\"129\" height=\"170\" padding=\"5,5,5,5\"></container>",
+			xmlContents: "<container layout=\"name: verticalList, rowGap: 5\" width=\"129\" height=\"170\" padding=\"1,2,3,4\"></container>",
 			wantErr:     false,
 			want: GUI{
 				rootContainer: component.NewContainer(&component.ContainerOptions{
 					Layout:  &component.VerticalListLayout{RowGap: 5},
-					Padding: component.NewPadding(5, 5, 5, 5),
+					Padding: component.NewPadding(1, 2, 3, 4),
 					Width:   option.Int(129),
 					Height:  option.Int(170),
 				}),

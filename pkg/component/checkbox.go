@@ -188,20 +188,6 @@ func (cb *CheckBox) Draw() *ebiten.Image {
 	return cb.image
 }
 
-func (cb *CheckBox) MarshalYAML() (interface{}, error) {
-	return struct {
-		CheckBox CheckBoxOptions
-	}{
-		CheckBox: CheckBoxOptions{
-			Width:   option.Int(cb.width),
-			Height:  option.Int(cb.height),
-			Drawer:  cb.drawer,
-			Label:   cb.label,
-			Padding: &cb.padding,
-		},
-	}, nil
-}
-
 type CheckBoxXML struct {
 	XMLName xml.Name       `xml:"checkbox"`
 	Width   option.OptInt  `xml:"width,attr,omitempty"`
