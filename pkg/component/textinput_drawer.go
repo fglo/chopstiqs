@@ -13,6 +13,8 @@ type TextInputDrawer interface {
 type DefaultTextInputDrawer struct {
 	BorderColor     color.RGBA
 	BackgroundColor color.RGBA
+
+	frameCount int
 }
 
 func (d *DefaultTextInputDrawer) isCorner(textInput *TextInput, rowId, colId int) bool {
@@ -23,13 +25,11 @@ func (d *DefaultTextInputDrawer) isBorder(textInput *TextInput, rowId, colId int
 	return rowId == textInput.firstPixelRowId || rowId == textInput.lastPixelRowId || colId == textInput.firstPixelColId || colId == textInput.lastPixelColId
 }
 
-func (d DefaultTextInputDrawer) Draw(textInput *TextInput) *ebiten.Image {
-	img := ebiten.NewImage(textInput.width, textInput.height)
-	img.Fill(d.BackgroundColor)
-
+func (d *DefaultTextInputDrawer) Draw(textInput *TextInput) *ebiten.Image {
+	// img := ebiten.NewImage(textInput.width, textInput.height)
+	// img.Fill(d.BackgroundColor)
 	textInput.image.WritePixels(d.draw(textInput))
-
-	return img
+	return textInput.image
 }
 
 func (d *DefaultTextInputDrawer) draw(textInput *TextInput) []byte {
@@ -56,6 +56,26 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput) []byte {
 				arr[colId+2+rowNumber] = d.BackgroundColor.B
 				arr[colId+3+rowNumber] = d.BackgroundColor.A
 			}
+		}
+	}
+
+	if textInput.cursorPos >= textInput.pixelCols {
+		return arr
+	}
+
+	if d.frameCount = (d.frameCount + 1) % 60; d.frameCount > 30 {
+		lineHeight := textInput.metrics.Ascent - textInput.metrics.Descent - 1
+		lineTop := textInput.textPosY - textInput.metrics.Ascent
+
+		col := textInput.cursorPos * 4
+
+		for rowId := lineTop; rowId > 0 && rowId < lineTop+lineHeight && rowId < textInput.pixelRows; rowId++ {
+			rowNumber := textInput.pixelCols * rowId
+
+			arr[col+rowNumber] = d.BorderColor.R
+			arr[col+1+rowNumber] = d.BorderColor.G
+			arr[col+2+rowNumber] = d.BorderColor.B
+			arr[col+3+rowNumber] = d.BorderColor.A
 		}
 	}
 

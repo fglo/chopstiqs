@@ -1,4 +1,4 @@
-package fontutils
+package font
 
 import (
 	"golang.org/x/image/font"
@@ -23,4 +23,8 @@ func NewMetrics(fontMetrics font.Metrics) Metrics {
 
 func FixedInt26_6ToFloat64(i fixed.Int26_6) float64 {
 	return float64(i) / (1 << 6)
+}
+
+func FixedInt26_6ToInt(i fixed.Int26_6) int {
+	return int(float64(i) / (1 << 6))
 }

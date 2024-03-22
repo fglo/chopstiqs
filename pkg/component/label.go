@@ -4,8 +4,8 @@ import (
 	"image"
 	"image/color"
 
-	color1 "github.com/fglo/chopstiqs/internal/color"
-	font1 "github.com/fglo/chopstiqs/internal/font"
+	colorutils "github.com/fglo/chopstiqs/internal/color"
+	fontutils "github.com/fglo/chopstiqs/internal/font"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
@@ -73,7 +73,7 @@ func NewLabel(text string, opt *LabelOptions) *Label {
 
 	if opt != nil {
 		if opt.Color != nil {
-			l.color = color1.ColorToRGBA(opt.Color)
+			l.color = colorutils.ColorToRGBA(opt.Color)
 		}
 
 		if opt.Font != nil {
