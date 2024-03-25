@@ -114,6 +114,8 @@ type component struct {
 	posX float64
 	posY float64
 
+	focused bool
+
 	lastUpdateMouseLeftButtonPressed  bool
 	lastUpdateMouseRightButtonPressed bool
 	lastUpdateCursorEntered           bool
@@ -122,6 +124,7 @@ type component struct {
 	MouseButtonReleasedEvent *event.Event
 	CursorEnterEvent         *event.Event
 	CursorExitEvent          *event.Event
+	FocusedEvent             *event.Event
 }
 
 // ComponentOptions is a struct that holds component options.
@@ -137,6 +140,7 @@ func (c *component) setUpComponent(opt *ComponentOptions) {
 	c.MouseButtonReleasedEvent = &event.Event{}
 	c.CursorEnterEvent = &event.Event{}
 	c.CursorExitEvent = &event.Event{}
+	c.FocusedEvent = &event.Event{}
 
 	c.padding = DefaultPadding
 
@@ -491,6 +495,13 @@ func (c *component) FireEvents() {
 				Component: c,
 				Button:    ebiten.MouseButtonLeft,
 			})
+
+			if !c.focused {
+				c.eventManager.Fire(c.FocusedEvent, &ComponentFocusedEventArgs{
+					Component: c,
+					Focused:   true,
+				})
+			}
 		} else {
 			c.eventManager.Fire(c.CursorEnterEvent, &ComponentCursorEnterEventArgs{
 				Component: c,
@@ -509,6 +520,14 @@ func (c *component) FireEvents() {
 		c.eventManager.Fire(c.CursorExitEvent, &ComponentCursorExitEventArgs{
 			Component: c,
 		})
+
+		if input.MouseLeftButtonJustPressed && c.focused {
+			c.lastUpdateMouseLeftButtonPressed = true
+			c.eventManager.Fire(c.FocusedEvent, &ComponentFocusedEventArgs{
+				Component: c,
+				Focused:   false,
+			})
+		}
 	}
 
 	if !input.MouseLeftButtonPressed && c.lastUpdateMouseLeftButtonPressed {
@@ -588,6 +607,20 @@ type ComponentCursorExitEventArgs struct { //nolint:golint
 func (c *component) AddCursorExitHandler(f ComponentCursorExitHandlerFunc) *component {
 	c.CursorExitEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentCursorExitEventArgs))
+	})
+
+	return c
+}
+
+type ComponentFocusedHandlerFunc func(args *ComponentFocusedEventArgs) //nolint:golint
+type ComponentFocusedEventArgs struct {
+	Component *component
+	Focused   bool
+}
+
+func (c *component) AddFocusedHandler(f ComponentFocusedHandlerFunc) *component {
+	c.FocusedEvent.AddHandler(func(args interface{}) {
+		f(args.(*ComponentFocusedEventArgs))
 	})
 
 	return c

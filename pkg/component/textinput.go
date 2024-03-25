@@ -3,6 +3,8 @@ package component
 import (
 	"image"
 	"image/color"
+	"sync/atomic"
+	"time"
 
 	colorutils "github.com/fglo/chopstiqs/internal/color"
 	fontutils "github.com/fglo/chopstiqs/internal/font"
@@ -27,14 +29,21 @@ type TextInput struct {
 	textPosY   int
 	textBounds image.Rectangle
 
-	cursorPos         int
-	possibleCursorPos []int
+	cursorPos                  int
+	currentPossibleCursorPosId int
+	possibleCursorPos          []int
 
-	ClickedEvent *event.Event
-	KeyPressed   *event.Event
-	// active bool
+	ClickedEvent    *event.Event
+	KeyPressedEvent *event.Event
 
 	drawer TextInputDrawer
+
+	state textInputState
+
+	lastActionKeyPressed ebiten.Key
+	canRepeatAction      *atomic.Bool
+
+	pressedKeysHandlers map[ebiten.Key]func()
 }
 
 type TextInputOptions struct {
@@ -55,9 +64,16 @@ type TextInputClickedEventArgs struct {
 
 type TextInputClickedHandlerFunc func(args *TextInputClickedEventArgs)
 
+type KeyPressedEventArgs struct {
+	Key ebiten.Key
+}
+
+type KeyPressedHandlerFunc func(args *KeyPressedEventArgs)
+
 func NewTextInput(options *TextInputOptions) *TextInput {
 	ti := &TextInput{
-		ClickedEvent: &event.Event{},
+		ClickedEvent:    &event.Event{},
+		KeyPressedEvent: &event.Event{},
 
 		color:   color.RGBA{230, 230, 230, 255},
 		font:    fontutils.DefaultFontFace,
@@ -68,6 +84,20 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		drawer: &DefaultTextInputDrawer{
 			BorderColor: color.RGBA{230, 230, 230, 255},
 		},
+
+		lastActionKeyPressed: input.KeyNone,
+		canRepeatAction:      &atomic.Bool{},
+	}
+
+	ti.state = ti.idleStateFactory()
+	ti.canRepeatAction.Store(true)
+
+	ti.pressedKeysHandlers = map[ebiten.Key]func(){
+		ebiten.KeyLeft:      ti.CursorLeft,
+		ebiten.KeyRight:     ti.CursorRight,
+		ebiten.KeyBackspace: ti.Backspace,
+		ebiten.KeyDelete:    ti.Delete,
+		ebiten.KeyEnter:     ti.Submit,
 	}
 
 	ti.width = 60
@@ -98,6 +128,27 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 
 	ti.setUpComponent(options)
 
+	ti.KeyPressedEvent.AddHandler(func(args interface{}) {
+		keyPressedArgs := args.(*KeyPressedEventArgs)
+
+		switch keyPressedArgs.Key {
+		case ebiten.KeyLeft:
+			ti.CursorLeft()
+		case ebiten.KeyRight:
+			ti.CursorRight()
+		case ebiten.KeyHome:
+			ti.Home()
+		case ebiten.KeyEnd:
+			ti.End()
+		case ebiten.KeyBackspace:
+			ti.Backspace()
+		case ebiten.KeyDelete:
+			ti.Delete()
+		default:
+			ti.value += ebiten.KeyName(keyPressedArgs.Key)
+		}
+	})
+
 	return ti
 }
 
@@ -122,10 +173,15 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 	// 	ti.hovering = false
 	// })
 
-	ti.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
-		if !ti.disabled && args.Button == ebiten.MouseButtonLeft {
+	ti.component.AddFocusedHandler(func(args *ComponentFocusedEventArgs) {
+		ti.focused = args.Focused
+		ti.drawer.ResetCursorBlink()
+	})
 
-			ti.cursorPos = ti.findClosestPossibleCursorPosition() + ti.textPosX + ti.padding.Left - 1
+	ti.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
+		if !ti.disabled && ti.focused {
+			ti.currentPossibleCursorPosId = ti.findClosestPossibleCursorPosition()
+			ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
 
 			ti.eventManager.Fire(ti.ClickedEvent, &TextInputClickedEventArgs{
 				TextInput: ti,
@@ -138,6 +194,95 @@ func (ti *TextInput) AddClickedHandler(f TextInputClickedHandlerFunc) *TextInput
 	ti.ClickedEvent.AddHandler(func(args interface{}) { f(args.(*TextInputClickedEventArgs)) })
 
 	return ti
+}
+
+var actionKeyRepeatDelay = 500 * time.Millisecond
+var actionKeyRepeatInterval = 60 * time.Millisecond
+
+func (ti *TextInput) Insert(chars []rune) {
+	ti.value += string(chars) // TODO: proper handling
+}
+
+type textInputState func(ti *TextInput) textInputState
+
+func (ti *TextInput) idleStateFactory() textInputState {
+	return func(ti *TextInput) textInputState {
+		if !ti.focused || ti.disabled {
+			return ti.idleStateFactory()
+		}
+
+		if len(input.InputChars) > 0 {
+			return ti.inputStateFactory()
+		}
+
+		if pressed, key := ti.actionKeyPressed(); pressed {
+			return ti.actionStateFactory(key)
+		}
+
+		return ti.idleStateFactory()
+	}
+}
+
+func (ti *TextInput) inputStateFactory() textInputState {
+	return func(ti *TextInput) textInputState {
+		if !ti.focused || ti.disabled {
+			return ti.idleStateFactory()
+		}
+
+		ti.Insert(input.InputChars)
+
+		if pressed, key := ti.actionKeyPressed(); pressed {
+			return ti.actionStateFactory(key)
+		}
+
+		return ti.idleStateFactory()
+	}
+}
+
+func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
+	return func(ti *TextInput) textInputState {
+		if !ti.focused || ti.disabled {
+			return ti.idleStateFactory()
+		}
+
+		delay := actionKeyRepeatDelay
+		if ti.lastActionKeyPressed == pressedKey {
+			delay = actionKeyRepeatInterval
+
+			if !ti.canRepeatAction.Load() {
+				return ti.idleStateFactory()
+			}
+		}
+
+		ti.canRepeatAction.Store(false)
+
+		time.AfterFunc(delay, func() {
+			ti.canRepeatAction.Store(true)
+		})
+
+		ti.lastActionKeyPressed = pressedKey
+		ti.pressedKeysHandlers[pressedKey]()
+
+		return ti.idleStateFactory()
+	}
+}
+
+func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
+	actionKeys := []ebiten.Key{
+		ebiten.KeyLeft,
+		ebiten.KeyRight,
+		ebiten.KeyBackspace,
+		ebiten.KeyDelete,
+		ebiten.KeyEnter,
+	}
+
+	for _, key := range actionKeys {
+		if ebiten.IsKeyPressed(key) {
+			return true, key
+		}
+	}
+
+	return false, input.KeyNone
 }
 
 // SetValue sets the value of the text input.
@@ -163,49 +308,95 @@ func (ti *TextInput) SetValue(value string) {
 	_ = ti.possibleCursorPos
 }
 
+func (ti *TextInput) setCursorPosition(pos int) {
+	ti.cursorPos = pos + ti.textPosX + ti.padding.Left - 1
+}
+
 func (ti *TextInput) findClosestPossibleCursorPosition() int {
-	cursorPos := (input.CursorPosX - int(ti.absPosX))
+	cursorPos := input.CursorPosX - int(ti.absPosX) - ti.textPosX - ti.padding.Left + 1
 
 	if cursorPos <= ti.possibleCursorPos[0] {
-		return ti.possibleCursorPos[0]
+		return 0
 	}
 
 	lastId := len(ti.possibleCursorPos) - 1
 
 	if cursorPos >= ti.possibleCursorPos[lastId] {
-		return ti.possibleCursorPos[lastId]
+		return lastId
 	}
 
 	min := 0
 	max := lastId
 
-	for min <= max {
-		mid := (min + max) / 2
-		if cursorPos < ti.possibleCursorPos[mid] {
-			if (ti.possibleCursorPos[mid] - cursorPos) < (cursorPos - ti.possibleCursorPos[mid-1]) {
-				return ti.possibleCursorPos[mid]
-			}
-
-			max = mid - 1
-		} else if cursorPos > ti.possibleCursorPos[mid] {
-			if (ti.possibleCursorPos[mid+1] - cursorPos) > (cursorPos - ti.possibleCursorPos[mid]) {
-				return ti.possibleCursorPos[mid]
-			}
-
-			min = mid + 1
+	getClosest := func(a, b, target int) int {
+		if target-ti.possibleCursorPos[a] >= ti.possibleCursorPos[b]-target {
+			return b
 		} else {
-			return ti.possibleCursorPos[mid]
+			return a
 		}
 	}
 
-	if (ti.possibleCursorPos[min] - cursorPos) < (cursorPos - ti.possibleCursorPos[max]) {
-		return ti.possibleCursorPos[min]
-	} else {
-		return ti.possibleCursorPos[max]
+	for min <= max {
+		mid := (min + max) / 2
+		switch {
+		case cursorPos < ti.possibleCursorPos[mid]:
+			if mid > 0 && cursorPos > ti.possibleCursorPos[mid-1] {
+				return getClosest(mid-1, mid, cursorPos)
+			}
+
+			max = mid - 1
+		case cursorPos > ti.possibleCursorPos[mid]:
+			if mid < lastId && cursorPos < ti.possibleCursorPos[mid+1] {
+				return getClosest(mid, mid+1, cursorPos)
+			}
+
+			min = mid + 1
+		default:
+			return mid
+		}
+	}
+
+	return getClosest(max, min, cursorPos)
+}
+
+func (ti *TextInput) CursorLeft() {
+	if ti.currentPossibleCursorPosId > 0 {
+		ti.currentPossibleCursorPosId--
+		ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
+		ti.drawer.ResetCursorBlink()
 	}
 }
 
+func (ti *TextInput) CursorRight() {
+	if ti.currentPossibleCursorPosId < len(ti.possibleCursorPos)-1 {
+		ti.currentPossibleCursorPosId++
+		ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
+		ti.drawer.ResetCursorBlink()
+	}
+}
+
+func (ti *TextInput) Home() {
+	ti.currentPossibleCursorPosId = 0
+	ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
+	ti.drawer.ResetCursorBlink()
+}
+
+func (ti *TextInput) End() {
+	ti.currentPossibleCursorPosId--
+	ti.setCursorPosition(ti.possibleCursorPos[len(ti.possibleCursorPos)-1])
+	ti.drawer.ResetCursorBlink()
+}
+
+func (ti *TextInput) Delete() {}
+
+func (ti *TextInput) Backspace() {}
+
+func (ti *TextInput) Submit() {}
+
 func (ti *TextInput) Draw() *ebiten.Image {
+	// ti.handleState()
+	ti.state = ti.state(ti)
+
 	if ti.hidden {
 		return ti.image
 	}

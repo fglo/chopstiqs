@@ -8,6 +8,7 @@ import (
 
 type TextInputDrawer interface {
 	Draw(textInput *TextInput) *ebiten.Image
+	ResetCursorBlink()
 }
 
 type DefaultTextInputDrawer struct {
@@ -23,6 +24,10 @@ func (d *DefaultTextInputDrawer) isCorner(textInput *TextInput, rowId, colId int
 
 func (d *DefaultTextInputDrawer) isBorder(textInput *TextInput, rowId, colId int) bool {
 	return rowId == textInput.firstPixelRowId || rowId == textInput.lastPixelRowId || colId == textInput.firstPixelColId || colId == textInput.lastPixelColId
+}
+
+func (d *DefaultTextInputDrawer) ResetCursorBlink() {
+	d.frameCount = 0
 }
 
 func (d *DefaultTextInputDrawer) Draw(textInput *TextInput) *ebiten.Image {
@@ -59,11 +64,11 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput) []byte {
 		}
 	}
 
-	if textInput.cursorPos >= textInput.pixelCols {
+	if !textInput.focused || textInput.cursorPos >= textInput.pixelCols {
 		return arr
 	}
 
-	if d.frameCount = (d.frameCount + 1) % 60; d.frameCount > 30 {
+	if d.frameCount = (d.frameCount + 1) % 90; d.frameCount < 50 {
 		lineHeight := textInput.metrics.Ascent - textInput.metrics.Descent - 1
 		lineTop := textInput.textPosY - textInput.metrics.Ascent
 

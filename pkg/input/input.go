@@ -13,6 +13,10 @@ var (
 	MouseRightButtonPressed           bool
 	MouseRightButtonJustPressed       bool
 	MouseLastUpdateRightButtonPressed bool
+
+	InputChars []rune
+
+	KeyNone ebiten.Key = -1
 )
 
 func Update() {
@@ -25,4 +29,6 @@ func Update() {
 	MouseRightButtonPressed = ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
 	MouseRightButtonJustPressed = MouseRightButtonPressed != MouseLastUpdateRightButtonPressed
 	MouseLastUpdateRightButtonPressed = MouseRightButtonPressed
+
+	InputChars = ebiten.AppendInputChars(InputChars)
 }

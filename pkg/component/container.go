@@ -99,6 +99,18 @@ func (c *Container) AddComponent(component Component) {
 	component.setContainer(c)
 }
 
+// AddComponents adds components to the container
+func (c *Container) AddComponents(components ...Component) {
+	c.components = append(c.components, components...)
+
+	for _, component := range components {
+		if c.layout != nil {
+			c.layout.Arrange(c, component)
+		}
+		component.setContainer(c)
+	}
+}
+
 // SetBackgroundColor sets the container's background color
 func (c *Container) SetBackgroundColor(color imgColor.RGBA) {
 	c.backgroundColor = color
