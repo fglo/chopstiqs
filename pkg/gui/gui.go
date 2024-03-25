@@ -36,6 +36,9 @@ func (gui *GUI) Update() {
 // Draw draws containers to the guiImage.
 // It should be called in the Ebiten Game's Draw function.
 func (gui *GUI) Draw(guiImage *ebiten.Image) {
+	input.Draw()
+	defer input.AfterDraw()
+
 	gui.eventManager.HandleFired()
 
 	op := &ebiten.DrawImageOptions{}

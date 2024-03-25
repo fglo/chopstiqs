@@ -32,3 +32,11 @@ func Update() {
 
 	InputChars = ebiten.AppendInputChars(InputChars)
 }
+
+func Draw() {
+
+}
+
+func AfterDraw() {
+	InputChars = InputChars[:0]
+}

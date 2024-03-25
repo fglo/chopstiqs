@@ -64,15 +64,15 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput) []byte {
 		}
 	}
 
-	if !textInput.focused || textInput.cursorPos >= textInput.pixelCols {
+	col := textInput.cursorPos * 4
+
+	if !textInput.focused || textInput.cursorPos >= textInput.pixelCols || col >= textInput.pixelCols {
 		return arr
 	}
 
 	if d.frameCount = (d.frameCount + 1) % 90; d.frameCount < 50 {
 		lineHeight := textInput.metrics.Ascent - textInput.metrics.Descent - 1
 		lineTop := textInput.textPosY - textInput.metrics.Ascent
-
-		col := textInput.cursorPos * 4
 
 		for rowId := lineTop; rowId > 0 && rowId < lineTop+lineHeight && rowId < textInput.pixelRows; rowId++ {
 			rowNumber := textInput.pixelCols * rowId

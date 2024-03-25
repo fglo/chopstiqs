@@ -41,7 +41,7 @@ type TextInput struct {
 	state textInputState
 
 	lastActionKeyPressed ebiten.Key
-	canRepeatAction      *atomic.Bool
+	readyForAction       *atomic.Bool
 
 	pressedKeysHandlers map[ebiten.Key]func()
 }
@@ -86,11 +86,11 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		},
 
 		lastActionKeyPressed: input.KeyNone,
-		canRepeatAction:      &atomic.Bool{},
+		readyForAction:       &atomic.Bool{},
 	}
 
 	ti.state = ti.idleStateFactory()
-	ti.canRepeatAction.Store(true)
+	ti.readyForAction.Store(true)
 
 	ti.pressedKeysHandlers = map[ebiten.Key]func(){
 		ebiten.KeyLeft:      ti.CursorLeft,
@@ -128,26 +128,26 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 
 	ti.setUpComponent(options)
 
-	ti.KeyPressedEvent.AddHandler(func(args interface{}) {
-		keyPressedArgs := args.(*KeyPressedEventArgs)
+	// ti.KeyPressedEvent.AddHandler(func(args interface{}) {
+	// 	keyPressedArgs := args.(*KeyPressedEventArgs)
 
-		switch keyPressedArgs.Key {
-		case ebiten.KeyLeft:
-			ti.CursorLeft()
-		case ebiten.KeyRight:
-			ti.CursorRight()
-		case ebiten.KeyHome:
-			ti.Home()
-		case ebiten.KeyEnd:
-			ti.End()
-		case ebiten.KeyBackspace:
-			ti.Backspace()
-		case ebiten.KeyDelete:
-			ti.Delete()
-		default:
-			ti.value += ebiten.KeyName(keyPressedArgs.Key)
-		}
-	})
+	// 	switch keyPressedArgs.Key {
+	// 	case ebiten.KeyLeft:
+	// 		ti.CursorLeft()
+	// 	case ebiten.KeyRight:
+	// 		ti.CursorRight()
+	// 	case ebiten.KeyHome:
+	// 		ti.Home()
+	// 	case ebiten.KeyEnd:
+	// 		ti.End()
+	// 	case ebiten.KeyBackspace:
+	// 		ti.Backspace()
+	// 	case ebiten.KeyDelete:
+	// 		ti.Delete()
+	// 	default:
+	// 		ti.value += ebiten.KeyName(keyPressedArgs.Key)
+	// 	}
+	// })
 
 	return ti
 }
@@ -194,95 +194,6 @@ func (ti *TextInput) AddClickedHandler(f TextInputClickedHandlerFunc) *TextInput
 	ti.ClickedEvent.AddHandler(func(args interface{}) { f(args.(*TextInputClickedEventArgs)) })
 
 	return ti
-}
-
-var actionKeyRepeatDelay = 500 * time.Millisecond
-var actionKeyRepeatInterval = 60 * time.Millisecond
-
-func (ti *TextInput) Insert(chars []rune) {
-	ti.value += string(chars) // TODO: proper handling
-}
-
-type textInputState func(ti *TextInput) textInputState
-
-func (ti *TextInput) idleStateFactory() textInputState {
-	return func(ti *TextInput) textInputState {
-		if !ti.focused || ti.disabled {
-			return ti.idleStateFactory()
-		}
-
-		if len(input.InputChars) > 0 {
-			return ti.inputStateFactory()
-		}
-
-		if pressed, key := ti.actionKeyPressed(); pressed {
-			return ti.actionStateFactory(key)
-		}
-
-		return ti.idleStateFactory()
-	}
-}
-
-func (ti *TextInput) inputStateFactory() textInputState {
-	return func(ti *TextInput) textInputState {
-		if !ti.focused || ti.disabled {
-			return ti.idleStateFactory()
-		}
-
-		ti.Insert(input.InputChars)
-
-		if pressed, key := ti.actionKeyPressed(); pressed {
-			return ti.actionStateFactory(key)
-		}
-
-		return ti.idleStateFactory()
-	}
-}
-
-func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
-	return func(ti *TextInput) textInputState {
-		if !ti.focused || ti.disabled {
-			return ti.idleStateFactory()
-		}
-
-		delay := actionKeyRepeatDelay
-		if ti.lastActionKeyPressed == pressedKey {
-			delay = actionKeyRepeatInterval
-
-			if !ti.canRepeatAction.Load() {
-				return ti.idleStateFactory()
-			}
-		}
-
-		ti.canRepeatAction.Store(false)
-
-		time.AfterFunc(delay, func() {
-			ti.canRepeatAction.Store(true)
-		})
-
-		ti.lastActionKeyPressed = pressedKey
-		ti.pressedKeysHandlers[pressedKey]()
-
-		return ti.idleStateFactory()
-	}
-}
-
-func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
-	actionKeys := []ebiten.Key{
-		ebiten.KeyLeft,
-		ebiten.KeyRight,
-		ebiten.KeyBackspace,
-		ebiten.KeyDelete,
-		ebiten.KeyEnter,
-	}
-
-	for _, key := range actionKeys {
-		if ebiten.IsKeyPressed(key) {
-			return true, key
-		}
-	}
-
-	return false, input.KeyNone
 }
 
 // SetValue sets the value of the text input.
@@ -382,19 +293,42 @@ func (ti *TextInput) Home() {
 }
 
 func (ti *TextInput) End() {
-	ti.currentPossibleCursorPosId--
-	ti.setCursorPosition(ti.possibleCursorPos[len(ti.possibleCursorPos)-1])
+	ti.currentPossibleCursorPosId = len(ti.possibleCursorPos) - 1
+	ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
 	ti.drawer.ResetCursorBlink()
 }
 
-func (ti *TextInput) Delete() {}
+func (ti *TextInput) Insert(chars []rune) {
+	if len(ti.value) == 0 {
+		ti.SetValue(string(chars))
+	} else {
+		ti.SetValue(ti.value[0:ti.currentPossibleCursorPosId] + string(chars) + ti.value[ti.currentPossibleCursorPosId:len(ti.value)])
+	}
 
-func (ti *TextInput) Backspace() {}
+	if ti.currentPossibleCursorPosId+len(chars) < len(ti.possibleCursorPos) {
+		ti.currentPossibleCursorPosId += len(chars)
+	} else {
+		ti.currentPossibleCursorPosId = len(ti.possibleCursorPos) - 1
+	}
+
+	ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
+	ti.drawer.ResetCursorBlink()
+}
+
+func (ti *TextInput) Delete() {
+
+}
+
+func (ti *TextInput) Backspace() {
+	if len(ti.value) > 0 && ti.currentPossibleCursorPosId > 0 {
+		ti.SetValue(ti.value[0:ti.currentPossibleCursorPosId-1] + ti.value[ti.currentPossibleCursorPosId:len(ti.value)])
+		ti.CursorLeft()
+	}
+}
 
 func (ti *TextInput) Submit() {}
 
 func (ti *TextInput) Draw() *ebiten.Image {
-	// ti.handleState()
 	ti.state = ti.state(ti)
 
 	if ti.hidden {
@@ -408,4 +342,92 @@ func (ti *TextInput) Draw() *ebiten.Image {
 	ti.component.Draw()
 
 	return ti.image
+}
+
+func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
+	actionKeys := []ebiten.Key{
+		ebiten.KeyLeft,
+		ebiten.KeyRight,
+		ebiten.KeyBackspace,
+		ebiten.KeyDelete,
+		ebiten.KeyEnter,
+	}
+
+	for _, key := range actionKeys {
+		if ebiten.IsKeyPressed(key) {
+			return true, key
+		}
+	}
+
+	ti.lastActionKeyPressed = input.KeyNone
+
+	return false, input.KeyNone
+}
+
+type textInputState func(ti *TextInput) textInputState
+
+var textInputActionKeyRepeatDelay = 500 * time.Millisecond
+var textInputActionKeyRepeatInterval = 60 * time.Millisecond
+
+func (ti *TextInput) idleStateFactory() textInputState {
+	return func(ti *TextInput) textInputState {
+		if !ti.focused || ti.disabled {
+			return ti.idleStateFactory()
+		}
+
+		if len(input.InputChars) > 0 {
+			return ti.inputStateFactory(input.InputChars)
+		}
+
+		if pressed, key := ti.actionKeyPressed(); pressed {
+			return ti.actionStateFactory(key)
+		}
+
+		return ti.idleStateFactory()
+	}
+}
+
+func (ti *TextInput) inputStateFactory(chars []rune) textInputState {
+	return func(ti *TextInput) textInputState {
+		if !ti.focused || ti.disabled {
+			return ti.idleStateFactory()
+		}
+
+		ti.Insert(chars)
+
+		if pressed, key := ti.actionKeyPressed(); pressed {
+			return ti.actionStateFactory(key)
+		}
+
+		return ti.idleStateFactory()
+	}
+}
+
+func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
+	return func(ti *TextInput) textInputState {
+		if !ti.focused || ti.disabled {
+			return ti.idleStateFactory()
+		}
+
+		delay := textInputActionKeyRepeatDelay
+		if ti.lastActionKeyPressed == pressedKey {
+			delay = textInputActionKeyRepeatInterval
+
+			if !ti.readyForAction.Load() {
+				return ti.idleStateFactory()
+			}
+		}
+
+		ti.lastActionKeyPressed = pressedKey
+
+		ti.pressedKeysHandlers[pressedKey]()
+
+		ti.readyForAction.Store(false)
+
+		time.AfterFunc(delay, func() {
+			ti.readyForAction.Store(true)
+		})
+
+		return ti.idleStateFactory()
+	}
 }
