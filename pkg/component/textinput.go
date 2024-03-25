@@ -3,6 +3,7 @@ package component
 import (
 	"image"
 	"image/color"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -29,9 +30,12 @@ type TextInput struct {
 	textPosY   int
 	textBounds image.Rectangle
 
-	cursorPos                  int
-	currentPossibleCursorPosId int
-	possibleCursorPos          []int
+	scrollOffset int
+
+	cursorPosition             int
+	possibleCursorPosXs        []int
+	firstVisibleCursorPosition int
+	lastVisibleCursorPosition  int
 
 	ClickedEvent    *event.Event
 	KeyPressedEvent *event.Event
@@ -42,6 +46,7 @@ type TextInput struct {
 
 	lastActionKeyPressed ebiten.Key
 	readyForAction       *atomic.Bool
+	stateLock            sync.Mutex
 
 	pressedKeysHandlers map[ebiten.Key]func()
 }
@@ -180,8 +185,7 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 
 	ti.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if !ti.disabled && ti.focused {
-			ti.currentPossibleCursorPosId = ti.findClosestPossibleCursorPosition()
-			ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
+			ti.cursorPosition = ti.findClosestPossibleCursorPosition()
 
 			ti.eventManager.Fire(ti.ClickedEvent, &TextInputClickedEventArgs{
 				TextInput: ti,
@@ -208,31 +212,31 @@ func (ti *TextInput) SetValue(value string) {
 
 	lastPos := 0
 
-	ti.possibleCursorPos = make([]int, len(value)+1)
-	ti.possibleCursorPos[0] = lastPos
+	ti.possibleCursorPosXs = make([]int, len(value)+1)
+	ti.possibleCursorPosXs[0] = lastPos
 
 	for i, c := range value {
-		lastPos += int(fontutils.FixedInt26_6ToInt(font.MeasureString(ti.font, string(c))))
-		ti.possibleCursorPos[i+1] = lastPos
+		lastPos += fontutils.MeasureString(string(c), ti.font)
+		ti.possibleCursorPosXs[i+1] = lastPos
 	}
 
-	_ = ti.possibleCursorPos
+	ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition)
 }
 
-func (ti *TextInput) setCursorPosition(pos int) {
-	ti.cursorPos = pos + ti.textPosX + ti.padding.Left - 1
+func (ti *TextInput) cursorPosX() int {
+	return ti.possibleCursorPosXs[ti.cursorPosition] + ti.textPosX + ti.padding.Left - 1
 }
 
 func (ti *TextInput) findClosestPossibleCursorPosition() int {
 	cursorPos := input.CursorPosX - int(ti.absPosX) - ti.textPosX - ti.padding.Left + 1
 
-	if cursorPos <= ti.possibleCursorPos[0] {
+	if cursorPos <= ti.possibleCursorPosXs[0] {
 		return 0
 	}
 
-	lastId := len(ti.possibleCursorPos) - 1
+	lastId := len(ti.possibleCursorPosXs) - 1
 
-	if cursorPos >= ti.possibleCursorPos[lastId] {
+	if cursorPos >= ti.possibleCursorPosXs[lastId] {
 		return lastId
 	}
 
@@ -240,7 +244,7 @@ func (ti *TextInput) findClosestPossibleCursorPosition() int {
 	max := lastId
 
 	getClosest := func(a, b, target int) int {
-		if target-ti.possibleCursorPos[a] >= ti.possibleCursorPos[b]-target {
+		if target-ti.possibleCursorPosXs[a] >= ti.possibleCursorPosXs[b]-target {
 			return b
 		} else {
 			return a
@@ -250,14 +254,14 @@ func (ti *TextInput) findClosestPossibleCursorPosition() int {
 	for min <= max {
 		mid := (min + max) / 2
 		switch {
-		case cursorPos < ti.possibleCursorPos[mid]:
-			if mid > 0 && cursorPos > ti.possibleCursorPos[mid-1] {
+		case cursorPos < ti.possibleCursorPosXs[mid]:
+			if mid > 0 && cursorPos > ti.possibleCursorPosXs[mid-1] {
 				return getClosest(mid-1, mid, cursorPos)
 			}
 
 			max = mid - 1
-		case cursorPos > ti.possibleCursorPos[mid]:
-			if mid < lastId && cursorPos < ti.possibleCursorPos[mid+1] {
+		case cursorPos > ti.possibleCursorPosXs[mid]:
+			if mid < lastId && cursorPos < ti.possibleCursorPosXs[mid+1] {
 				return getClosest(mid, mid+1, cursorPos)
 			}
 
@@ -270,48 +274,122 @@ func (ti *TextInput) findClosestPossibleCursorPosition() int {
 	return getClosest(max, min, cursorPos)
 }
 
+func (ti *TextInput) firstVisibleCursorPosX() int {
+	return ti.possibleCursorPosXs[ti.firstVisibleCursorPosition]
+}
+
+func (ti *TextInput) lastVisibleCursorPosX() int {
+	return ti.possibleCursorPosXs[ti.lastVisibleCursorPosition]
+}
+
+// TODO: correctly stopping at the end when moving cursor to the right
+// TODO: fix dissapearing cursor after deleting all text
+
+func (ti *TextInput) setFirstVisibleCursorPosition(firstVisibleCursorPosition int) {
+	ti.firstVisibleCursorPosition = firstVisibleCursorPosition
+
+	if ti.firstVisibleCursorPosition <= 0 {
+		ti.firstVisibleCursorPosition = 0
+	}
+
+	if ti.firstVisibleCursorPosition >= len(ti.possibleCursorPosXs) {
+		ti.firstVisibleCursorPosition = len(ti.possibleCursorPosXs) - 1
+	}
+
+	tiWidth := ti.width - ti.textPosX
+	firstVisiblePosX := ti.firstVisibleCursorPosX()
+
+	ti.lastVisibleCursorPosition = len(ti.possibleCursorPosXs) - 1
+
+	for i := ti.firstVisibleCursorPosition; i < len(ti.possibleCursorPosXs)-1; i++ {
+		if ti.possibleCursorPosXs[i]-firstVisiblePosX <= tiWidth && ti.possibleCursorPosXs[i+1]-firstVisiblePosX > tiWidth {
+			ti.lastVisibleCursorPosition = i + 1
+			break
+		}
+	}
+
+	if ti.lastVisibleCursorPosition <= 0 {
+		ti.lastVisibleCursorPosition = 0
+	}
+
+	if ti.lastVisibleCursorPosition >= len(ti.possibleCursorPosXs) {
+		ti.lastVisibleCursorPosition = len(ti.possibleCursorPosXs) - 1
+	}
+
+	lastVisiblePosX := ti.lastVisibleCursorPosX()
+
+	if ti.lastVisibleCursorPosition == len(ti.possibleCursorPosXs)-1 && lastVisiblePosX-firstVisiblePosX < tiWidth {
+		for i := ti.lastVisibleCursorPosition - 1; i > 0; i-- {
+			if lastVisiblePosX-ti.possibleCursorPosXs[i] <= tiWidth && lastVisiblePosX-ti.possibleCursorPosXs[i-1] > tiWidth {
+				ti.firstVisibleCursorPosition = i
+				break
+			}
+		}
+	}
+}
+
 func (ti *TextInput) CursorLeft() {
-	if ti.currentPossibleCursorPosId > 0 {
-		ti.currentPossibleCursorPosId--
-		ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
+	if ti.cursorPosition > 0 {
+		ti.cursorPosition--
 		ti.drawer.ResetCursorBlink()
+
+		if ti.cursorPosition < ti.firstVisibleCursorPosition && ti.cursorPosition > 0 {
+			ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition - (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
+		}
 	}
 }
 
 func (ti *TextInput) CursorRight() {
-	if ti.currentPossibleCursorPosId < len(ti.possibleCursorPos)-1 {
-		ti.currentPossibleCursorPosId++
-		ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
+	if ti.cursorPosition < len(ti.possibleCursorPosXs)-1 {
+		ti.cursorPosition++
 		ti.drawer.ResetCursorBlink()
+
+		if ti.cursorPosition > ti.lastVisibleCursorPosition && ti.cursorPosition < len(ti.possibleCursorPosXs) {
+			ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition + (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
+		}
 	}
 }
 
 func (ti *TextInput) Home() {
-	ti.currentPossibleCursorPosId = 0
-	ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
+	ti.cursorPosition = 0
 	ti.drawer.ResetCursorBlink()
+
+	if ti.cursorPosition < ti.firstVisibleCursorPosition && ti.cursorPosition > 0 {
+		ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition - (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
+	}
 }
 
 func (ti *TextInput) End() {
-	ti.currentPossibleCursorPosId = len(ti.possibleCursorPos) - 1
-	ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
+	ti.cursorPosition = len(ti.possibleCursorPosXs) - 1
 	ti.drawer.ResetCursorBlink()
+
+	if ti.cursorPosition > ti.lastVisibleCursorPosition && ti.cursorPosition < len(ti.possibleCursorPosXs) {
+		ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition + (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
+	}
 }
 
 func (ti *TextInput) Insert(chars []rune) {
-	if len(ti.value) == 0 {
-		ti.SetValue(string(chars))
-	} else {
-		ti.SetValue(ti.value[0:ti.currentPossibleCursorPosId] + string(chars) + ti.value[ti.currentPossibleCursorPosId:len(ti.value)])
+	ti.value = ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
+
+	// TODO: change deprecated function
+	bounds := text.BoundString(ti.font, ti.value) // nolint
+
+	ti.textPosY = -bounds.Min.Y + ti.heightWithPadding/2 - 3
+	ti.textBounds = bounds
+
+	ti.possibleCursorPosXs = make([]int, len(ti.value)+1)
+	ti.possibleCursorPosXs[0] = 0
+
+	for i, c := range ti.value {
+		ti.possibleCursorPosXs[i+1] = ti.possibleCursorPosXs[i] + fontutils.MeasureString(string(c), ti.font)
 	}
 
-	if ti.currentPossibleCursorPosId+len(chars) < len(ti.possibleCursorPos) {
-		ti.currentPossibleCursorPosId += len(chars)
-	} else {
-		ti.currentPossibleCursorPosId = len(ti.possibleCursorPos) - 1
+	ti.cursorPosition += len(chars)
+
+	if ti.cursorPosition > ti.lastVisibleCursorPosition && ti.cursorPosition < len(ti.possibleCursorPosXs) {
+		ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition + (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
 	}
 
-	ti.setCursorPosition(ti.possibleCursorPos[ti.currentPossibleCursorPosId])
 	ti.drawer.ResetCursorBlink()
 }
 
@@ -320,9 +398,24 @@ func (ti *TextInput) Delete() {
 }
 
 func (ti *TextInput) Backspace() {
-	if len(ti.value) > 0 && ti.currentPossibleCursorPosId > 0 {
-		ti.SetValue(ti.value[0:ti.currentPossibleCursorPosId-1] + ti.value[ti.currentPossibleCursorPosId:len(ti.value)])
+	if ti.cursorPosition > 0 {
+		ti.value = ti.value[0:ti.cursorPosition-1] + ti.value[ti.cursorPosition:]
+
+		// TODO: change deprecated function
+		bounds := text.BoundString(ti.font, ti.value) // nolint
+
+		ti.textPosY = -bounds.Min.Y + ti.heightWithPadding/2 - 3
+		ti.textBounds = bounds
+
+		ti.possibleCursorPosXs = make([]int, len(ti.value)+1)
+		ti.possibleCursorPosXs[0] = 0
+
+		for i, c := range ti.value {
+			ti.possibleCursorPosXs[i+1] = ti.possibleCursorPosXs[i] + fontutils.MeasureString(string(c), ti.font)
+		}
+
 		ti.CursorLeft()
+		ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition)
 	}
 }
 
@@ -337,7 +430,13 @@ func (ti *TextInput) Draw() *ebiten.Image {
 
 	ti.drawer.Draw(ti)
 
-	text.Draw(ti.image, ti.value, ti.font, ti.textPosX+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
+	if ti.focused && ti.cursorPosition > 0 {
+		ti.scrollOffset = -ti.firstVisibleCursorPosX()
+	} else if !ti.focused {
+		ti.scrollOffset = 0
+	}
+
+	text.Draw(ti.image, ti.value, ti.font, ti.textPosX+ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
 
 	ti.component.Draw()
 
@@ -366,11 +465,14 @@ func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
 
 type textInputState func(ti *TextInput) textInputState
 
-var textInputActionKeyRepeatDelay = 500 * time.Millisecond
-var textInputActionKeyRepeatInterval = 60 * time.Millisecond
+var textInputActionKeyRepeatDelay = 350 * time.Millisecond
+var textInputActionKeyRepeatInterval = 50 * time.Millisecond
 
 func (ti *TextInput) idleStateFactory() textInputState {
 	return func(ti *TextInput) textInputState {
+		ti.stateLock.Lock()
+		defer ti.stateLock.Unlock()
+
 		if !ti.focused || ti.disabled {
 			return ti.idleStateFactory()
 		}
@@ -389,6 +491,9 @@ func (ti *TextInput) idleStateFactory() textInputState {
 
 func (ti *TextInput) inputStateFactory(chars []rune) textInputState {
 	return func(ti *TextInput) textInputState {
+		ti.stateLock.Lock()
+		defer ti.stateLock.Unlock()
+
 		if !ti.focused || ti.disabled {
 			return ti.idleStateFactory()
 		}
@@ -405,6 +510,9 @@ func (ti *TextInput) inputStateFactory(chars []rune) textInputState {
 
 func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 	return func(ti *TextInput) textInputState {
+		ti.stateLock.Lock()
+		defer ti.stateLock.Unlock()
+
 		if !ti.focused || ti.disabled {
 			return ti.idleStateFactory()
 		}

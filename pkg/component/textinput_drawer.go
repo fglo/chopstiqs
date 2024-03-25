@@ -64,9 +64,9 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput) []byte {
 		}
 	}
 
-	col := textInput.cursorPos * 4
+	colNumber := (textInput.cursorPosX() + textInput.scrollOffset) * 4
 
-	if !textInput.focused || textInput.cursorPos >= textInput.pixelCols || col >= textInput.pixelCols {
+	if !textInput.focused || colNumber >= textInput.pixelCols {
 		return arr
 	}
 
@@ -77,10 +77,10 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput) []byte {
 		for rowId := lineTop; rowId > 0 && rowId < lineTop+lineHeight && rowId < textInput.pixelRows; rowId++ {
 			rowNumber := textInput.pixelCols * rowId
 
-			arr[col+rowNumber] = d.BorderColor.R
-			arr[col+1+rowNumber] = d.BorderColor.G
-			arr[col+2+rowNumber] = d.BorderColor.B
-			arr[col+3+rowNumber] = d.BorderColor.A
+			arr[colNumber+rowNumber] = d.BorderColor.R
+			arr[colNumber+1+rowNumber] = d.BorderColor.G
+			arr[colNumber+2+rowNumber] = d.BorderColor.B
+			arr[colNumber+3+rowNumber] = d.BorderColor.A
 		}
 	}
 
