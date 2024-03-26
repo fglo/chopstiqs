@@ -17,6 +17,12 @@ import (
 	"golang.org/x/image/font"
 )
 
+// TODO: selecting
+// TODO: modifier keys
+// TODO: input validation
+// TODO: on submit
+// TODO: on change
+
 type TextInput struct {
 	component
 
@@ -250,10 +256,10 @@ func (ti *TextInput) findClosestPossibleCursorPosition() int {
 }
 
 func (ti *TextInput) calcScrollOffset() int {
-	scrollOffsetUpperBound := ti.textBounds.Dx() - (ti.width - ti.textPosX - 1 - 2)
+	scrollOffsetUpperBound := ti.textBounds.Dx() - (ti.width - ti.textPosX - ti.cursor.width - 2)
 
 	applyBoundsToScrollOffset := func(offset int) int {
-		if offset < ti.width/2 {
+		if offset < (ti.width-ti.textPosX)/2 {
 			return 0
 		}
 
@@ -266,11 +272,13 @@ func (ti *TextInput) calcScrollOffset() int {
 
 	ti.scrollOffset = applyBoundsToScrollOffset(ti.scrollOffset)
 
-	if ti.cursorPosX() > ti.scrollOffset && ti.cursorPosX() < ti.width+ti.scrollOffset {
+	cursorPosX := ti.cursorPosX()
+
+	if cursorPosX > ti.scrollOffset && cursorPosX < ti.width+ti.scrollOffset {
 		return ti.scrollOffset
 	}
 
-	ti.scrollOffset = applyBoundsToScrollOffset(ti.cursorPosX() - ti.width/2)
+	ti.scrollOffset = applyBoundsToScrollOffset(cursorPosX - ti.width/2)
 
 	return ti.scrollOffset
 }
@@ -347,14 +355,14 @@ func (ti *TextInput) Draw() *ebiten.Image {
 
 	ti.drawer.Draw(ti)
 
-	ti.scrollOffset = 0
-
 	if ti.focused {
 		ti.scrollOffset = ti.calcScrollOffset()
 
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(ti.cursorPosX()-ti.scrollOffset), 2)
 		ti.image.DrawImage(ti.cursor.Draw(), op)
+	} else {
+		ti.scrollOffset = 0
 	}
 
 	text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
