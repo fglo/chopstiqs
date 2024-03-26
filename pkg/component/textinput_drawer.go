@@ -8,7 +8,6 @@ import (
 
 type TextInputDrawer interface {
 	Draw(textInput *TextInput) *ebiten.Image
-	ResetCursorBlink()
 }
 
 type DefaultTextInputDrawer struct {
@@ -24,10 +23,6 @@ func (d *DefaultTextInputDrawer) isCorner(textInput *TextInput, rowId, colId int
 
 func (d *DefaultTextInputDrawer) isBorder(textInput *TextInput, rowId, colId int) bool {
 	return rowId == textInput.firstPixelRowId || rowId == textInput.lastPixelRowId || colId == textInput.firstPixelColId || colId == textInput.lastPixelColId
-}
-
-func (d *DefaultTextInputDrawer) ResetCursorBlink() {
-	d.frameCount = 0
 }
 
 func (d *DefaultTextInputDrawer) Draw(textInput *TextInput) *ebiten.Image {
@@ -66,22 +61,22 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput) []byte {
 
 	// Draw cursor:
 
-	colNumber := (textInput.cursorPosX() - textInput.scrollOffset) * 4
+	// colNumber := (textInput.cursorPosX() - textInput.scrollOffset) * 4
 
-	if !textInput.focused || colNumber >= textInput.pixelCols {
-		return arr
-	}
+	// if !textInput.focused || colNumber >= textInput.pixelCols {
+	// 	return arr
+	// }
 
-	if d.frameCount = (d.frameCount + 1) % 90; d.frameCount < 50 {
-		for rowId := textInput.firstPixelRowId + 2; rowId < textInput.lastPixelRowId-1; rowId++ {
-			rowNumber := textInput.pixelCols * rowId
+	// if d.frameCount = (d.frameCount + 1) % 90; d.frameCount < 50 {
+	// 	for rowId := textInput.firstPixelRowId + 2; rowId < textInput.lastPixelRowId-1; rowId++ {
+	// 		rowNumber := textInput.pixelCols * rowId
 
-			arr[colNumber+rowNumber] = d.BorderColor.R
-			arr[colNumber+1+rowNumber] = d.BorderColor.G
-			arr[colNumber+2+rowNumber] = d.BorderColor.B
-			arr[colNumber+3+rowNumber] = d.BorderColor.A
-		}
-	}
+	// 		arr[colNumber+rowNumber] = d.BorderColor.R
+	// 		arr[colNumber+1+rowNumber] = d.BorderColor.G
+	// 		arr[colNumber+2+rowNumber] = d.BorderColor.B
+	// 		arr[colNumber+3+rowNumber] = d.BorderColor.A
+	// 	}
+	// }
 
 	return arr
 }

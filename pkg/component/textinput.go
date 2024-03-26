@@ -32,6 +32,7 @@ type TextInput struct {
 
 	scrollOffset int
 
+	cursor              textInputCursor
 	cursorPosition      int
 	possibleCursorPosXs []int
 
@@ -59,6 +60,8 @@ type TextInputOptions struct {
 	Font  font.Face
 
 	Padding *Padding
+
+	CursorOptions *TextInputCursorOptions
 }
 
 type TextInputClickedEventArgs struct {
@@ -98,6 +101,8 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 	ti.pressedKeysHandlers = map[ebiten.Key]func(){
 		ebiten.KeyLeft:      ti.CursorLeft,
 		ebiten.KeyRight:     ti.CursorRight,
+		ebiten.KeyHome:      ti.Home,
+		ebiten.KeyEnd:       ti.End,
 		ebiten.KeyBackspace: ti.Backspace,
 		ebiten.KeyDelete:    ti.Delete,
 		ebiten.KeyEnter:     ti.Submit,
@@ -106,6 +111,11 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 	ti.width = 60
 	ti.height = 15
 
+	ti.cursor = *newTextInputCursor(&TextInputCursorOptions{
+		Width:  option.Int(1),
+		Height: option.Int(ti.height - 4),
+	})
+
 	if options != nil {
 		if options.Width.IsSet() {
 			ti.width = options.Width.Val()
@@ -113,6 +123,7 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 
 		if options.Height.IsSet() {
 			ti.height = options.Height.Val()
+			ti.cursor.height = ti.height - 4
 		}
 
 		if options.Color != nil {
@@ -127,30 +138,13 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		if options.Drawer != nil {
 			ti.drawer = options.Drawer
 		}
+
+		if options.CursorOptions != nil {
+			ti.cursor = *newTextInputCursor(options.CursorOptions)
+		}
 	}
 
 	ti.setUpComponent(options)
-
-	// ti.KeyPressedEvent.AddHandler(func(args interface{}) {
-	// 	keyPressedArgs := args.(*KeyPressedEventArgs)
-
-	// 	switch keyPressedArgs.Key {
-	// 	case ebiten.KeyLeft:
-	// 		ti.CursorLeft()
-	// 	case ebiten.KeyRight:
-	// 		ti.CursorRight()
-	// 	case ebiten.KeyHome:
-	// 		ti.Home()
-	// 	case ebiten.KeyEnd:
-	// 		ti.End()
-	// 	case ebiten.KeyBackspace:
-	// 		ti.Backspace()
-	// 	case ebiten.KeyDelete:
-	// 		ti.Delete()
-	// 	default:
-	// 		ti.value += ebiten.KeyName(keyPressedArgs.Key)
-	// 	}
-	// })
 
 	return ti
 }
@@ -178,7 +172,7 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 
 	ti.component.AddFocusedHandler(func(args *ComponentFocusedEventArgs) {
 		ti.focused = args.Focused
-		ti.drawer.ResetCursorBlink()
+		ti.cursor.ResetBlink()
 	})
 
 	ti.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
@@ -284,32 +278,32 @@ func (ti *TextInput) calcScrollOffset() int {
 func (ti *TextInput) CursorLeft() {
 	if ti.cursorPosition > 0 {
 		ti.cursorPosition--
-		ti.drawer.ResetCursorBlink()
+		ti.cursor.ResetBlink()
 	}
 }
 
 func (ti *TextInput) CursorRight() {
 	if ti.cursorPosition < len(ti.possibleCursorPosXs)-1 {
 		ti.cursorPosition++
-		ti.drawer.ResetCursorBlink()
+		ti.cursor.ResetBlink()
 	}
 }
 
 func (ti *TextInput) Home() {
 	ti.cursorPosition = 0
-	ti.drawer.ResetCursorBlink()
+	ti.cursor.ResetBlink()
 }
 
 func (ti *TextInput) End() {
 	ti.cursorPosition = len(ti.possibleCursorPosXs) - 1
-	ti.drawer.ResetCursorBlink()
+	ti.cursor.ResetBlink()
 }
 
 func (ti *TextInput) Insert(chars []rune) {
 	ti.value = ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
 	ti.calcTextBounds()
 	ti.cursorPosition += len(chars)
-	ti.drawer.ResetCursorBlink()
+	ti.cursor.ResetBlink()
 }
 
 func (ti *TextInput) Delete() {
@@ -353,10 +347,14 @@ func (ti *TextInput) Draw() *ebiten.Image {
 
 	ti.drawer.Draw(ti)
 
-	if ti.focused && ti.cursorPosition > 0 {
+	ti.scrollOffset = 0
+
+	if ti.focused {
 		ti.scrollOffset = ti.calcScrollOffset()
-	} else if !ti.focused {
-		ti.scrollOffset = 0
+
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(ti.cursorPosX()-ti.scrollOffset), 2)
+		ti.image.DrawImage(ti.cursor.Draw(), op)
 	}
 
 	text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
@@ -370,6 +368,8 @@ func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
 	actionKeys := []ebiten.Key{
 		ebiten.KeyLeft,
 		ebiten.KeyRight,
+		ebiten.KeyHome,
+		ebiten.KeyEnd,
 		ebiten.KeyBackspace,
 		ebiten.KeyDelete,
 		ebiten.KeyEnter,
