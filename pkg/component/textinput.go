@@ -204,6 +204,54 @@ func (ti *TextInput) SetValue(value string) {
 	ti.calcTextBounds()
 }
 
+func (ti *TextInput) CursorLeft() {
+	if ti.cursorPosition > 0 {
+		ti.cursorPosition--
+		ti.cursor.ResetBlink()
+	}
+}
+
+func (ti *TextInput) CursorRight() {
+	if ti.cursorPosition < len(ti.possibleCursorPosXs)-1 {
+		ti.cursorPosition++
+		ti.cursor.ResetBlink()
+	}
+}
+
+func (ti *TextInput) Home() {
+	ti.cursorPosition = 0
+	ti.cursor.ResetBlink()
+}
+
+func (ti *TextInput) End() {
+	ti.cursorPosition = len(ti.possibleCursorPosXs) - 1
+	ti.cursor.ResetBlink()
+}
+
+func (ti *TextInput) Insert(chars []rune) {
+	ti.value = ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
+	ti.calcTextBounds()
+	ti.cursorPosition += len(chars)
+	ti.cursor.ResetBlink()
+}
+
+func (ti *TextInput) Delete() {
+	if ti.cursorPosition < len(ti.value) {
+		ti.value = ti.value[0:ti.cursorPosition] + ti.value[ti.cursorPosition+1:]
+		ti.calcTextBounds()
+	}
+}
+
+func (ti *TextInput) Backspace() {
+	if ti.cursorPosition > 0 {
+		ti.value = ti.value[0:ti.cursorPosition-1] + ti.value[ti.cursorPosition:]
+		ti.calcTextBounds()
+		ti.CursorLeft()
+	}
+}
+
+func (ti *TextInput) Submit() {}
+
 func (ti *TextInput) cursorPosX() int {
 	return ti.possibleCursorPosXs[ti.cursorPosition] + ti.textPosX + ti.padding.Left - 1
 }
@@ -283,54 +331,6 @@ func (ti *TextInput) calcScrollOffset() int {
 	return ti.scrollOffset
 }
 
-func (ti *TextInput) CursorLeft() {
-	if ti.cursorPosition > 0 {
-		ti.cursorPosition--
-		ti.cursor.ResetBlink()
-	}
-}
-
-func (ti *TextInput) CursorRight() {
-	if ti.cursorPosition < len(ti.possibleCursorPosXs)-1 {
-		ti.cursorPosition++
-		ti.cursor.ResetBlink()
-	}
-}
-
-func (ti *TextInput) Home() {
-	ti.cursorPosition = 0
-	ti.cursor.ResetBlink()
-}
-
-func (ti *TextInput) End() {
-	ti.cursorPosition = len(ti.possibleCursorPosXs) - 1
-	ti.cursor.ResetBlink()
-}
-
-func (ti *TextInput) Insert(chars []rune) {
-	ti.value = ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
-	ti.calcTextBounds()
-	ti.cursorPosition += len(chars)
-	ti.cursor.ResetBlink()
-}
-
-func (ti *TextInput) Delete() {
-	if ti.cursorPosition < len(ti.value) {
-		ti.value = ti.value[0:ti.cursorPosition] + ti.value[ti.cursorPosition+1:]
-		ti.calcTextBounds()
-	}
-}
-
-func (ti *TextInput) Backspace() {
-	if ti.cursorPosition > 0 {
-		ti.value = ti.value[0:ti.cursorPosition-1] + ti.value[ti.cursorPosition:]
-		ti.calcTextBounds()
-		ti.CursorLeft()
-	}
-}
-
-func (ti *TextInput) Submit() {}
-
 func (ti *TextInput) calcTextBounds() {
 	// TODO: change deprecated function
 	bounds := text.BoundString(ti.font, ti.value) // nolint
@@ -344,32 +344,6 @@ func (ti *TextInput) calcTextBounds() {
 	for i, c := range ti.value {
 		ti.possibleCursorPosXs[i+1] = ti.possibleCursorPosXs[i] + fontutils.MeasureString(string(c), ti.font)
 	}
-}
-
-func (ti *TextInput) Draw() *ebiten.Image {
-	ti.state = ti.state(ti)
-
-	if ti.hidden {
-		return ti.image
-	}
-
-	ti.drawer.Draw(ti)
-
-	if ti.focused {
-		ti.scrollOffset = ti.calcScrollOffset()
-
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(ti.cursorPosX()-ti.scrollOffset), 2)
-		ti.image.DrawImage(ti.cursor.Draw(), op)
-	} else {
-		ti.scrollOffset = 0
-	}
-
-	text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
-
-	ti.component.Draw()
-
-	return ti.image
 }
 
 func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
@@ -469,4 +443,30 @@ func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 
 		return ti.idleStateFactory()
 	}
+}
+
+func (ti *TextInput) Draw() *ebiten.Image {
+	ti.state = ti.state(ti)
+
+	if ti.hidden {
+		return ti.image
+	}
+
+	ti.drawer.Draw(ti)
+
+	if ti.focused {
+		ti.scrollOffset = ti.calcScrollOffset()
+
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(ti.cursorPosX()-ti.scrollOffset), 2)
+		ti.image.DrawImage(ti.cursor.Draw(), op)
+	} else {
+		ti.scrollOffset = 0
+	}
+
+	text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
+
+	ti.component.Draw()
+
+	return ti.image
 }

@@ -12,6 +12,8 @@ type GUI struct {
 	rootContainer *component.Container
 	// eventManager is a queue of events by GUI components
 	eventManager *event.Manager
+
+	focusedComponent component.Component
 }
 
 func New() *GUI {
@@ -24,6 +26,7 @@ func New() *GUI {
 func (gui *GUI) SetRootContainer(container *component.Container) {
 	container.SetEventManager(gui.eventManager)
 	gui.rootContainer = container
+	gui.rootContainer.AddFocusedHandler(gui.handleFocusEvent)
 }
 
 // Update updates containers.
@@ -74,4 +77,20 @@ func (gui *GUI) NewSlider(options *component.SliderOptions) *component.Slider {
 	s := component.NewSlider(options)
 	s.SetEventManager(gui.eventManager)
 	return s
+}
+
+func (gui *GUI) FocusedComponent() component.Component {
+	return gui.focusedComponent
+}
+
+func (gui *GUI) handleFocusEvent(args *component.ComponentFocusedEventArgs) {
+	if args.Focused {
+		if gui.focusedComponent != nil && gui.focusedComponent != args.Component {
+			gui.focusedComponent.SetFocused(false)
+		}
+
+		gui.focusedComponent = args.Component
+	} else if gui.focusedComponent == args.Component {
+		gui.focusedComponent = nil
+	}
 }

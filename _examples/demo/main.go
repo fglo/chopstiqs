@@ -214,6 +214,9 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) checkQuitButton() error {
+	if _, ok := g.gui.FocusedComponent().(*component.TextInput); ok {
+		return nil
+	}
 	if !g.quitIsPressed && inpututil.IsKeyJustPressed(ebiten.KeyQ) {
 		g.quitIsPressed = true
 	}
