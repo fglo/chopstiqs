@@ -64,17 +64,16 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput) []byte {
 		}
 	}
 
-	colNumber := (textInput.cursorPosX() + textInput.scrollOffset) * 4
+	// Draw cursor:
+
+	colNumber := (textInput.cursorPosX() - textInput.scrollOffset) * 4
 
 	if !textInput.focused || colNumber >= textInput.pixelCols {
 		return arr
 	}
 
 	if d.frameCount = (d.frameCount + 1) % 90; d.frameCount < 50 {
-		lineHeight := textInput.metrics.Ascent - textInput.metrics.Descent - 1
-		lineTop := textInput.textPosY - textInput.metrics.Ascent
-
-		for rowId := lineTop; rowId > 0 && rowId < lineTop+lineHeight && rowId < textInput.pixelRows; rowId++ {
+		for rowId := textInput.firstPixelRowId + 2; rowId < textInput.lastPixelRowId-1; rowId++ {
 			rowNumber := textInput.pixelCols * rowId
 
 			arr[colNumber+rowNumber] = d.BorderColor.R

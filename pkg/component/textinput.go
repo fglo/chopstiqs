@@ -32,10 +32,8 @@ type TextInput struct {
 
 	scrollOffset int
 
-	cursorPosition             int
-	possibleCursorPosXs        []int
-	firstVisibleCursorPosition int
-	lastVisibleCursorPosition  int
+	cursorPosition      int
+	possibleCursorPosXs []int
 
 	ClickedEvent    *event.Event
 	KeyPressedEvent *event.Event
@@ -46,7 +44,7 @@ type TextInput struct {
 
 	lastActionKeyPressed ebiten.Key
 	readyForAction       *atomic.Bool
-	stateLock            sync.Mutex
+	stateLock            sync.Mutex // TODO: replace this with something that actually works (•_•)
 
 	pressedKeysHandlers map[ebiten.Key]func()
 }
@@ -202,25 +200,8 @@ func (ti *TextInput) AddClickedHandler(f TextInputClickedHandlerFunc) *TextInput
 
 // SetValue sets the value of the text input.
 func (ti *TextInput) SetValue(value string) {
-	// TODO: change deprecated function
-	bounds := text.BoundString(ti.font, value) // nolint
-
 	ti.value = value
-
-	ti.textPosY = -bounds.Min.Y + ti.heightWithPadding/2 - 3
-	ti.textBounds = bounds
-
-	lastPos := 0
-
-	ti.possibleCursorPosXs = make([]int, len(value)+1)
-	ti.possibleCursorPosXs[0] = lastPos
-
-	for i, c := range value {
-		lastPos += fontutils.MeasureString(string(c), ti.font)
-		ti.possibleCursorPosXs[i+1] = lastPos
-	}
-
-	ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition)
+	ti.calcTextBounds()
 }
 
 func (ti *TextInput) cursorPosX() int {
@@ -274,68 +255,36 @@ func (ti *TextInput) findClosestPossibleCursorPosition() int {
 	return getClosest(max, min, cursorPos)
 }
 
-func (ti *TextInput) firstVisibleCursorPosX() int {
-	return ti.possibleCursorPosXs[ti.firstVisibleCursorPosition]
-}
+func (ti *TextInput) calcScrollOffset() int {
+	scrollOffsetUpperBound := ti.textBounds.Dx() - (ti.width - ti.textPosX - 1 - 2)
 
-func (ti *TextInput) lastVisibleCursorPosX() int {
-	return ti.possibleCursorPosXs[ti.lastVisibleCursorPosition]
-}
-
-// TODO: correctly stopping at the end when moving cursor to the right
-// TODO: fix dissapearing cursor after deleting all text
-
-func (ti *TextInput) setFirstVisibleCursorPosition(firstVisibleCursorPosition int) {
-	ti.firstVisibleCursorPosition = firstVisibleCursorPosition
-
-	if ti.firstVisibleCursorPosition <= 0 {
-		ti.firstVisibleCursorPosition = 0
-	}
-
-	if ti.firstVisibleCursorPosition >= len(ti.possibleCursorPosXs) {
-		ti.firstVisibleCursorPosition = len(ti.possibleCursorPosXs) - 1
-	}
-
-	tiWidth := ti.width - ti.textPosX
-	firstVisiblePosX := ti.firstVisibleCursorPosX()
-
-	ti.lastVisibleCursorPosition = len(ti.possibleCursorPosXs) - 1
-
-	for i := ti.firstVisibleCursorPosition; i < len(ti.possibleCursorPosXs)-1; i++ {
-		if ti.possibleCursorPosXs[i]-firstVisiblePosX <= tiWidth && ti.possibleCursorPosXs[i+1]-firstVisiblePosX > tiWidth {
-			ti.lastVisibleCursorPosition = i + 1
-			break
+	applyBoundsToScrollOffset := func(offset int) int {
+		if offset < ti.width/2 {
+			return 0
 		}
-	}
 
-	if ti.lastVisibleCursorPosition <= 0 {
-		ti.lastVisibleCursorPosition = 0
-	}
-
-	if ti.lastVisibleCursorPosition >= len(ti.possibleCursorPosXs) {
-		ti.lastVisibleCursorPosition = len(ti.possibleCursorPosXs) - 1
-	}
-
-	lastVisiblePosX := ti.lastVisibleCursorPosX()
-
-	if ti.lastVisibleCursorPosition == len(ti.possibleCursorPosXs)-1 && lastVisiblePosX-firstVisiblePosX < tiWidth {
-		for i := ti.lastVisibleCursorPosition - 1; i > 0; i-- {
-			if lastVisiblePosX-ti.possibleCursorPosXs[i] <= tiWidth && lastVisiblePosX-ti.possibleCursorPosXs[i-1] > tiWidth {
-				ti.firstVisibleCursorPosition = i
-				break
-			}
+		if offset > scrollOffsetUpperBound {
+			return scrollOffsetUpperBound
 		}
+
+		return offset
 	}
+
+	ti.scrollOffset = applyBoundsToScrollOffset(ti.scrollOffset)
+
+	if ti.cursorPosX() > ti.scrollOffset && ti.cursorPosX() < ti.width+ti.scrollOffset {
+		return ti.scrollOffset
+	}
+
+	ti.scrollOffset = applyBoundsToScrollOffset(ti.cursorPosX() - ti.width/2)
+
+	return ti.scrollOffset
 }
 
 func (ti *TextInput) CursorLeft() {
 	if ti.cursorPosition > 0 {
 		ti.cursorPosition--
 		ti.drawer.ResetCursorBlink()
-
-		if ti.cursorPosition < ti.firstVisibleCursorPosition && ti.cursorPosition > 0 {
-			ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition - (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
-		}
 	}
 }
 
@@ -343,38 +292,48 @@ func (ti *TextInput) CursorRight() {
 	if ti.cursorPosition < len(ti.possibleCursorPosXs)-1 {
 		ti.cursorPosition++
 		ti.drawer.ResetCursorBlink()
-
-		if ti.cursorPosition > ti.lastVisibleCursorPosition && ti.cursorPosition < len(ti.possibleCursorPosXs) {
-			ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition + (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
-		}
 	}
 }
 
 func (ti *TextInput) Home() {
 	ti.cursorPosition = 0
 	ti.drawer.ResetCursorBlink()
-
-	if ti.cursorPosition < ti.firstVisibleCursorPosition && ti.cursorPosition > 0 {
-		ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition - (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
-	}
 }
 
 func (ti *TextInput) End() {
 	ti.cursorPosition = len(ti.possibleCursorPosXs) - 1
 	ti.drawer.ResetCursorBlink()
-
-	if ti.cursorPosition > ti.lastVisibleCursorPosition && ti.cursorPosition < len(ti.possibleCursorPosXs) {
-		ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition + (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
-	}
 }
 
 func (ti *TextInput) Insert(chars []rune) {
 	ti.value = ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
+	ti.calcTextBounds()
+	ti.cursorPosition += len(chars)
+	ti.drawer.ResetCursorBlink()
+}
 
+func (ti *TextInput) Delete() {
+	if ti.cursorPosition < len(ti.value) {
+		ti.value = ti.value[0:ti.cursorPosition] + ti.value[ti.cursorPosition+1:]
+		ti.calcTextBounds()
+	}
+}
+
+func (ti *TextInput) Backspace() {
+	if ti.cursorPosition > 0 {
+		ti.value = ti.value[0:ti.cursorPosition-1] + ti.value[ti.cursorPosition:]
+		ti.calcTextBounds()
+		ti.CursorLeft()
+	}
+}
+
+func (ti *TextInput) Submit() {}
+
+func (ti *TextInput) calcTextBounds() {
 	// TODO: change deprecated function
 	bounds := text.BoundString(ti.font, ti.value) // nolint
 
-	ti.textPosY = -bounds.Min.Y + ti.heightWithPadding/2 - 3
+	ti.textPosY = ti.metrics.Ascent - ti.metrics.Descent - 1
 	ti.textBounds = bounds
 
 	ti.possibleCursorPosXs = make([]int, len(ti.value)+1)
@@ -383,43 +342,7 @@ func (ti *TextInput) Insert(chars []rune) {
 	for i, c := range ti.value {
 		ti.possibleCursorPosXs[i+1] = ti.possibleCursorPosXs[i] + fontutils.MeasureString(string(c), ti.font)
 	}
-
-	ti.cursorPosition += len(chars)
-
-	if ti.cursorPosition > ti.lastVisibleCursorPosition && ti.cursorPosition < len(ti.possibleCursorPosXs) {
-		ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition + (ti.lastVisibleCursorPosition-ti.firstVisibleCursorPosition)/2)
-	}
-
-	ti.drawer.ResetCursorBlink()
 }
-
-func (ti *TextInput) Delete() {
-
-}
-
-func (ti *TextInput) Backspace() {
-	if ti.cursorPosition > 0 {
-		ti.value = ti.value[0:ti.cursorPosition-1] + ti.value[ti.cursorPosition:]
-
-		// TODO: change deprecated function
-		bounds := text.BoundString(ti.font, ti.value) // nolint
-
-		ti.textPosY = -bounds.Min.Y + ti.heightWithPadding/2 - 3
-		ti.textBounds = bounds
-
-		ti.possibleCursorPosXs = make([]int, len(ti.value)+1)
-		ti.possibleCursorPosXs[0] = 0
-
-		for i, c := range ti.value {
-			ti.possibleCursorPosXs[i+1] = ti.possibleCursorPosXs[i] + fontutils.MeasureString(string(c), ti.font)
-		}
-
-		ti.CursorLeft()
-		ti.setFirstVisibleCursorPosition(ti.firstVisibleCursorPosition)
-	}
-}
-
-func (ti *TextInput) Submit() {}
 
 func (ti *TextInput) Draw() *ebiten.Image {
 	ti.state = ti.state(ti)
@@ -431,12 +354,12 @@ func (ti *TextInput) Draw() *ebiten.Image {
 	ti.drawer.Draw(ti)
 
 	if ti.focused && ti.cursorPosition > 0 {
-		ti.scrollOffset = -ti.firstVisibleCursorPosX()
+		ti.scrollOffset = ti.calcScrollOffset()
 	} else if !ti.focused {
 		ti.scrollOffset = 0
 	}
 
-	text.Draw(ti.image, ti.value, ti.font, ti.textPosX+ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
+	text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
 
 	ti.component.Draw()
 
