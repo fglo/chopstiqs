@@ -46,6 +46,8 @@ func TestTextInput_PressedLeft(t *testing.T) {
 	handleState(t, ti)
 	handleState(t, ti)
 	is.Equal(ti.cursorPosition, 0)
+
+	keyRelease(t, ebiten.KeyLeft)
 }
 
 func TestTextInput_PressedRight(t *testing.T) {
@@ -76,6 +78,8 @@ func TestTextInput_PressedRight(t *testing.T) {
 	handleState(t, ti)
 	handleState(t, ti)
 	is.Equal(ti.cursorPosition, 2)
+
+	keyRelease(t, ebiten.KeyRight)
 }
 
 func TestTextInput_PressedEnter(t *testing.T) {
@@ -110,6 +114,8 @@ func TestTextInput_PressedEnter(t *testing.T) {
 	handleState(t, ti)
 	handleState(t, ti)
 	is.Equal(firedEventsCounter, 2)
+
+	keyRelease(t, ebiten.KeyEnter)
 }
 
 func TestTextInput_pressedKeyHandler(t *testing.T) {
