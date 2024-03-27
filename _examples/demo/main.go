@@ -139,6 +139,27 @@ func NewGame() *Game {
 
 	slider2TextInput := component.NewTextInput(&component.TextInputOptions{
 		Width: option.Int(25),
+		ValidationFunc: func(s string) (bool, string) {
+			val, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				return false, ""
+			}
+
+			return true, fmt.Sprintf("%.2f", val)
+		},
+		OnSubmitFunc: func(s string) string {
+			val, err := strconv.ParseFloat(s, 64)
+			switch {
+			case err != nil:
+				return "0.50"
+			case val < 0:
+				return "0.00"
+			case val > 1:
+				return "1.00"
+			default:
+				return fmt.Sprintf("%.2f", val)
+			}
+		},
 	})
 	slider2TextInput.SetValue("0.50")
 

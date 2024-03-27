@@ -59,7 +59,13 @@ type TextInput struct {
 	stateLock            sync.Mutex // TODO: replace this with something that actually works (•_•)
 
 	pressedKeysHandlers map[ebiten.Key]func()
+
+	onSubmitFunc   TextInputOnSubmitFunc
+	validationFunc TextInputValidationFunc
 }
+
+type TextInputOnSubmitFunc func(string) string
+type TextInputValidationFunc func(string) (bool, string)
 
 type TextInputOptions struct {
 	Width  option.OptInt
@@ -73,6 +79,9 @@ type TextInputOptions struct {
 	Font          font.Face
 
 	Padding *Padding
+
+	OnSubmitFunc   TextInputOnSubmitFunc
+	ValidationFunc TextInputValidationFunc
 
 	CursorOptions *TextInputCursorOptions
 }
@@ -119,6 +128,9 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 
 		lastActionKeyPressed: input.KeyNone,
 		readyForAction:       &atomic.Bool{},
+
+		onSubmitFunc:   func(s string) string { return s },
+		validationFunc: func(s string) (bool, string) { return true, s },
 	}
 
 	ti.state = ti.idleStateFactory()
@@ -169,6 +181,14 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 			ti.drawer = options.Drawer
 		}
 
+		if options.OnSubmitFunc != nil {
+			ti.onSubmitFunc = options.OnSubmitFunc
+		}
+
+		if options.ValidationFunc != nil {
+			ti.validationFunc = options.ValidationFunc
+		}
+
 		if options.CursorOptions != nil {
 			ti.cursor = *newTextInputCursor(options.CursorOptions)
 		}
@@ -204,6 +224,10 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 		if !ti.disabled {
 			ti.focused = args.Focused
 			ti.cursor.ResetBlink()
+
+			if !ti.focused {
+				ti.Submit()
+			}
 		}
 	})
 
@@ -243,8 +267,10 @@ func (ti *TextInput) Value() string {
 
 // SetValue sets the value of the text input.
 func (ti *TextInput) SetValue(value string) {
-	ti.value = value
-	ti.calcTextBounds()
+	if valid, valueAfterValidation := ti.validationFunc(value); valid {
+		ti.value = valueAfterValidation
+		ti.calcTextBounds()
+	}
 }
 
 func (ti *TextInput) CursorLeft() {
@@ -272,11 +298,16 @@ func (ti *TextInput) End() {
 }
 
 func (ti *TextInput) Insert(chars []rune) {
-	ti.value = ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
-	ti.calcTextBounds()
-	ti.cursorPosition += len(chars)
-	ti.cursor.ResetBlink()
-	ti.fireChangedEvent()
+	newValue := ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
+
+	if valid, valueAfterValidation := ti.validationFunc(newValue); valid {
+		ti.value = valueAfterValidation
+		ti.calcTextBounds()
+		ti.cursorPosition += len(chars)
+		ti.cursor.ResetBlink()
+		ti.fireChangedEvent()
+	}
+
 }
 
 func (ti *TextInput) Delete() {
@@ -297,6 +328,7 @@ func (ti *TextInput) Backspace() {
 }
 
 func (ti *TextInput) Submit() {
+	ti.value = ti.onSubmitFunc(ti.value)
 	ti.eventManager.Fire(ti.Submitted, &TextInputSubmittedEventArgs{
 		TextInput: ti,
 		Text:      ti.value,
