@@ -1,7 +1,6 @@
 package component
 
 import (
-	"image"
 	"image/color"
 	"sync/atomic"
 	"time"
@@ -31,9 +30,8 @@ type TextInput struct {
 	font          font.Face
 	metrics       fontutils.Metrics
 
-	textPosX   int
-	textPosY   int
-	textBounds image.Rectangle
+	textPosX int
+	textPosY int
 
 	scrollOffset int
 
@@ -487,7 +485,7 @@ func (ti *TextInput) findClosestPossibleCursorPosition() int {
 func (ti *TextInput) calcScrollOffset() int {
 	cursorPosX := ti.cursorPosX()
 	scrollOffsetLowerBound := 0
-	scrollOffsetUpperBound := ti.textBounds.Dx() - (ti.width - ti.textPosX - ti.cursor.width - 2)
+	scrollOffsetUpperBound := fontutils.MeasureString(ti.value, ti.font) - (ti.width - ti.textPosX - ti.cursor.width - 2)
 	if scrollOffsetUpperBound < 0 {
 		scrollOffsetUpperBound = 0
 	}
@@ -496,8 +494,6 @@ func (ti *TextInput) calcScrollOffset() int {
 		switch {
 		case offset < 0:
 			return 0
-		// case offset-cursorPosX > 0 && offset < (ti.width-ti.textPosX)/2:
-		// 	return 0
 		case offset < scrollOffsetLowerBound:
 			return scrollOffsetLowerBound
 		case offset > scrollOffsetUpperBound:
@@ -519,12 +515,7 @@ func (ti *TextInput) calcScrollOffset() int {
 }
 
 func (ti *TextInput) calcTextBounds() {
-	// TODO: change deprecated function
-	bounds := text.BoundString(ti.font, ti.value) // nolint
-
 	ti.textPosY = ti.metrics.Ascent - ti.metrics.Descent - 1
-	ti.textBounds = bounds
-
 	ti.possibleCursorPosXs = make([]int, len(ti.value)+1)
 	ti.possibleCursorPosXs[0] = 0
 
