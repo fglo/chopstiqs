@@ -8,35 +8,28 @@ import (
 
 type TextInputCursorDrawer interface {
 	Draw(*textInputCursor) *ebiten.Image
-	ResetBlink()
 }
 
 type DefaultTextInputCursorDrawer struct {
 	Color color.RGBA
-
-	frameCount int
 }
 
-func (d *DefaultTextInputCursorDrawer) ResetBlink() {
-	d.frameCount = 0
+func (d *DefaultTextInputCursorDrawer) Draw(cursor *textInputCursor) *ebiten.Image {
+	cursor.image.WritePixels(d.draw(cursor))
+	return cursor.image
 }
 
-func (d *DefaultTextInputCursorDrawer) Draw(textInputCursor *textInputCursor) *ebiten.Image {
-	textInputCursor.image.WritePixels(d.draw(textInputCursor))
-	return textInputCursor.image
-}
+func (d *DefaultTextInputCursorDrawer) draw(cursor *textInputCursor) []byte {
+	arr := make([]byte, cursor.pixelRows*cursor.pixelCols)
 
-func (d *DefaultTextInputCursorDrawer) draw(textInput *textInputCursor) []byte {
-	arr := make([]byte, textInput.pixelRows*textInput.pixelCols)
-
-	if d.frameCount = (d.frameCount + 1) % 90; d.frameCount >= 50 {
+	if cursor.frameCount >= 50 {
 		return arr
 	}
 
-	for rowId := textInput.firstPixelRowId; rowId <= textInput.lastPixelRowId; rowId++ {
-		rowNumber := textInput.pixelCols * rowId
+	for rowId := cursor.firstPixelRowId; rowId <= cursor.lastPixelRowId; rowId++ {
+		rowNumber := cursor.pixelCols * rowId
 
-		for colId := textInput.firstPixelColId; colId <= textInput.lastPixelColId; colId += 4 {
+		for colId := cursor.firstPixelColId; colId <= cursor.lastPixelColId; colId += 4 {
 			arr[colId+rowNumber] = d.Color.R
 			arr[colId+1+rowNumber] = d.Color.G
 			arr[colId+2+rowNumber] = d.Color.B

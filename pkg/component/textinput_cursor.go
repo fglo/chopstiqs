@@ -9,7 +9,8 @@ import (
 
 type textInputCursor struct {
 	component
-	drawer TextInputCursorDrawer
+	drawer     TextInputCursorDrawer
+	frameCount int
 }
 
 type TextInputCursorOptions struct {
@@ -54,10 +55,15 @@ func (tic *textInputCursor) setUpComponent(options *TextInputCursorOptions) {
 }
 
 func (tic *textInputCursor) ResetBlink() {
-	tic.drawer.ResetBlink()
+	tic.frameCount = 0
+}
+
+func (tic *textInputCursor) incFrameCount() {
+	tic.frameCount = (tic.frameCount + 1) % 90
 }
 
 func (tic *textInputCursor) Draw() *ebiten.Image {
+	tic.incFrameCount()
 	tic.drawer.Draw(tic)
 	return tic.image
 }

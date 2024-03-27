@@ -26,11 +26,15 @@ import (
 type TextInput struct {
 	component
 
+	hovering bool
+
 	value string
 
-	color   color.RGBA
-	font    font.Face
-	metrics fontutils.Metrics
+	color         color.RGBA
+	colorDisabled color.RGBA
+	colorHovered  color.RGBA
+	font          font.Face
+	metrics       fontutils.Metrics
 
 	textPosX   int
 	textPosY   int
@@ -42,8 +46,9 @@ type TextInput struct {
 	cursorPosition      int
 	possibleCursorPosXs []int
 
-	ClickedEvent    *event.Event
-	KeyPressedEvent *event.Event
+	ClickedEvent *event.Event
+	Changed      *event.Event
+	Submitted    *event.Event
 
 	drawer TextInputDrawer
 
@@ -62,8 +67,10 @@ type TextInputOptions struct {
 
 	Drawer TextInputDrawer
 
-	Color color.Color
-	Font  font.Face
+	Color         color.Color
+	ColorDisabled color.Color
+	ColorHovered  color.Color
+	Font          font.Face
 
 	Padding *Padding
 
@@ -76,25 +83,38 @@ type TextInputClickedEventArgs struct {
 
 type TextInputClickedHandlerFunc func(args *TextInputClickedEventArgs)
 
-type KeyPressedEventArgs struct {
-	Key ebiten.Key
+type TextInputChangedEventArgs struct {
+	TextInput *TextInput
+	Text      string
 }
 
-type KeyPressedHandlerFunc func(args *KeyPressedEventArgs)
+type TextInputChangedHandlerFunc func(args *TextInputChangedEventArgs)
+
+type TextInputSubmittedEventArgs struct {
+	TextInput *TextInput
+	Text      string
+}
+
+type TextInputSubmittedHandlerFunc func(args *TextInputSubmittedEventArgs)
 
 func NewTextInput(options *TextInputOptions) *TextInput {
 	ti := &TextInput{
-		ClickedEvent:    &event.Event{},
-		KeyPressedEvent: &event.Event{},
+		ClickedEvent: &event.Event{},
+		Changed:      &event.Event{},
+		Submitted:    &event.Event{},
 
-		color:   color.RGBA{230, 230, 230, 255},
-		font:    fontutils.DefaultFontFace,
-		metrics: fontutils.NewMetrics(fontutils.DefaultFontFace.Metrics()),
+		color:         color.RGBA{230, 230, 230, 255},
+		colorDisabled: color.RGBA{150, 150, 150, 255},
+		colorHovered:  color.RGBA{250, 250, 250, 255},
+		font:          fontutils.DefaultFontFace,
+		metrics:       fontutils.NewMetrics(fontutils.DefaultFontFace.Metrics()),
 
 		textPosX: 3,
 
 		drawer: &DefaultTextInputDrawer{
-			BorderColor: color.RGBA{230, 230, 230, 255},
+			Color:         color.RGBA{230, 230, 230, 255},
+			ColorDisabled: color.RGBA{150, 150, 150, 255},
+			ColorHovered:  color.RGBA{250, 250, 250, 255},
 		},
 
 		lastActionKeyPressed: input.KeyNone,
@@ -136,6 +156,10 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 			ti.color = colorutils.ColorToRGBA(options.Color)
 		}
 
+		if options.ColorDisabled != nil {
+			ti.colorDisabled = colorutils.ColorToRGBA(options.ColorDisabled)
+		}
+
 		if options.Font != nil {
 			ti.font = options.Font
 			ti.metrics = fontutils.NewMetrics(ti.font.Metrics())
@@ -166,24 +190,27 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 
 	ti.component.setUpComponent(&componentOptions)
 
-	// ti.component.AddCursorEnterHandler(func(args *ComponentCursorEnterEventArgs) {
-	// 	if !ti.disabled {
-	// 		ti.hovering = true
-	// 	}
-	// })
+	ti.component.AddCursorEnterHandler(func(args *ComponentCursorEnterEventArgs) {
+		if !ti.disabled {
+			ti.hovering = true
+		}
+	})
 
-	// ti.component.AddCursorExitHandler(func(args *ComponentCursorExitEventArgs) {
-	// 	ti.hovering = false
-	// })
+	ti.component.AddCursorExitHandler(func(args *ComponentCursorExitEventArgs) {
+		ti.hovering = false
+	})
 
 	ti.component.AddFocusedHandler(func(args *ComponentFocusedEventArgs) {
-		ti.focused = args.Focused
-		ti.cursor.ResetBlink()
+		if !ti.disabled {
+			ti.focused = args.Focused
+			ti.cursor.ResetBlink()
+		}
 	})
 
 	ti.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if !ti.disabled && ti.focused {
 			ti.cursorPosition = ti.findClosestPossibleCursorPosition()
+			ti.cursor.ResetBlink()
 
 			ti.eventManager.Fire(ti.ClickedEvent, &TextInputClickedEventArgs{
 				TextInput: ti,
@@ -196,6 +223,22 @@ func (ti *TextInput) AddClickedHandler(f TextInputClickedHandlerFunc) *TextInput
 	ti.ClickedEvent.AddHandler(func(args interface{}) { f(args.(*TextInputClickedEventArgs)) })
 
 	return ti
+}
+
+func (ti *TextInput) AddChangedHandler(f TextInputChangedHandlerFunc) *TextInput {
+	ti.Changed.AddHandler(func(args interface{}) { f(args.(*TextInputChangedEventArgs)) })
+
+	return ti
+}
+
+func (ti *TextInput) AddSubmittedHandler(f TextInputSubmittedHandlerFunc) *TextInput {
+	ti.Submitted.AddHandler(func(args interface{}) { f(args.(*TextInputSubmittedEventArgs)) })
+
+	return ti
+}
+
+func (ti *TextInput) Value() string {
+	return ti.value
 }
 
 // SetValue sets the value of the text input.
@@ -233,12 +276,14 @@ func (ti *TextInput) Insert(chars []rune) {
 	ti.calcTextBounds()
 	ti.cursorPosition += len(chars)
 	ti.cursor.ResetBlink()
+	ti.fireChangedEvent()
 }
 
 func (ti *TextInput) Delete() {
 	if ti.cursorPosition < len(ti.value) {
 		ti.value = ti.value[0:ti.cursorPosition] + ti.value[ti.cursorPosition+1:]
 		ti.calcTextBounds()
+		ti.fireChangedEvent()
 	}
 }
 
@@ -247,10 +292,23 @@ func (ti *TextInput) Backspace() {
 		ti.value = ti.value[0:ti.cursorPosition-1] + ti.value[ti.cursorPosition:]
 		ti.calcTextBounds()
 		ti.CursorLeft()
+		ti.fireChangedEvent()
 	}
 }
 
-func (ti *TextInput) Submit() {}
+func (ti *TextInput) Submit() {
+	ti.eventManager.Fire(ti.Submitted, &TextInputSubmittedEventArgs{
+		TextInput: ti,
+		Text:      ti.value,
+	})
+}
+
+func (ti *TextInput) fireChangedEvent() {
+	ti.eventManager.Fire(ti.Changed, &TextInputChangedEventArgs{
+		TextInput: ti,
+		Text:      ti.value,
+	})
+}
 
 func (ti *TextInput) cursorPosX() int {
 	return ti.possibleCursorPosXs[ti.cursorPosition] + ti.textPosX + ti.padding.Left - 1
@@ -454,17 +512,24 @@ func (ti *TextInput) Draw() *ebiten.Image {
 
 	ti.drawer.Draw(ti)
 
-	if ti.focused {
+	if ti.focused && !ti.disabled {
 		ti.scrollOffset = ti.calcScrollOffset()
 
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(ti.cursorPosX()-ti.scrollOffset), 2)
+		op.GeoM.Translate(float64(ti.cursorPosX()-ti.scrollOffset), float64(2+ti.padding.Top))
 		ti.image.DrawImage(ti.cursor.Draw(), op)
 	} else {
 		ti.scrollOffset = 0
 	}
 
-	text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
+	switch {
+	case ti.disabled:
+		text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.colorDisabled)
+	case ti.hovering:
+		text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.colorHovered)
+	default:
+		text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
+	}
 
 	ti.component.Draw()
 
