@@ -14,7 +14,25 @@ const (
 	MacOS   OperatingSystem = "macos"
 )
 
-var OS OperatingSystem
+var (
+	OS OperatingSystem
+
+	CursorPosX int
+	CursorPosY int
+
+	MouseLeftButtonPressed           bool
+	MouseLeftButtonJustPressed       bool
+	MouseLastUpdateLeftButtonPressed bool
+
+	MouseRightButtonPressed           bool
+	MouseRightButtonJustPressed       bool
+	MouseLastUpdateRightButtonPressed bool
+
+	InputChars []rune
+
+	AnyKeyPressed bool
+	KeyPressed    map[ebiten.Key]bool = make(map[ebiten.Key]bool)
+)
 
 func init() {
 	switch runtime.GOOS {
@@ -39,20 +57,7 @@ func OSMacOS() bool {
 	return OS == MacOS
 }
 
-var (
-	CursorPosX int
-	CursorPosY int
-
-	MouseLeftButtonPressed           bool
-	MouseLeftButtonJustPressed       bool
-	MouseLastUpdateLeftButtonPressed bool
-
-	MouseRightButtonPressed           bool
-	MouseRightButtonJustPressed       bool
-	MouseLastUpdateRightButtonPressed bool
-
-	InputChars []rune
-
+const (
 	KeyNone ebiten.Key = -1
 )
 
@@ -68,6 +73,14 @@ func Update() {
 	MouseLastUpdateRightButtonPressed = MouseRightButtonPressed
 
 	InputChars = ebiten.AppendInputChars(InputChars)
+	AnyKeyPressed = false
+	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
+		p := ebiten.IsKeyPressed(k)
+		KeyPressed[k] = p
+		if p {
+			AnyKeyPressed = true
+		}
+	}
 }
 
 func Draw() {

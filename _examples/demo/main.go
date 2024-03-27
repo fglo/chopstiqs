@@ -185,7 +185,7 @@ func NewGame() *Game {
 	textInput.SetValue("Lorem Ipsum dolor sit amet")
 
 	cb2Opts := &component.CheckBoxOptions{
-		Label: g.gui.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
+		Label: g.gui.NewLabel("disable components", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
 	}
 	cb2 := g.gui.NewCheckBox(cb2Opts)
 	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {

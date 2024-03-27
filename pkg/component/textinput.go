@@ -4,7 +4,6 @@ import (
 	"image"
 	"image/color"
 	"regexp"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -63,8 +62,8 @@ type TextInput struct {
 	state textInputState
 
 	lastActionKeyPressed ebiten.Key
-	readyForAction       *atomic.Bool
-	stateLock            sync.Mutex // TODO: replace this with something that actually works (•_•)
+	readyForActionRepeat *atomic.Int32
+	readyForNewAction    *atomic.Bool
 
 	pressedKeysHandlers map[ebiten.Key]func()
 	pressedModifierKeys map[ebiten.Key]bool
@@ -136,14 +135,16 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		},
 
 		lastActionKeyPressed: input.KeyNone,
-		readyForAction:       &atomic.Bool{},
+		readyForActionRepeat: &atomic.Int32{},
+		readyForNewAction:    &atomic.Bool{},
 
 		onSubmitFunc:   func(s string) string { return s },
 		validationFunc: func(s string) (bool, string) { return true, s },
 	}
 
 	ti.state = ti.idleStateFactory()
-	ti.readyForAction.Store(true)
+	ti.readyForActionRepeat.Store(0)
+	ti.readyForNewAction.Store(true)
 
 	ti.pressedKeysHandlers = map[ebiten.Key]func(){
 		ebiten.KeyLeft:      ti.CursorLeft,
@@ -583,11 +584,11 @@ func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
 	}
 
 	for key := range ti.pressedModifierKeys {
-		ti.pressedModifierKeys[key] = ebiten.IsKeyPressed(key)
+		ti.pressedModifierKeys[key] = input.KeyPressed[key]
 	}
 
 	for _, key := range actionKeys {
-		if ebiten.IsKeyPressed(key) {
+		if input.KeyPressed[key] {
 			return true, key
 		}
 	}
@@ -599,14 +600,8 @@ func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
 
 type textInputState func(ti *TextInput) textInputState
 
-var textInputActionKeyRepeatDelay = 350 * time.Millisecond
-var textInputActionKeyRepeatInterval = 50 * time.Millisecond
-
 func (ti *TextInput) idleStateFactory() textInputState {
 	return func(ti *TextInput) textInputState {
-		ti.stateLock.Lock()
-		defer ti.stateLock.Unlock()
-
 		if !ti.focused || ti.disabled {
 			return ti.idleStateFactory()
 		}
@@ -625,9 +620,6 @@ func (ti *TextInput) idleStateFactory() textInputState {
 
 func (ti *TextInput) inputStateFactory(chars []rune) textInputState {
 	return func(ti *TextInput) textInputState {
-		ti.stateLock.Lock()
-		defer ti.stateLock.Unlock()
-
 		if !ti.focused || ti.disabled {
 			return ti.idleStateFactory()
 		}
@@ -642,11 +634,12 @@ func (ti *TextInput) inputStateFactory(chars []rune) textInputState {
 	}
 }
 
+var textInputActionKeyRepeatDelay = 350 * time.Millisecond
+var textInputActionKeyRepeatInterval = 35 * time.Millisecond
+var textInputDelayBeforeNewAction = 35 * time.Millisecond
+
 func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 	return func(ti *TextInput) textInputState {
-		ti.stateLock.Lock()
-		defer ti.stateLock.Unlock()
-
 		if !ti.focused || ti.disabled {
 			return ti.idleStateFactory()
 		}
@@ -655,19 +648,25 @@ func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 		if ti.lastActionKeyPressed == pressedKey {
 			delay = textInputActionKeyRepeatInterval
 
-			if !ti.readyForAction.Load() {
+			if ti.readyForActionRepeat.Load() > 0 {
 				return ti.idleStateFactory()
 			}
+		} else if !ti.readyForNewAction.Load() {
+			return ti.idleStateFactory()
 		}
 
 		ti.lastActionKeyPressed = pressedKey
 
 		ti.getKeyPressedHandler(pressedKey)()
 
-		ti.readyForAction.Store(false)
-
+		ti.readyForActionRepeat.Add(1)
 		time.AfterFunc(delay, func() {
-			ti.readyForAction.Store(true)
+			ti.readyForActionRepeat.Add(-1)
+		})
+
+		ti.readyForNewAction.Store(false)
+		time.AfterFunc(textInputDelayBeforeNewAction, func() {
+			ti.readyForNewAction.Store(true)
 		})
 
 		return ti.idleStateFactory()
@@ -675,10 +674,12 @@ func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 }
 
 func (ti *TextInput) Draw() *ebiten.Image {
-	ti.state = ti.state(ti)
-
 	if ti.hidden {
 		return ti.image
+	}
+
+	if !ti.disabled {
+		ti.state = ti.state(ti)
 	}
 
 	ti.drawer.Draw(ti)

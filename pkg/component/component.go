@@ -12,7 +12,7 @@ import (
 
 // Component is an abstraction of a user interface component, like a button or checkbox.
 type Component interface {
-	// Draw draws the component to it's image.
+	// Draw draws the component to it's image during ebiten.Draw().
 	Draw() *ebiten.Image
 	// Dimensions returns the component's dimensions (width and height).
 	Dimensions() (width int, height int)
