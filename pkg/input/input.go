@@ -1,6 +1,43 @@
 package input
 
-import ebiten "github.com/hajimehoshi/ebiten/v2"
+import (
+	"runtime"
+
+	ebiten "github.com/hajimehoshi/ebiten/v2"
+)
+
+type OperatingSystem string
+
+const (
+	Windows OperatingSystem = "windows"
+	Linux   OperatingSystem = "linux"
+	MacOS   OperatingSystem = "macos"
+)
+
+var OS OperatingSystem
+
+func init() {
+	switch runtime.GOOS {
+	case "windows":
+		OS = Windows
+	case "linux":
+		OS = Linux
+	case "darwin":
+		OS = MacOS
+	}
+}
+
+func OSWindows() bool {
+	return OS == Windows
+}
+
+func OSLinux() bool {
+	return OS == Linux
+}
+
+func OSMacOS() bool {
+	return OS == MacOS
+}
 
 var (
 	CursorPosX int

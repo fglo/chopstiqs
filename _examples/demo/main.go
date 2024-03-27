@@ -130,13 +130,6 @@ func NewGame() *Game {
 	sliderContainer.AddComponent(slider)
 	sliderContainer.AddComponent(sliderLabel)
 
-	// sliderLabel2 := g.gui.NewLabel("0.50", &component.LabelOptions{
-	// 	Color: color.RGBA{230, 230, 230, 255},
-	// 	Padding: &component.Padding{
-	// 		Top: 4,
-	// 	},
-	// })
-
 	slider2TextInput := component.NewTextInput(&component.TextInputOptions{
 		Width: option.Int(25),
 		ValidationFunc: func(s string) (bool, string) {
@@ -172,16 +165,16 @@ func NewGame() *Game {
 		Height:       option.Int(15),
 	})
 
+	slider2.AddSlidedHandler(func(args *component.SliderSlidedEventArgs) {
+		slider2TextInput.SetValue(fmt.Sprintf("%.2f", args.Value))
+	})
+
 	slider2TextInput.AddSubmittedHandler(func(args *component.TextInputSubmittedEventArgs) {
 		val, err := strconv.ParseFloat(slider2TextInput.Value(), 64)
 		if err != nil {
 			val = 0
 		}
 		slider2.Set(val)
-	})
-
-	slider2.AddSlidedHandler(func(args *component.SliderSlidedEventArgs) {
-		slider2TextInput.SetValue(fmt.Sprintf("%.2f", args.Value))
 	})
 
 	sliderContainer2 := g.gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
