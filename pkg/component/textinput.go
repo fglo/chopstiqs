@@ -3,7 +3,6 @@ package component
 import (
 	"image"
 	"image/color"
-	"regexp"
 	"sync/atomic"
 	"time"
 
@@ -18,13 +17,6 @@ import (
 )
 
 // TODO: selecting
-
-var wordSeparatorRegex *regexp.Regexp
-
-func init() {
-	var wordSeparator = `[^a-zA-Z0-9_]`
-	wordSeparatorRegex = regexp.MustCompile(wordSeparator)
-}
 
 type TextInput struct {
 	component
@@ -61,8 +53,8 @@ type TextInput struct {
 	readyForActionRepeat *atomic.Int32
 	readyForNewAction    *atomic.Bool
 
-	pressedKeysHandlers map[ebiten.Key]func()
-	pressedModifierKeys map[ebiten.Key]bool
+	actionKeysHandlers map[ebiten.Key]func()
+	modifierKeys       map[ebiten.Key]bool
 
 	onSubmitFunc   TextInputOnSubmitFunc
 	validationFunc TextInputValidationFunc
@@ -142,7 +134,7 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 	ti.readyForActionRepeat.Store(0)
 	ti.readyForNewAction.Store(true)
 
-	ti.pressedKeysHandlers = map[ebiten.Key]func(){
+	ti.actionKeysHandlers = map[ebiten.Key]func(){
 		ebiten.KeyLeft:      ti.CursorLeft,
 		ebiten.KeyRight:     ti.CursorRight,
 		ebiten.KeyHome:      ti.Home,
@@ -152,7 +144,7 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		ebiten.KeyEnter:     ti.Submit,
 	}
 
-	ti.pressedModifierKeys = map[ebiten.Key]bool{
+	ti.modifierKeys = map[ebiten.Key]bool{
 		ebiten.KeyControl: false,
 		ebiten.KeyAlt:     false,
 		ebiten.KeyShift:   false,
@@ -541,49 +533,39 @@ func (ti *TextInput) calcTextBounds() {
 	}
 }
 
-func (ti *TextInput) getKeyPressedHandler(key ebiten.Key) func() {
+func (ti *TextInput) pressedKeyHandler(key ebiten.Key) func() {
 	switch key {
 	case ebiten.KeyLeft:
-		if (input.OSMacOS() && ti.pressedModifierKeys[ebiten.KeyMeta]) || ti.pressedModifierKeys[ebiten.KeyControl] {
+		if (input.OSMacOS() && ti.modifierKeys[ebiten.KeyMeta]) || ti.modifierKeys[ebiten.KeyControl] {
 			return ti.Home
-		} else if ti.pressedModifierKeys[ebiten.KeyAlt] {
+		} else if ti.modifierKeys[ebiten.KeyAlt] {
 			return ti.WordLeft
 		}
 	case ebiten.KeyRight:
-		if (input.OSMacOS() && ti.pressedModifierKeys[ebiten.KeyMeta]) || ti.pressedModifierKeys[ebiten.KeyControl] {
+		if (input.OSMacOS() && ti.modifierKeys[ebiten.KeyMeta]) || ti.modifierKeys[ebiten.KeyControl] {
 			return ti.End
-		} else if ti.pressedModifierKeys[ebiten.KeyAlt] {
+		} else if ti.modifierKeys[ebiten.KeyAlt] {
 			return ti.WordRight
 		}
 	case ebiten.KeyDelete:
-		if ti.pressedModifierKeys[ebiten.KeyAlt] {
+		if ti.modifierKeys[ebiten.KeyAlt] {
 			return ti.DeleteWord
 		}
 	case ebiten.KeyBackspace:
-		if ti.pressedModifierKeys[ebiten.KeyAlt] {
+		if ti.modifierKeys[ebiten.KeyAlt] {
 			return ti.BackspaceWord
 		}
 	}
 
-	return ti.pressedKeysHandlers[key]
+	return ti.actionKeysHandlers[key]
 }
 
 func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
-	actionKeys := []ebiten.Key{
-		ebiten.KeyLeft,
-		ebiten.KeyRight,
-		ebiten.KeyHome,
-		ebiten.KeyEnd,
-		ebiten.KeyBackspace,
-		ebiten.KeyDelete,
-		ebiten.KeyEnter,
+	for key := range ti.modifierKeys {
+		ti.modifierKeys[key] = input.KeyPressed[key]
 	}
 
-	for key := range ti.pressedModifierKeys {
-		ti.pressedModifierKeys[key] = input.KeyPressed[key]
-	}
-
-	for _, key := range actionKeys {
+	for key := range ti.actionKeysHandlers {
 		if input.KeyPressed[key] {
 			return true, key
 		}
@@ -653,7 +635,7 @@ func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 
 		ti.lastActionKeyPressed = pressedKey
 
-		ti.getKeyPressedHandler(pressedKey)()
+		ti.pressedKeyHandler(pressedKey)()
 
 		ti.readyForActionRepeat.Add(1)
 		time.AfterFunc(delay, func() {

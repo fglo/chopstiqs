@@ -3,12 +3,20 @@ package component
 import (
 	"image"
 	"image/color"
+	"regexp"
 
 	"github.com/fglo/chopstiqs/pkg/debug"
 	"github.com/fglo/chopstiqs/pkg/event"
 	"github.com/fglo/chopstiqs/pkg/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
+
+var wordSeparatorRegex *regexp.Regexp
+
+func init() {
+	var wordSeparator = `[^a-zA-Z0-9_]`
+	wordSeparatorRegex = regexp.MustCompile(wordSeparator)
+}
 
 // Component is an abstraction of a user interface component, like a button or checkbox.
 type Component interface {
