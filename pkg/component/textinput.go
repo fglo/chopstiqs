@@ -39,9 +39,9 @@ type TextInput struct {
 	cursorPosition      int
 	possibleCursorPosXs []int
 
-	ClickedEvent *event.Event
-	Changed      *event.Event
-	Submitted    *event.Event
+	ClickedEvent   *event.Event
+	ChangedEvent   *event.Event
+	SubmittedEvent *event.Event
 
 	drawer TextInputDrawer
 
@@ -102,9 +102,9 @@ type TextInputSubmittedHandlerFunc func(args *TextInputSubmittedEventArgs)
 
 func NewTextInput(options *TextInputOptions) *TextInput {
 	ti := &TextInput{
-		ClickedEvent: &event.Event{},
-		Changed:      &event.Event{},
-		Submitted:    &event.Event{},
+		ClickedEvent:   &event.Event{},
+		ChangedEvent:   &event.Event{},
+		SubmittedEvent: &event.Event{},
 
 		color:         color.RGBA{230, 230, 230, 255},
 		colorDisabled: color.RGBA{150, 150, 150, 255},
@@ -227,10 +227,6 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 		if !ti.disabled {
 			ti.focused = args.Focused
 			ti.cursor.ResetBlink()
-
-			if !ti.focused {
-				ti.Submit()
-			}
 		}
 	})
 
@@ -253,13 +249,13 @@ func (ti *TextInput) AddClickedHandler(f TextInputClickedHandlerFunc) *TextInput
 }
 
 func (ti *TextInput) AddChangedHandler(f TextInputChangedHandlerFunc) *TextInput {
-	ti.Changed.AddHandler(func(args interface{}) { f(args.(*TextInputChangedEventArgs)) })
+	ti.ChangedEvent.AddHandler(func(args interface{}) { f(args.(*TextInputChangedEventArgs)) })
 
 	return ti
 }
 
 func (ti *TextInput) AddSubmittedHandler(f TextInputSubmittedHandlerFunc) *TextInput {
-	ti.Submitted.AddHandler(func(args interface{}) { f(args.(*TextInputSubmittedEventArgs)) })
+	ti.SubmittedEvent.AddHandler(func(args interface{}) { f(args.(*TextInputSubmittedEventArgs)) })
 
 	return ti
 }
@@ -368,14 +364,14 @@ func (ti *TextInput) BackspaceWord() {
 
 func (ti *TextInput) Submit() {
 	ti.value = ti.onSubmitFunc(ti.value)
-	ti.eventManager.Fire(ti.Submitted, &TextInputSubmittedEventArgs{
+	ti.eventManager.Fire(ti.SubmittedEvent, &TextInputSubmittedEventArgs{
 		TextInput: ti,
 		Text:      ti.value,
 	})
 }
 
 func (ti *TextInput) fireChangedEvent() {
-	ti.eventManager.Fire(ti.Changed, &TextInputChangedEventArgs{
+	ti.eventManager.Fire(ti.ChangedEvent, &TextInputChangedEventArgs{
 		TextInput: ti,
 		Text:      ti.value,
 	})

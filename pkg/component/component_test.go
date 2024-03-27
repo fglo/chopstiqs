@@ -3,6 +3,7 @@ package component
 import (
 	"testing"
 
+	"github.com/fglo/chopstiqs/pkg/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -34,4 +35,16 @@ func leftMouseButtonRelease(t *testing.T, c *component) {
 	})
 
 	c.eventManager.HandleFired()
+}
+
+func keyPress(t *testing.T, key ebiten.Key) {
+	t.Helper()
+
+	input.KeyPressed[key] = true
+}
+
+func keyRelease(t *testing.T, key ebiten.Key) {
+	t.Helper()
+
+	input.KeyPressed[key] = false
 }
