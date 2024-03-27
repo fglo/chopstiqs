@@ -25,19 +25,19 @@ Running example: <https://fglo.github.io/chopstiqs/>
   - horizontal list
   - vertical list
   - grid
+- text inputs (without selecting)
 
 ## Roadmap
 
 What I want to achieve:
 
 - more components:
-  - text inputs
+  - text inputs (selecting)
+  - dropdowns
+  - radio groups
   - tooltips
-  - radiogroups
   - modals and/or dialogs
   - range sliders
-  - ...
-- touchscreen support
 - container layouts
   - vertical scroll
   - horizontal scroll

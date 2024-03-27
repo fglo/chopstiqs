@@ -18,10 +18,6 @@ import (
 )
 
 // TODO: selecting
-// TODO: modifier keys
-// TODO: input validation
-// TODO: on submit
-// TODO: on change
 
 var wordSeparatorRegex *regexp.Regexp
 
