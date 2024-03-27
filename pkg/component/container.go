@@ -97,6 +97,30 @@ func (c *Container) AddComponent(component Component) {
 		c.layout.Arrange(c, component)
 	}
 	component.setContainer(c)
+	component.AddFocusedHandler(func(args *ComponentFocusedEventArgs) {
+		c.eventManager.Fire(c.FocusedEvent, &ComponentFocusedEventArgs{
+			Focused:   component.Focused(),
+			Component: component,
+		})
+	})
+}
+
+// AddComponents adds components to the container
+func (c *Container) AddComponents(components ...Component) {
+	c.components = append(c.components, components...)
+
+	for _, component := range components {
+		if c.layout != nil {
+			c.layout.Arrange(c, component)
+		}
+		component.setContainer(c)
+		component.AddFocusedHandler(func(args *ComponentFocusedEventArgs) {
+			c.eventManager.Fire(c.FocusedEvent, &ComponentFocusedEventArgs{
+				Focused:   component.Focused(),
+				Component: component,
+			})
+		})
+	}
 }
 
 // SetBackgroundColor sets the container's background color

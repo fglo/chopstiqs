@@ -170,7 +170,7 @@ func (b *Button) SetLabel(label *Label) {
 	b.label.alignHorizontally = b.label.centerHorizontally
 	b.label.alignVertically = b.label.centerVertically
 
-	b.label.SetPosistion(float64(b.label.textBounds.Dx())/2+5, 7.5)
+	b.label.SetPosistion(float64(b.label.bounds.Dx())/2+5, 7.5)
 
 	b.SetDimensions(b.label.width+10, 15)
 }
