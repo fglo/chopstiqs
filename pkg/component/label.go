@@ -73,7 +73,7 @@ func NewLabel(text string, opt *LabelOptions) *Label {
 
 	if opt != nil {
 		if opt.Color != nil {
-			l.color = colorutils.ColorToRGBA(opt.Color)
+			l.color = colorutils.ToRGBA(opt.Color)
 		}
 
 		if opt.Font != nil {
@@ -181,7 +181,7 @@ func (l *Label) Draw() *ebiten.Image {
 	l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
 
 	if l.Inverted {
-		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, color.RGBA{255 - l.color.R, 255 - l.color.G, 255 - l.color.B, l.color.A})
+		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, colorutils.Invert(l.color))
 	} else {
 		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, l.color)
 	}

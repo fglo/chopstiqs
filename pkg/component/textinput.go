@@ -2,6 +2,7 @@ package component
 
 import (
 	"image/color"
+	"math"
 	"sync/atomic"
 	"time"
 
@@ -16,6 +17,26 @@ import (
 )
 
 // TODO: selecting
+
+// textInputCursorPosition is a type indicating that value is one of the possible cursor positions, not coordinate in the X axis
+type textInputCursorPosition int
+
+type textInputAction int
+
+const (
+	textInputIdle textInputAction = iota
+	textInputCursorLeft
+	textInputWordLeft
+	textInputCursorRight
+	textInputWordRight
+	textInputHome
+	textInputEnd
+	textInputDelete
+	textInputDeleteWord
+	textInputBackspace
+	textInputBackspaceWord
+	textInputSubmit
+)
 
 type TextInput struct {
 	component
@@ -36,8 +57,13 @@ type TextInput struct {
 	scrollOffset int
 
 	cursor              textInputCursor
-	cursorPosition      int
+	cursorPosition      textInputCursorPosition
 	possibleCursorPosXs []int
+
+	selecting      bool
+	selectingFrom  textInputCursorPosition
+	selectionStart textInputCursorPosition
+	selectionEnd   textInputCursorPosition
 
 	ClickedEvent   *event.Event
 	ChangedEvent   *event.Event
@@ -51,8 +77,9 @@ type TextInput struct {
 	readyForActionRepeat *atomic.Int32
 	readyForNewAction    *atomic.Bool
 
-	actionKeysHandlers map[ebiten.Key]func()
-	modifierKeys       map[ebiten.Key]bool
+	actionKeyHandlers   map[ebiten.Key]func() textInputAction
+	actionHandlers      map[textInputAction]func()
+	modifierKeysPressed map[ebiten.Key]bool
 
 	onSubmitFunc   TextInputOnSubmitFunc
 	validationFunc TextInputValidationFunc
@@ -132,17 +159,31 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 	ti.readyForActionRepeat.Store(0)
 	ti.readyForNewAction.Store(true)
 
-	ti.actionKeysHandlers = map[ebiten.Key]func(){
-		ebiten.KeyLeft:      ti.CursorLeft,
-		ebiten.KeyRight:     ti.CursorRight,
-		ebiten.KeyHome:      ti.Home,
-		ebiten.KeyEnd:       ti.End,
-		ebiten.KeyBackspace: ti.Backspace,
-		ebiten.KeyDelete:    ti.Delete,
-		ebiten.KeyEnter:     ti.Submit,
+	ti.actionKeyHandlers = map[ebiten.Key]func() textInputAction{
+		ebiten.KeyLeft:      ti.handleKeyLeft,
+		ebiten.KeyRight:     ti.handleKeyRight,
+		ebiten.KeyHome:      ti.handleKeyHome,
+		ebiten.KeyEnd:       ti.handleKeyEnd,
+		ebiten.KeyBackspace: ti.handleKeyBackspace,
+		ebiten.KeyDelete:    ti.handleKeyDelete,
+		ebiten.KeyEnter:     ti.handleKeyEnter,
 	}
 
-	ti.modifierKeys = map[ebiten.Key]bool{
+	ti.actionHandlers = map[textInputAction]func(){
+		textInputCursorLeft:    ti.CursorLeft,
+		textInputWordLeft:      ti.WordLeft,
+		textInputCursorRight:   ti.CursorRight,
+		textInputWordRight:     ti.WordRight,
+		textInputHome:          ti.Home,
+		textInputEnd:           ti.End,
+		textInputBackspace:     ti.Backspace,
+		textInputBackspaceWord: ti.BackspaceWord,
+		textInputDelete:        ti.Delete,
+		textInputDeleteWord:    ti.DeleteWord,
+		textInputSubmit:        ti.Submit,
+	}
+
+	ti.modifierKeysPressed = map[ebiten.Key]bool{
 		ebiten.KeyControl: false,
 		ebiten.KeyAlt:     false,
 		ebiten.KeyShift:   false,
@@ -168,11 +209,11 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		}
 
 		if options.Color != nil {
-			ti.color = colorutils.ColorToRGBA(options.Color)
+			ti.color = colorutils.ToRGBA(options.Color)
 		}
 
 		if options.ColorDisabled != nil {
-			ti.colorDisabled = colorutils.ColorToRGBA(options.ColorDisabled)
+			ti.colorDisabled = colorutils.ToRGBA(options.ColorDisabled)
 		}
 
 		if options.Font != nil {
@@ -234,6 +275,7 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 		if !ti.disabled && ti.focused {
 			ti.cursorPosition = ti.findClosestPossibleCursorPosition()
 			ti.cursor.ResetBlink()
+			ti.selecting = false
 
 			ti.eventManager.Fire(ti.ClickedEvent, &TextInputClickedEventArgs{
 				TextInput: ti,
@@ -267,15 +309,13 @@ func (ti *TextInput) Value() string {
 // SetValue sets the value of the text input.
 func (ti *TextInput) SetValue(value string) {
 	if valid, valueAfterValidation := ti.validationFunc(value); valid {
-		ti.value = valueAfterValidation
-		ti.calcTextBounds()
+		ti.setValue(valueAfterValidation)
 	}
 }
 
 func (ti *TextInput) CursorLeft() {
 	if ti.cursorPosition > 0 {
-		ti.cursorPosition--
-		ti.cursor.ResetBlink()
+		ti.moveCursor(ti.cursorPosition - 1)
 	}
 }
 
@@ -283,87 +323,75 @@ func (ti *TextInput) WordLeft() {
 	if ti.cursorPosition <= 0 {
 		return
 	}
-	ti.cursorPosition = ti.findPositionBeforeWord()
-	ti.cursor.ResetBlink()
+	ti.moveCursor(ti.findPositionBeforeWord())
 }
 
 func (ti *TextInput) CursorRight() {
-	if ti.cursorPosition < len(ti.possibleCursorPosXs)-1 {
-		ti.cursorPosition++
-		ti.cursor.ResetBlink()
+	if int(ti.cursorPosition) < len(ti.possibleCursorPosXs)-1 {
+		ti.moveCursor(ti.cursorPosition + 1)
 	}
 }
 
 func (ti *TextInput) WordRight() {
-	if ti.cursorPosition >= len(ti.possibleCursorPosXs)-1 {
+	if int(ti.cursorPosition) >= len(ti.possibleCursorPosXs)-1 {
 		return
 	}
-	ti.cursorPosition = ti.findPositionAfterWord()
-	ti.cursor.ResetBlink()
+	ti.moveCursor(ti.findPositionAfterWord())
 }
 
 func (ti *TextInput) Home() {
-	ti.cursorPosition = 0
-	ti.cursor.ResetBlink()
+	ti.moveCursor(0)
 }
 
 func (ti *TextInput) End() {
-	ti.cursorPosition = len(ti.possibleCursorPosXs) - 1
-	ti.cursor.ResetBlink()
+	ti.moveCursor(textInputCursorPosition(len(ti.possibleCursorPosXs) - 1))
 }
 
 func (ti *TextInput) Insert(chars []rune) {
 	newValue := ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
 
 	if valid, valueAfterValidation := ti.validationFunc(newValue); valid {
-		ti.value = valueAfterValidation
-		ti.calcTextBounds()
-		ti.cursorPosition += len(chars)
-		ti.cursor.ResetBlink()
+		ti.setValue(valueAfterValidation)
+		ti.moveCursor(ti.cursorPosition + textInputCursorPosition(len(chars)))
 		ti.fireChangedEvent()
 	}
 
 }
 
 func (ti *TextInput) Delete() {
-	if ti.cursorPosition < len(ti.value) {
-		ti.value = ti.value[0:ti.cursorPosition] + ti.value[ti.cursorPosition+1:]
-		ti.calcTextBounds()
+	if ti.cursorPosition < textInputCursorPosition(len(ti.value)) {
+		ti.setValue(ti.value[0:ti.cursorPosition] + ti.value[ti.cursorPosition+1:])
 		ti.fireChangedEvent()
 	}
 }
 
 func (ti *TextInput) DeleteWord() {
-	if ti.cursorPosition < len(ti.value) {
+	if ti.cursorPosition < textInputCursorPosition(len(ti.value)) {
 		spaceToTheRightPosition := ti.findPositionAfterWord()
-		ti.value = ti.value[0:ti.cursorPosition] + ti.value[spaceToTheRightPosition:]
-		ti.calcTextBounds()
+		ti.setValue(ti.value[0:ti.cursorPosition] + ti.value[spaceToTheRightPosition:])
 		ti.fireChangedEvent()
 	}
 }
 
 func (ti *TextInput) Backspace() {
 	if ti.cursorPosition > 0 {
-		ti.value = ti.value[0:ti.cursorPosition-1] + ti.value[ti.cursorPosition:]
-		ti.calcTextBounds()
-		ti.CursorLeft()
+		ti.setValue(ti.value[0:ti.cursorPosition-1] + ti.value[ti.cursorPosition:])
 		ti.fireChangedEvent()
+		ti.CursorLeft()
 	}
 }
 
 func (ti *TextInput) BackspaceWord() {
 	if ti.cursorPosition > 0 {
 		spaceToTheLeftPosition := ti.findPositionBeforeWord()
-		ti.value = ti.value[0:spaceToTheLeftPosition] + ti.value[ti.cursorPosition:]
-		ti.cursorPosition = spaceToTheLeftPosition + 1
-		ti.calcTextBounds()
-		ti.CursorLeft()
+		ti.setValue(ti.value[0:spaceToTheLeftPosition] + ti.value[ti.cursorPosition:])
 		ti.fireChangedEvent()
+		ti.moveCursor(spaceToTheLeftPosition)
 	}
 }
 
 func (ti *TextInput) Submit() {
-	ti.value = ti.onSubmitFunc(ti.value)
+	ti.setValue(ti.onSubmitFunc(ti.value))
 	ti.eventManager.Fire(ti.SubmittedEvent, &TextInputSubmittedEventArgs{
 		TextInput: ti,
 		Text:      ti.value,
@@ -377,77 +405,88 @@ func (ti *TextInput) fireChangedEvent() {
 	})
 }
 
-func (ti *TextInput) findPositionBeforeWord() int {
-	tmpCursorPosition := ti.cursorPosition
-	if tmpCursorPosition <= 0 {
+func (ti *TextInput) findPositionBeforeWord() textInputCursorPosition {
+	if ti.cursorPosition <= 0 {
 		return 0
 	}
 
-	for i := ti.cursorPosition - 1; i >= 0; i-- {
+	var tmpCursorPosition textInputCursorPosition
+
+	for i := int(ti.cursorPosition) - 1; i >= 0; i-- {
 		if i >= len(ti.value) {
 			continue
 		}
+
+		if i == 0 {
+			return 0
+		}
+
 		if !wordSeparatorRegex.MatchString(string(ti.value[i])) {
-			tmpCursorPosition = i
+			tmpCursorPosition = textInputCursorPosition(i)
 			break
 		}
 	}
 
-	for i := tmpCursorPosition; i >= 0; i-- {
+	for i := int(tmpCursorPosition); i >= 0; i-- {
 		if i >= len(ti.value) {
 			continue
 		}
 		if wordSeparatorRegex.MatchString(string(ti.value[i])) {
-			return i + 1
+			return textInputCursorPosition(i + 1)
 		}
 	}
 
 	return 0
 }
 
-func (ti *TextInput) findPositionAfterWord() int {
-	tmpCursorPosition := ti.cursorPosition
-	if tmpCursorPosition >= len(ti.value) {
-		return len(ti.value)
+func (ti *TextInput) findPositionAfterWord() textInputCursorPosition {
+	if int(ti.cursorPosition) >= len(ti.value) {
+		return textInputCursorPosition(len(ti.value))
 	}
 
-	for i := ti.cursorPosition; i < len(ti.possibleCursorPosXs); i++ {
+	var tmpCursorPosition textInputCursorPosition
+
+	for i := int(ti.cursorPosition); i < len(ti.possibleCursorPosXs); i++ {
+		if i == len(ti.value) {
+			return textInputCursorPosition(len(ti.value))
+		}
+
 		if !wordSeparatorRegex.MatchString(string(ti.value[i])) {
-			tmpCursorPosition = i
+			tmpCursorPosition = textInputCursorPosition(i)
 			break
 		}
 	}
 
-	for i := tmpCursorPosition; i < len(ti.possibleCursorPosXs); i++ {
+	for i := int(tmpCursorPosition); i < len(ti.possibleCursorPosXs); i++ {
 		if i == len(ti.possibleCursorPosXs)-1 || wordSeparatorRegex.MatchString(string(ti.value[i])) {
-			return i
+			return textInputCursorPosition(i)
 		}
 	}
 
-	return len(ti.value)
+	return textInputCursorPosition(len(ti.value))
 }
 
 func (ti *TextInput) cursorPosX() int {
 	return ti.possibleCursorPosXs[ti.cursorPosition] + ti.textPosX + ti.padding.Left - 1
 }
 
-func (ti *TextInput) findClosestPossibleCursorPosition() int {
-	cursorPos := input.CursorPosX - int(ti.absPosX) - ti.textPosX - ti.padding.Left + 1
+func (ti *TextInput) findClosestPossibleCursorPosition() textInputCursorPosition {
+	cursorPosX := input.CursorPosX - int(ti.absPosX) - ti.textPosX - ti.padding.Left + 1
 
-	if cursorPos <= ti.possibleCursorPosXs[0] {
+	if cursorPosX <= ti.possibleCursorPosXs[0] {
 		return 0
 	}
 
-	lastId := len(ti.possibleCursorPosXs) - 1
+	var lastId textInputCursorPosition = textInputCursorPosition(len(ti.possibleCursorPosXs) - 1)
 
-	if cursorPos >= ti.possibleCursorPosXs[lastId] {
+	if cursorPosX >= ti.possibleCursorPosXs[lastId] {
 		return lastId
 	}
 
-	min := 0
-	max := lastId
+	var min textInputCursorPosition = 0
+	var max textInputCursorPosition = lastId
 
-	getClosest := func(a, b, target int) int {
+	getClosest := func(a, b textInputCursorPosition, target int) textInputCursorPosition {
 		if target-ti.possibleCursorPosXs[a] >= ti.possibleCursorPosXs[b]-target {
 			return b
 		} else {
@@ -458,15 +497,15 @@ func (ti *TextInput) findClosestPossibleCursorPosition() int {
 	for min <= max {
 		mid := (min + max) / 2
 		switch {
-		case cursorPos < ti.possibleCursorPosXs[mid]:
-			if mid > 0 && cursorPos > ti.possibleCursorPosXs[mid-1] {
-				return getClosest(mid-1, mid, cursorPos)
+		case cursorPosX < ti.possibleCursorPosXs[mid]:
+			if mid > 0 && cursorPosX > ti.possibleCursorPosXs[mid-1] {
+				return getClosest(mid-1, mid, cursorPosX)
 			}
 
 			max = mid - 1
-		case cursorPos > ti.possibleCursorPosXs[mid]:
-			if mid < lastId && cursorPos < ti.possibleCursorPosXs[mid+1] {
-				return getClosest(mid, mid+1, cursorPos)
+		case cursorPosX > ti.possibleCursorPosXs[mid]:
+			if mid < lastId && cursorPosX < ti.possibleCursorPosXs[mid+1] {
+				return getClosest(mid, mid+1, cursorPosX)
 			}
 
 			min = mid + 1
@@ -475,7 +514,7 @@ func (ti *TextInput) findClosestPossibleCursorPosition() int {
 		}
 	}
 
-	return getClosest(max, min, cursorPos)
+	return getClosest(max, min, cursorPosX)
 }
 
 func (ti *TextInput) calcScrollOffset() int {
@@ -510,7 +549,23 @@ func (ti *TextInput) calcScrollOffset() int {
 	return ti.scrollOffset
 }
 
-func (ti *TextInput) calcTextBounds() {
+func (ti *TextInput) moveCursor(position textInputCursorPosition) {
+	ti.cursorPosition = position
+	ti.cursor.ResetBlink()
+	ti.afterMove()
+}
+
+func (ti *TextInput) afterMove() {
+	ti.selectionStart = textInputCursorPosition(math.Min(float64(ti.selectingFrom), float64(ti.cursorPosition)))
+	ti.selectionEnd = textInputCursorPosition(math.Max(float64(ti.selectingFrom), float64(ti.cursorPosition)))
+}
+
+func (ti *TextInput) setValue(value string) {
+	ti.value = value
+	ti.afterChange()
+}
+
+func (ti *TextInput) afterChange() {
 	ti.textPosY = ti.metrics.Ascent - ti.metrics.Descent - 1
 	ti.possibleCursorPosXs = make([]int, len(ti.value)+1)
 	ti.possibleCursorPosXs[0] = 0
@@ -520,39 +575,12 @@ func (ti *TextInput) calcTextBounds() {
 	}
 }
 
-func (ti *TextInput) pressedKeyHandler(key ebiten.Key) func() {
-	switch key {
-	case ebiten.KeyLeft:
-		if input.OSMacOS() && ti.modifierKeys[ebiten.KeyMeta] || !input.OSMacOS() && ti.modifierKeys[ebiten.KeyControl] {
-			return ti.Home
-		} else if ti.modifierKeys[ebiten.KeyAlt] {
-			return ti.WordLeft
-		}
-	case ebiten.KeyRight:
-		if input.OSMacOS() && ti.modifierKeys[ebiten.KeyMeta] || !input.OSMacOS() && ti.modifierKeys[ebiten.KeyControl] {
-			return ti.End
-		} else if ti.modifierKeys[ebiten.KeyAlt] {
-			return ti.WordRight
-		}
-	case ebiten.KeyDelete:
-		if ti.modifierKeys[ebiten.KeyAlt] {
-			return ti.DeleteWord
-		}
-	case ebiten.KeyBackspace:
-		if ti.modifierKeys[ebiten.KeyAlt] {
-			return ti.BackspaceWord
-		}
-	}
-
-	return ti.actionKeysHandlers[key]
-}
-
 func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
-	for key := range ti.modifierKeys {
-		ti.modifierKeys[key] = input.KeyPressed[key]
+	for key := range ti.modifierKeysPressed {
+		ti.modifierKeysPressed[key] = input.KeyPressed[key]
 	}
 
-	for key := range ti.actionKeysHandlers {
+	for key := range ti.actionKeyHandlers {
 		if input.KeyPressed[key] {
 			return true, key
 		}
@@ -561,6 +589,99 @@ func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
 	ti.lastActionKeyPressed = input.KeyNone
 
 	return false, input.KeyNone
+}
+
+func (ti *TextInput) handleKeyLeft() textInputAction {
+	ti.checkForShift()
+
+	switch {
+	case ti.modifierKeysPressed[ebiten.KeyAlt] && (ti.modifierKeysPressed[ebiten.KeyControl] || ti.modifierKeysPressed[ebiten.KeyMeta]):
+		return textInputIdle
+	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+		return textInputWordLeft
+	case input.OSMacOS() && ti.modifierKeysPressed[ebiten.KeyMeta] || !input.OSMacOS() && ti.modifierKeysPressed[ebiten.KeyControl]:
+		return textInputHome
+	default:
+		return textInputCursorLeft
+	}
+}
+
+func (ti *TextInput) handleKeyRight() textInputAction {
+	ti.checkForShift()
+
+	switch {
+	case ti.modifierKeysPressed[ebiten.KeyAlt] && (ti.modifierKeysPressed[ebiten.KeyControl] || ti.modifierKeysPressed[ebiten.KeyMeta]):
+		return textInputIdle
+	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+		return textInputWordRight
+	case input.OSMacOS() && ti.modifierKeysPressed[ebiten.KeyMeta] || !input.OSMacOS() && ti.modifierKeysPressed[ebiten.KeyControl]:
+		return textInputEnd
+	default:
+		return textInputCursorRight
+	}
+}
+
+func (ti *TextInput) handleKeyHome() textInputAction {
+	ti.checkForShift()
+
+	switch {
+	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+		return textInputIdle
+	default:
+		return textInputHome
+	}
+}
+
+func (ti *TextInput) handleKeyEnd() textInputAction {
+	ti.checkForShift()
+
+	switch {
+	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+		return textInputIdle
+	default:
+		return textInputEnd
+	}
+}
+
+func (ti *TextInput) handleKeyDelete() textInputAction {
+	switch {
+	case ti.modifierKeysPressed[ebiten.KeyShift]:
+		return textInputIdle
+	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+		return textInputDeleteWord
+	default:
+		return textInputDelete
+	}
+}
+
+func (ti *TextInput) handleKeyBackspace() textInputAction {
+	switch {
+	case ti.modifierKeysPressed[ebiten.KeyShift]:
+		return textInputIdle
+	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+		return textInputBackspaceWord
+	default:
+		return textInputBackspace
+	}
+}
+
+func (ti *TextInput) handleKeyEnter() textInputAction {
+	for _, pressed := range ti.modifierKeysPressed {
+		if pressed {
+			return textInputIdle
+		}
+	}
+
+	return textInputSubmit
+}
+
+func (ti *TextInput) checkForShift() {
+	if !ti.modifierKeysPressed[ebiten.KeyShift] {
+		ti.selecting = false
+	} else if !ti.selecting {
+		ti.selecting = true
+		ti.selectingFrom = ti.cursorPosition
+	}
 }
 
 type textInputState func(ti *TextInput) textInputState
@@ -622,7 +743,17 @@ func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 
 		ti.lastActionKeyPressed = pressedKey
 
-		ti.pressedKeyHandler(pressedKey)()
+		handler, found := ti.actionKeyHandlers[pressedKey]
+		if !found {
+			return ti.idleStateFactory()
+		}
+
+		action := handler()
+		if action == textInputIdle {
+			return ti.idleStateFactory()
+		}
+
+		ti.actionHandlers[action]()
 
 		ti.readyForActionRepeat.Add(1)
 		time.AfterFunc(delay, func() {
@@ -635,6 +766,25 @@ func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 		})
 
 		return ti.idleStateFactory()
+	}
+}
+
+func (ti *TextInput) drawText(clr color.RGBA) {
+	textStartPosX := ti.textPosX - ti.scrollOffset + ti.padding.Left
+
+	if !ti.selecting || ti.selectingFrom == ti.cursorPosition {
+		text.Draw(ti.image, ti.value, ti.font, textStartPosX, ti.textPosY+ti.padding.Top, clr)
+		return
+	}
+
+	if ti.selectionStart > 0 {
+		text.Draw(ti.image, ti.value[0:ti.selectionStart], ti.font, textStartPosX, ti.textPosY+ti.padding.Top, clr)
+	}
+
+	text.Draw(ti.image, ti.value[ti.selectionStart:ti.selectionEnd], ti.font, textStartPosX+ti.possibleCursorPosXs[ti.selectionStart], ti.textPosY+ti.padding.Top, colorutils.Invert(clr))
+
+	if int(ti.selectionEnd) <= len(ti.value)-1 {
+		text.Draw(ti.image, ti.value[ti.selectionEnd:], ti.font, textStartPosX+ti.possibleCursorPosXs[ti.selectionEnd], ti.textPosY+ti.padding.Top, clr)
 	}
 }
 
@@ -661,11 +811,11 @@ func (ti *TextInput) Draw() *ebiten.Image {
 
 	switch {
 	case ti.disabled:
-		text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.colorDisabled)
+		ti.drawText(ti.colorDisabled)
 	case ti.hovering:
-		text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.colorHovered)
+		ti.drawText(ti.colorHovered)
 	default:
-		text.Draw(ti.image, ti.value, ti.font, ti.textPosX-ti.scrollOffset+ti.padding.Left, ti.textPosY+ti.padding.Top, ti.color)
+		ti.drawText(ti.color)
 	}
 
 	ti.component.Draw()

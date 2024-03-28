@@ -1,8 +1,6 @@
 package component
 
 import (
-	"reflect"
-	"runtime"
 	"testing"
 	"time"
 
@@ -47,18 +45,18 @@ func TestTextInput_PressedLeft(t *testing.T) {
 	time.Sleep(textInputActionKeyRepeatDelay)
 	handleState(t, ti)
 	handleState(t, ti)
-	is.Equal(ti.cursorPosition, 1)
+	is.Equal(int(ti.cursorPosition), 1)
 
 	keyRelease(t, ebiten.KeyLeft)
 	time.Sleep(textInputActionKeyRepeatDelay)
 	handleState(t, ti)
-	is.Equal(ti.cursorPosition, 1)
+	is.Equal(int(ti.cursorPosition), 1)
 
 	keyPress(t, ebiten.KeyLeft)
 	time.Sleep(textInputActionKeyRepeatDelay)
 	handleState(t, ti)
 	handleState(t, ti)
-	is.Equal(ti.cursorPosition, 0)
+	is.Equal(int(ti.cursorPosition), 0)
 
 	keyRelease(t, ebiten.KeyLeft)
 }
@@ -80,18 +78,18 @@ func TestTextInput_PressedRight(t *testing.T) {
 	time.Sleep(textInputActionKeyRepeatDelay)
 	handleState(t, ti)
 	handleState(t, ti)
-	is.Equal(ti.cursorPosition, 1)
+	is.Equal(int(ti.cursorPosition), 1)
 
 	keyRelease(t, ebiten.KeyRight)
 	time.Sleep(textInputActionKeyRepeatDelay)
 	handleState(t, ti)
-	is.Equal(ti.cursorPosition, 1)
+	is.Equal(int(ti.cursorPosition), 1)
 
 	keyPress(t, ebiten.KeyRight)
 	time.Sleep(textInputActionKeyRepeatDelay)
 	handleState(t, ti)
 	handleState(t, ti)
-	is.Equal(ti.cursorPosition, 2)
+	is.Equal(int(ti.cursorPosition), 2)
 
 	keyRelease(t, ebiten.KeyRight)
 }
@@ -133,165 +131,59 @@ func TestTextInput_PressedEnter(t *testing.T) {
 	keyRelease(t, ebiten.KeyEnter)
 }
 
-func TestTextInput_pressedKeyHandler(t *testing.T) {
+func TestTextInput_handleKeyLeft(t *testing.T) {
 	resetInput(t)
-
-	type args struct {
-		key ebiten.Key
-	}
 
 	tests := []struct {
 		name                string
-		args                args
 		pressedModifierKeys []ebiten.Key
 		before              func()
-		want                func()
+		want                textInputAction
 	}{
 		{
 			name: "CursorLeft",
-			args: args{
-				key: ebiten.KeyLeft,
-			},
-			want: (&TextInput{}).CursorLeft,
+			want: textInputCursorLeft,
 		},
 		{
-			name: "CursorRight",
-			args: args{
-				key: ebiten.KeyRight,
-			},
-			want: (&TextInput{}).CursorRight,
-		},
-		{
-			name: "Home",
-			args: args{
-				key: ebiten.KeyHome,
-			},
-			want: (&TextInput{}).Home,
-		},
-		{
-			name: "End",
-			args: args{
-				key: ebiten.KeyEnd,
-			},
-			want: (&TextInput{}).End,
-		},
-		{
-			name: "Delete",
-			args: args{
-				key: ebiten.KeyDelete,
-			},
-			want: (&TextInput{}).Delete,
-		},
-		{
-			name: "Backspace",
-			args: args{
-				key: ebiten.KeyBackspace,
-			},
-			want: (&TextInput{}).Backspace,
-		},
-		{
-			name: "Left with ctrl on windows",
-			args: args{
-				key: ebiten.KeyLeft,
-			},
+			name:                "Left with ctrl on windows",
 			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
 			before:              func() { input.OS = input.Windows },
-			want:                (&TextInput{}).Home,
+			want:                textInputHome,
 		},
 		{
-			name: "Right with ctrl on windows",
-			args: args{
-				key: ebiten.KeyRight,
-			},
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
-			before:              func() { input.OS = input.Windows },
-			want:                (&TextInput{}).End,
-		},
-		{
-			name: "Left with meta on windows",
-			args: args{
-				key: ebiten.KeyLeft,
-			},
+			name:                "Left with meta on windows",
 			pressedModifierKeys: []ebiten.Key{ebiten.KeyMeta},
 			before:              func() { input.OS = input.Windows },
-			want:                (&TextInput{}).CursorLeft,
+			want:                textInputCursorLeft,
 		},
 		{
-			name: "Right with meta on windows",
-			args: args{
-				key: ebiten.KeyRight,
-			},
+			name:                "Left with meta on macos",
 			pressedModifierKeys: []ebiten.Key{ebiten.KeyMeta},
+			before:              func() { input.OS = input.MacOS },
+			want:                textInputHome,
+		},
+		{
+			name:                "Left with ctrl on macos",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
+			before:              func() { input.OS = input.MacOS },
+			want:                textInputCursorLeft,
+		},
+		{
+			name:                "WordLeft",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
+			want:                textInputWordLeft,
+		},
+		{
+			name:                "Left + Alt + Control on windows",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt, ebiten.KeyControl},
 			before:              func() { input.OS = input.Windows },
-			want:                (&TextInput{}).CursorRight,
+			want:                textInputIdle,
 		},
 		{
-			name: "Left with meta on macos",
-			args: args{
-				key: ebiten.KeyLeft,
-			},
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyMeta},
+			name:                "Left + Alt + Meta on MacOS",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt, ebiten.KeyMeta},
 			before:              func() { input.OS = input.MacOS },
-			want:                (&TextInput{}).Home,
-		},
-		{
-			name: "Right with meta on macos",
-			args: args{
-				key: ebiten.KeyRight,
-			},
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyMeta},
-			before:              func() { input.OS = input.MacOS },
-			want:                (&TextInput{}).End,
-		},
-		{
-			name: "Left with ctrl on macos",
-			args: args{
-				key: ebiten.KeyLeft,
-			},
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
-			before:              func() { input.OS = input.MacOS },
-			want:                (&TextInput{}).CursorLeft,
-		},
-		{
-			name: "Right with ctrl on macos",
-			args: args{
-				key: ebiten.KeyRight,
-			},
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
-			before:              func() { input.OS = input.MacOS },
-			want:                (&TextInput{}).CursorRight,
-		},
-		{
-			name: "WordLeft",
-			args: args{
-				key: ebiten.KeyLeft,
-			},
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
-			want:                (&TextInput{}).WordLeft,
-		},
-		{
-			name: "WordRight",
-			args: args{
-				key: ebiten.KeyRight,
-			},
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
-			want:                (&TextInput{}).WordRight,
-		},
-		{
-			name: "DeleteWord",
-			args: args{
-				key: ebiten.KeyDelete,
-			},
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
-			want:                (&TextInput{}).DeleteWord,
-		},
-		{
-			name: "BackspaceWord",
-			args: args{
-				key: ebiten.KeyBackspace,
-			},
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
-			want:                (&TextInput{}).BackspaceWord,
+			want:                textInputIdle,
 		},
 	}
 
@@ -306,16 +198,307 @@ func TestTextInput_pressedKeyHandler(t *testing.T) {
 			ti := NewTextInput(nil)
 
 			for _, key := range tt.pressedModifierKeys {
-				ti.modifierKeys[key] = true
+				ti.modifierKeysPressed[key] = true
 			}
 
-			got := ti.pressedKeyHandler(tt.args.key)
+			got := ti.handleKeyLeft()
 
-			wantName := runtime.FuncForPC(reflect.ValueOf(tt.want).Pointer()).Name()
-			gotName := runtime.FuncForPC(reflect.ValueOf(got).Pointer()).Name()
+			if got != tt.want {
+				t.Errorf("TextInput.pressedKeyHandler() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
-			if gotName != wantName {
-				t.Errorf("TextInput.pressedKeyHandler() = %s, want %s", gotName, wantName)
+func TestTextInput_handleKeyRight(t *testing.T) {
+	resetInput(t)
+
+	tests := []struct {
+		name                string
+		pressedModifierKeys []ebiten.Key
+		before              func()
+		want                textInputAction
+	}{
+		{
+			name: "CursorRight",
+			want: textInputCursorRight,
+		},
+		{
+			name:                "Right with ctrl on windows",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
+			before:              func() { input.OS = input.Windows },
+			want:                textInputEnd,
+		},
+		{
+			name:                "Right with meta on windows",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyMeta},
+			before:              func() { input.OS = input.Windows },
+			want:                textInputCursorRight,
+		},
+		{
+			name:                "Right with meta on macos",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyMeta},
+			before:              func() { input.OS = input.MacOS },
+			want:                textInputEnd,
+		},
+		{
+			name:                "Right with ctrl on macos",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
+			before:              func() { input.OS = input.MacOS },
+			want:                textInputCursorRight,
+		},
+		{
+			name:                "WordRight",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
+			want:                textInputWordRight,
+		},
+		{
+			name:                "Right + Alt + Control on windows",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt, ebiten.KeyControl},
+			before:              func() { input.OS = input.Windows },
+			want:                textInputIdle,
+		},
+		{
+			name:                "Right + Alt + Meta on MacOS",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt, ebiten.KeyMeta},
+			before:              func() { input.OS = input.MacOS },
+			want:                textInputIdle,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetInput(t)
+
+			if tt.before != nil {
+				tt.before()
+			}
+
+			ti := NewTextInput(nil)
+
+			for _, key := range tt.pressedModifierKeys {
+				ti.modifierKeysPressed[key] = true
+			}
+
+			got := ti.handleKeyRight()
+
+			if got != tt.want {
+				t.Errorf("TextInput.pressedKeyHandler() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTextInput_handleKeyHome(t *testing.T) {
+	resetInput(t)
+
+	tests := []struct {
+		name                string
+		pressedModifierKeys []ebiten.Key
+		before              func()
+		want                textInputAction
+	}{
+		{
+			name: "Home",
+			want: textInputHome,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetInput(t)
+
+			if tt.before != nil {
+				tt.before()
+			}
+
+			ti := NewTextInput(nil)
+
+			for _, key := range tt.pressedModifierKeys {
+				ti.modifierKeysPressed[key] = true
+			}
+
+			got := ti.handleKeyHome()
+
+			if got != tt.want {
+				t.Errorf("TextInput.pressedKeyHandler() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTextInput_handleKeyEnd(t *testing.T) {
+	resetInput(t)
+
+	tests := []struct {
+		name                string
+		pressedModifierKeys []ebiten.Key
+		before              func()
+		want                textInputAction
+	}{
+		{
+			name: "End",
+			want: textInputEnd,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetInput(t)
+
+			if tt.before != nil {
+				tt.before()
+			}
+
+			ti := NewTextInput(nil)
+
+			for _, key := range tt.pressedModifierKeys {
+				ti.modifierKeysPressed[key] = true
+			}
+
+			got := ti.handleKeyEnd()
+
+			if got != tt.want {
+				t.Errorf("TextInput.pressedKeyHandler() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTextInput_handleKeyDelete(t *testing.T) {
+	resetInput(t)
+
+	tests := []struct {
+		name                string
+		pressedModifierKeys []ebiten.Key
+		before              func()
+		want                textInputAction
+	}{
+		{
+			name: "Delete",
+			want: textInputDelete,
+		},
+		{
+			name:                "DeleteWord",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
+			want:                textInputDeleteWord,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetInput(t)
+
+			if tt.before != nil {
+				tt.before()
+			}
+
+			ti := NewTextInput(nil)
+
+			for _, key := range tt.pressedModifierKeys {
+				ti.modifierKeysPressed[key] = true
+			}
+
+			got := ti.handleKeyDelete()
+
+			if got != tt.want {
+				t.Errorf("TextInput.pressedKeyHandler() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTextInput_handleKeyBackspace(t *testing.T) {
+	resetInput(t)
+
+	tests := []struct {
+		name                string
+		pressedModifierKeys []ebiten.Key
+		before              func()
+		want                textInputAction
+	}{
+		{
+			name: "Backspace",
+			want: textInputBackspace,
+		},
+		{
+			name:                "BackspaceWord",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
+			want:                textInputBackspaceWord,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetInput(t)
+
+			if tt.before != nil {
+				tt.before()
+			}
+
+			ti := NewTextInput(nil)
+
+			for _, key := range tt.pressedModifierKeys {
+				ti.modifierKeysPressed[key] = true
+			}
+
+			got := ti.handleKeyBackspace()
+
+			if got != tt.want {
+				t.Errorf("TextInput.pressedKeyHandler() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTextInput_handleKeyEnter(t *testing.T) {
+	resetInput(t)
+
+	tests := []struct {
+		name                string
+		pressedModifierKeys []ebiten.Key
+		before              func()
+		want                textInputAction
+	}{
+		{
+			name: "Submit",
+			want: textInputSubmit,
+		},
+		{
+			name:                "Enter + Alt",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
+			want:                textInputIdle,
+		},
+		{
+			name:                "Enter + Control",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
+			want:                textInputIdle,
+		},
+		{
+			name:                "Enter + Meta",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyMeta},
+			want:                textInputIdle,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetInput(t)
+
+			if tt.before != nil {
+				tt.before()
+			}
+
+			ti := NewTextInput(nil)
+
+			for _, key := range tt.pressedModifierKeys {
+				ti.modifierKeysPressed[key] = true
+			}
+
+			got := ti.handleKeyEnter()
+
+			if got != tt.want {
+				t.Errorf("TextInput.pressedKeyHandler() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -3,6 +3,7 @@ package component
 import (
 	"image/color"
 
+	colorutils "github.com/fglo/chopstiqs/internal/color"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -14,7 +15,9 @@ type DefaultTextInputDrawer struct {
 	Color           color.RGBA
 	ColorDisabled   color.RGBA
 	ColorHovered    color.RGBA
-	BackgroundColor color.RGBA
+	BackgroundColor color.Color
+	backgroundColor color.RGBA
+	cornerColor     color.RGBA
 }
 
 func (d *DefaultTextInputDrawer) isCorner(textInput *TextInput, rowId, colId int) bool {
@@ -26,101 +29,64 @@ func (d *DefaultTextInputDrawer) isBorder(textInput *TextInput, rowId, colId int
 }
 
 func (d *DefaultTextInputDrawer) Draw(textInput *TextInput) *ebiten.Image {
+	d.cornerColor = textInput.container.GetBackgroundColor()
+
+	if d.BackgroundColor == nil {
+		d.backgroundColor = d.cornerColor
+	} else {
+		r, g, b, a := d.BackgroundColor.RGBA()
+		d.backgroundColor = color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
+	}
+
 	switch {
 	case textInput.disabled:
-		textInput.image.WritePixels(d.drawDisabled(textInput))
+		textInput.image.WritePixels(d.draw(textInput, d.ColorDisabled))
 	case textInput.hovering:
-		textInput.image.WritePixels(d.drawHovered(textInput))
+		textInput.image.WritePixels(d.draw(textInput, d.ColorHovered))
 	default:
-		textInput.image.WritePixels(d.draw(textInput))
+		textInput.image.WritePixels(d.draw(textInput, d.Color))
 	}
 
 	return textInput.image
 }
 
-func (d *DefaultTextInputDrawer) draw(textInput *TextInput) []byte {
+func (d *DefaultTextInputDrawer) draw(textInput *TextInput, borderColor color.RGBA) []byte {
 	arr := make([]byte, textInput.pixelRows*textInput.pixelCols)
-	backgroundColor := textInput.container.GetBackgroundColor()
 
-	for rowId := textInput.firstPixelRowId; rowId <= textInput.lastPixelRowId; rowId++ {
-		rowNumber := textInput.pixelCols * rowId
+	selectingFromColId := -1
+	selectingToColId := -1
 
-		for colId := textInput.firstPixelColId; colId <= textInput.lastPixelColId; colId += 4 {
-			if d.isCorner(textInput, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(textInput, rowId, colId) {
-				arr[colId+rowNumber] = d.Color.R
-				arr[colId+1+rowNumber] = d.Color.G
-				arr[colId+2+rowNumber] = d.Color.B
-				arr[colId+3+rowNumber] = d.Color.A
-			} else {
-				arr[colId+rowNumber] = d.BackgroundColor.R
-				arr[colId+1+rowNumber] = d.BackgroundColor.G
-				arr[colId+2+rowNumber] = d.BackgroundColor.B
-				arr[colId+3+rowNumber] = d.BackgroundColor.A
-			}
-		}
+	if textInput.selecting {
+		selectingFromColId = (textInput.possibleCursorPosXs[textInput.selectionStart] - textInput.scrollOffset + 3) * 4
+		selectingToColId = (textInput.possibleCursorPosXs[textInput.selectionEnd] - textInput.scrollOffset + 1) * 4
 	}
 
-	return arr
-}
-
-func (d *DefaultTextInputDrawer) drawDisabled(textInput *TextInput) []byte {
-	arr := make([]byte, textInput.pixelRows*textInput.pixelCols)
-	backgroundColor := textInput.container.GetBackgroundColor()
-
 	for rowId := textInput.firstPixelRowId; rowId <= textInput.lastPixelRowId; rowId++ {
 		rowNumber := textInput.pixelCols * rowId
 
 		for colId := textInput.firstPixelColId; colId <= textInput.lastPixelColId; colId += 4 {
-			if d.isCorner(textInput, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(textInput, rowId, colId) {
-				arr[colId+rowNumber] = d.ColorDisabled.R
-				arr[colId+1+rowNumber] = d.ColorDisabled.G
-				arr[colId+2+rowNumber] = d.ColorDisabled.B
-				arr[colId+3+rowNumber] = d.ColorDisabled.A
-			} else {
-				arr[colId+rowNumber] = d.BackgroundColor.R
-				arr[colId+1+rowNumber] = d.BackgroundColor.G
-				arr[colId+2+rowNumber] = d.BackgroundColor.B
-				arr[colId+3+rowNumber] = d.BackgroundColor.A
+			bgColor := d.backgroundColor
+			if selectingFromColId <= colId && colId <= selectingToColId &&
+				textInput.firstPixelRowId+1 < rowId && rowId < textInput.lastPixelRowId-1 {
+				bgColor = colorutils.Invert(bgColor)
+				bgColor.A = 25
 			}
-		}
-	}
 
-	return arr
-}
-
-func (d *DefaultTextInputDrawer) drawHovered(textInput *TextInput) []byte {
-	arr := make([]byte, textInput.pixelRows*textInput.pixelCols)
-	backgroundColor := textInput.container.GetBackgroundColor()
-
-	for rowId := textInput.firstPixelRowId; rowId <= textInput.lastPixelRowId; rowId++ {
-		rowNumber := textInput.pixelCols * rowId
-
-		for colId := textInput.firstPixelColId; colId <= textInput.lastPixelColId; colId += 4 {
 			if d.isCorner(textInput, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
+				arr[colId+rowNumber] = d.cornerColor.R
+				arr[colId+1+rowNumber] = d.cornerColor.G
+				arr[colId+2+rowNumber] = d.cornerColor.B
+				arr[colId+3+rowNumber] = d.cornerColor.A
 			} else if d.isBorder(textInput, rowId, colId) {
-				arr[colId+rowNumber] = d.ColorHovered.R
-				arr[colId+1+rowNumber] = d.ColorHovered.G
-				arr[colId+2+rowNumber] = d.ColorHovered.B
-				arr[colId+3+rowNumber] = d.ColorHovered.A
+				arr[colId+rowNumber] = borderColor.R
+				arr[colId+1+rowNumber] = borderColor.G
+				arr[colId+2+rowNumber] = borderColor.B
+				arr[colId+3+rowNumber] = borderColor.A
 			} else {
-				arr[colId+rowNumber] = d.BackgroundColor.R
-				arr[colId+1+rowNumber] = d.BackgroundColor.G
-				arr[colId+2+rowNumber] = d.BackgroundColor.B
-				arr[colId+3+rowNumber] = d.BackgroundColor.A
+				arr[colId+rowNumber] = bgColor.R
+				arr[colId+1+rowNumber] = bgColor.G
+				arr[colId+2+rowNumber] = bgColor.B
+				arr[colId+3+rowNumber] = bgColor.A
 			}
 		}
 	}
