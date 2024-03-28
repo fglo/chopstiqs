@@ -1,4 +1,4 @@
-name: Go Build
+name: Go Test and Build
 
 on:
   push:
@@ -7,10 +7,10 @@ on:
     branches: ["main"]
 
 jobs:
-  build:
+  test-and-build:
     strategy:
       matrix:
-        go: ["1.19.x", "1.20.x", "1.21.x"]
+        go: ["1.19.x", "1.20.x", "1.21.x", "1.22.x"]
     name: build
     runs-on: ubuntu-latest
     defaults:
@@ -41,7 +41,7 @@ jobs:
       - name: Test
         run: go test -p=1 -v ./...
 
-      - name: Build example
+      - name: Build example with every component
         run: go build -v _examples/demo/main.go
 
       - name: Build
