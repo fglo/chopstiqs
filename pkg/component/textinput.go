@@ -523,13 +523,13 @@ func (ti *TextInput) calcTextBounds() {
 func (ti *TextInput) pressedKeyHandler(key ebiten.Key) func() {
 	switch key {
 	case ebiten.KeyLeft:
-		if (input.OSMacOS() && ti.modifierKeys[ebiten.KeyMeta]) || ti.modifierKeys[ebiten.KeyControl] {
+		if input.OSMacOS() && ti.modifierKeys[ebiten.KeyMeta] || !input.OSMacOS() && ti.modifierKeys[ebiten.KeyControl] {
 			return ti.Home
 		} else if ti.modifierKeys[ebiten.KeyAlt] {
 			return ti.WordLeft
 		}
 	case ebiten.KeyRight:
-		if (input.OSMacOS() && ti.modifierKeys[ebiten.KeyMeta]) || ti.modifierKeys[ebiten.KeyControl] {
+		if input.OSMacOS() && ti.modifierKeys[ebiten.KeyMeta] || !input.OSMacOS() && ti.modifierKeys[ebiten.KeyControl] {
 			return ti.End
 		} else if ti.modifierKeys[ebiten.KeyAlt] {
 			return ti.WordRight

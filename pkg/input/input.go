@@ -35,6 +35,10 @@ var (
 )
 
 func init() {
+	SetSystem()
+}
+
+func SetSystem() {
 	switch runtime.GOOS {
 	case "windows":
 		OS = Windows
