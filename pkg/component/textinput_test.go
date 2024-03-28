@@ -384,8 +384,7 @@ func TestTextInput_handleKeyDelete(t *testing.T) {
 			want:                textInputDeleteWord,
 		},
 		{
-			name:                "RemoveSelection",
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyShift},
+			name: "RemoveSelection",
 			before: func(ti *TextInput) {
 				ti.selectingFrom = 0
 				ti.cursorPosition = 2
@@ -436,8 +435,7 @@ func TestTextInput_handleKeyBackspace(t *testing.T) {
 			want:                textInputBackspaceWord,
 		},
 		{
-			name:                "RemoveSelection",
-			pressedModifierKeys: []ebiten.Key{ebiten.KeyShift},
+			name: "RemoveSelection",
 			before: func(ti *TextInput) {
 				ti.selectingFrom = 0
 				ti.cursorPosition = 2
