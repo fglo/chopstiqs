@@ -16,11 +16,10 @@ import (
 	"golang.org/x/image/font"
 )
 
-// TODO: selecting
-
 // textInputCursorPosition is a type indicating that value is one of the possible cursor positions, not coordinate in the X axis
 type textInputCursorPosition int
 
+// textInputAction is a type refering to a action triggered by a action key with (or without) modifier keys
 type textInputAction int
 
 const (
@@ -35,6 +34,7 @@ const (
 	textInputDeleteWord
 	textInputBackspace
 	textInputBackspaceWord
+	textInputRemoveSelection
 	textInputSubmit
 )
 
@@ -153,6 +153,8 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 
 		onSubmitFunc:   func(s string) string { return s },
 		validationFunc: func(s string) (bool, string) { return true, s },
+
+		selectingFrom: -1,
 	}
 
 	ti.state = ti.idleStateFactory()
@@ -170,17 +172,18 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 	}
 
 	ti.actionHandlers = map[textInputAction]func(){
-		textInputCursorLeft:    ti.CursorLeft,
-		textInputWordLeft:      ti.WordLeft,
-		textInputCursorRight:   ti.CursorRight,
-		textInputWordRight:     ti.WordRight,
-		textInputHome:          ti.Home,
-		textInputEnd:           ti.End,
-		textInputBackspace:     ti.Backspace,
-		textInputBackspaceWord: ti.BackspaceWord,
-		textInputDelete:        ti.Delete,
-		textInputDeleteWord:    ti.DeleteWord,
-		textInputSubmit:        ti.Submit,
+		textInputCursorLeft:      ti.CursorLeft,
+		textInputWordLeft:        ti.WordLeft,
+		textInputCursorRight:     ti.CursorRight,
+		textInputWordRight:       ti.WordRight,
+		textInputHome:            ti.Home,
+		textInputEnd:             ti.End,
+		textInputBackspace:       ti.Backspace,
+		textInputBackspaceWord:   ti.BackspaceWord,
+		textInputDelete:          ti.Delete,
+		textInputDeleteWord:      ti.DeleteWord,
+		textInputRemoveSelection: ti.RemoveSelection,
+		textInputSubmit:          ti.Submit,
 	}
 
 	ti.modifierKeysPressed = map[ebiten.Key]bool{
@@ -275,7 +278,7 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 		if !ti.disabled && ti.focused {
 			ti.cursorPosition = ti.findClosestPossibleCursorPosition()
 			ti.cursor.ResetBlink()
-			ti.selecting = false
+			ti.Deselect()
 
 			ti.eventManager.Fire(ti.ClickedEvent, &TextInputClickedEventArgs{
 				TextInput: ti,
@@ -311,6 +314,15 @@ func (ti *TextInput) SetValue(value string) {
 	if valid, valueAfterValidation := ti.validationFunc(value); valid {
 		ti.setValue(valueAfterValidation)
 	}
+}
+
+func (ti *TextInput) HasSelectedText() bool {
+	return ti.selectingFrom != -1 && ti.selectingFrom != ti.cursorPosition
+}
+
+func (ti *TextInput) Deselect() {
+	ti.selecting = false
+	ti.selectingFrom = -1
 }
 
 func (ti *TextInput) CursorLeft() {
@@ -387,6 +399,15 @@ func (ti *TextInput) BackspaceWord() {
 		ti.setValue(ti.value[0:spaceToTheLeftPosition] + ti.value[ti.cursorPosition:])
 		ti.fireChangedEvent()
 		ti.moveCursor(spaceToTheLeftPosition)
+	}
+}
+
+func (ti *TextInput) RemoveSelection() {
+	if ti.HasSelectedText() {
+		ti.setValue(ti.value[0:ti.selectionStart] + ti.value[ti.selectionEnd:])
+		ti.fireChangedEvent()
+		ti.moveCursor(ti.selectionStart)
+		ti.Deselect()
 	}
 }
 
@@ -644,7 +665,11 @@ func (ti *TextInput) handleKeyEnd() textInputAction {
 }
 
 func (ti *TextInput) handleKeyDelete() textInputAction {
+	ti.checkForShift()
+
 	switch {
+	case ti.HasSelectedText():
+		return textInputRemoveSelection
 	case ti.modifierKeysPressed[ebiten.KeyShift]:
 		return textInputIdle
 	case ti.modifierKeysPressed[ebiten.KeyAlt]:
@@ -655,7 +680,11 @@ func (ti *TextInput) handleKeyDelete() textInputAction {
 }
 
 func (ti *TextInput) handleKeyBackspace() textInputAction {
+	ti.checkForShift()
+
 	switch {
+	case ti.HasSelectedText():
+		return textInputRemoveSelection
 	case ti.modifierKeysPressed[ebiten.KeyShift]:
 		return textInputIdle
 	case ti.modifierKeysPressed[ebiten.KeyAlt]:
@@ -772,7 +801,7 @@ func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 func (ti *TextInput) drawText(clr color.RGBA) {
 	textStartPosX := ti.textPosX - ti.scrollOffset + ti.padding.Left
 
-	if !ti.selecting || ti.selectingFrom == ti.cursorPosition {
+	if !ti.selecting || !ti.HasSelectedText() {
 		text.Draw(ti.image, ti.value, ti.font, textStartPosX, ti.textPosY+ti.padding.Top, clr)
 		return
 	}

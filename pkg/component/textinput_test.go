@@ -371,7 +371,7 @@ func TestTextInput_handleKeyDelete(t *testing.T) {
 	tests := []struct {
 		name                string
 		pressedModifierKeys []ebiten.Key
-		before              func()
+		before              func(*TextInput)
 		want                textInputAction
 	}{
 		{
@@ -383,17 +383,26 @@ func TestTextInput_handleKeyDelete(t *testing.T) {
 			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
 			want:                textInputDeleteWord,
 		},
+		{
+			name:                "RemoveSelection",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyShift},
+			before: func(ti *TextInput) {
+				ti.selectingFrom = 0
+				ti.cursorPosition = 2
+			},
+			want: textInputRemoveSelection,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resetInput(t)
 
-			if tt.before != nil {
-				tt.before()
-			}
-
 			ti := NewTextInput(nil)
+
+			if tt.before != nil {
+				tt.before(ti)
+			}
 
 			for _, key := range tt.pressedModifierKeys {
 				ti.modifierKeysPressed[key] = true
@@ -414,7 +423,7 @@ func TestTextInput_handleKeyBackspace(t *testing.T) {
 	tests := []struct {
 		name                string
 		pressedModifierKeys []ebiten.Key
-		before              func()
+		before              func(*TextInput)
 		want                textInputAction
 	}{
 		{
@@ -426,17 +435,26 @@ func TestTextInput_handleKeyBackspace(t *testing.T) {
 			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
 			want:                textInputBackspaceWord,
 		},
+		{
+			name:                "RemoveSelection",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyShift},
+			before: func(ti *TextInput) {
+				ti.selectingFrom = 0
+				ti.cursorPosition = 2
+			},
+			want: textInputRemoveSelection,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resetInput(t)
 
-			if tt.before != nil {
-				tt.before()
-			}
-
 			ti := NewTextInput(nil)
+
+			if tt.before != nil {
+				tt.before(ti)
+			}
 
 			for _, key := range tt.pressedModifierKeys {
 				ti.modifierKeysPressed[key] = true

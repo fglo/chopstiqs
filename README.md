@@ -101,7 +101,7 @@ What I have already:
   - horizontal list
   - vertical list
   - grid (not the greatest thing in the world)
-- text inputs (without selecting, copy/pasting and undoing :/)
+- text inputs (without copy, paste and undo functionality :/)
 
 ## Roadmap
 
@@ -112,7 +112,6 @@ What I want to achieve (not necessarily in the following order):
   - labels:
     - rethink aligning
   - text inputs:
-    - selecting text
     - ctrl+c, ctrl+v, ctrl+z
   - vertical list
     - aligning components

@@ -56,7 +56,7 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput, borderColor color.RG
 	selectingFromColId := -1
 	selectingToColId := -1
 
-	if textInput.selecting {
+	if textInput.HasSelectedText() {
 		selectingFromColId = (textInput.possibleCursorPosXs[textInput.selectionStart] - textInput.scrollOffset + 3) * 4
 		selectingToColId = (textInput.possibleCursorPosXs[textInput.selectionEnd] - textInput.scrollOffset + 1) * 4
 	}
