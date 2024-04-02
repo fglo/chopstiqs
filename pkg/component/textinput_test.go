@@ -386,8 +386,8 @@ func TestTextInput_handleKeyDelete(t *testing.T) {
 		{
 			name: "RemoveSelection",
 			before: func(ti *TextInput) {
-				ti.selectingFrom = 0
-				ti.cursorPosition = 2
+				ti.selectionStart = 0
+				ti.selectionEnd = 2
 			},
 			want: textInputRemoveSelection,
 		},
@@ -437,8 +437,8 @@ func TestTextInput_handleKeyBackspace(t *testing.T) {
 		{
 			name: "RemoveSelection",
 			before: func(ti *TextInput) {
-				ti.selectingFrom = 0
-				ti.cursorPosition = 2
+				ti.selectionStart = 0
+				ti.selectionEnd = 2
 			},
 			want: textInputRemoveSelection,
 		},

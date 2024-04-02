@@ -522,33 +522,34 @@ func (c *component) FireEvents() {
 			})
 		}
 
-		if input.MouseLeftButtonPressed {
+		if input.MouseLeftButtonJustPressed {
 			c.lastUpdateMouseLeftButtonPressed = true
-			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
-				Component: c,
-				Button:    ebiten.MouseButtonLeft,
-			})
+			c.SetFocused(true)
+		}
 
-			if !c.focused { // TODO: don't focus when other component is focused and mouse just passes
-				c.SetFocused(true)
+		if input.MouseLeftButtonPressed {
+			if c.focused {
+				c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
+					Component: c,
+					Button:    ebiten.MouseButtonLeft,
+				})
 			}
+		}
+
+		if input.MouseRightButtonJustPressed {
+			c.lastUpdateMouseRightButtonPressed = true
+			c.SetFocused(true)
 		}
 
 		if input.MouseRightButtonPressed {
-			c.lastUpdateMouseRightButtonPressed = true
-			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
-				Component: c,
-				Button:    ebiten.MouseButtonRight,
-				Inside:    mouseEntered,
-			})
-		}
-
-		if input.MouseLeftButtonJustPressed || input.MouseRightButtonJustPressed {
-			if !c.focused {
-				c.SetFocused(true)
+			if c.focused {
+				c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
+					Component: c,
+					Button:    ebiten.MouseButtonRight,
+					Inside:    mouseEntered,
+				})
 			}
 		}
-
 	} else {
 		c.lastUpdateCursorEntered = false
 
@@ -565,9 +566,7 @@ func (c *component) FireEvents() {
 		}
 
 		if input.MouseLeftButtonJustPressed && !c.lastUpdateMouseLeftButtonPressed || input.MouseRightButtonJustPressed && !c.lastUpdateMouseRightButtonPressed {
-			if c.focused {
-				c.SetFocused(false)
-			}
+			c.SetFocused(false)
 		}
 	}
 

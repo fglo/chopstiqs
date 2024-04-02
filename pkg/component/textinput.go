@@ -64,10 +64,12 @@ type TextInput struct {
 	pressedPosition  textInputCursorPosition
 	releasedPosition textInputCursorPosition
 
-	selecting      bool
-	selectingFrom  textInputCursorPosition
+	selecting     bool
+	selectingFrom textInputCursorPosition
+	// selectionStart is the min from selectingFrom and cursorPosition. Should be modified only by the updateSelectionBounds method.
 	selectionStart textInputCursorPosition
-	selectionEnd   textInputCursorPosition
+	// selectionEnd is the max from selectingFrom and cursorPosition. Should be modified only by the updateSelectionBounds method.
+	selectionEnd textInputCursorPosition
 
 	ClickedEvent   *event.Event
 	PressedEvent   *event.Event
