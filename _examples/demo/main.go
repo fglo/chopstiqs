@@ -132,7 +132,7 @@ func NewGame() *Game {
 
 	slider2TextInput := component.NewTextInput(&component.TextInputOptions{
 		Width: option.Int(25),
-		ValidationFunc: func(s string) (bool, string) {
+		InputValidationFunc: func(s string) (bool, string) {
 			val, err := strconv.ParseFloat(s, 64)
 			if err != nil {
 				return false, ""
@@ -153,6 +153,7 @@ func NewGame() *Game {
 				return fmt.Sprintf("%.2f", val)
 			}
 		},
+		SubmitOnUnfocus: true,
 	})
 	slider2TextInput.SetValue("0.50")
 

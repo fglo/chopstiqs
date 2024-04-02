@@ -69,7 +69,6 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput, borderColor color.RG
 			if selectingFromColId <= colId && colId <= selectingToColId &&
 				textInput.firstPixelRowId+1 < rowId && rowId < textInput.lastPixelRowId-1 {
 				bgColor = colorutils.Invert(bgColor)
-				bgColor.A = 25
 			}
 
 			if d.isCorner(textInput, rowId, colId) {

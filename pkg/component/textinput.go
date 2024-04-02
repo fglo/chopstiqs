@@ -60,14 +60,22 @@ type TextInput struct {
 	cursorPosition      textInputCursorPosition
 	possibleCursorPosXs []int
 
+	pressed          bool
+	pressedPosition  textInputCursorPosition
+	releasedPosition textInputCursorPosition
+
 	selecting      bool
 	selectingFrom  textInputCursorPosition
 	selectionStart textInputCursorPosition
 	selectionEnd   textInputCursorPosition
 
 	ClickedEvent   *event.Event
+	PressedEvent   *event.Event
+	ReleasedEvent  *event.Event
 	ChangedEvent   *event.Event
 	SubmittedEvent *event.Event
+
+	submitOnUnfocus bool
 
 	drawer TextInputDrawer
 
@@ -81,8 +89,8 @@ type TextInput struct {
 	actionHandlers      map[textInputAction]func()
 	modifierKeysPressed map[ebiten.Key]bool
 
-	onSubmitFunc   TextInputOnSubmitFunc
-	validationFunc TextInputValidationFunc
+	onSubmitFunc        TextInputOnSubmitFunc
+	inputValidationFunc TextInputValidationFunc
 }
 
 type TextInputOnSubmitFunc func(string) string
@@ -101,8 +109,10 @@ type TextInputOptions struct {
 
 	Padding *Padding
 
-	OnSubmitFunc   TextInputOnSubmitFunc
-	ValidationFunc TextInputValidationFunc
+	OnSubmitFunc        TextInputOnSubmitFunc
+	InputValidationFunc TextInputValidationFunc
+
+	SubmitOnUnfocus bool
 
 	CursorOptions *TextInputCursorOptions
 }
@@ -112,6 +122,19 @@ type TextInputClickedEventArgs struct {
 }
 
 type TextInputClickedHandlerFunc func(args *TextInputClickedEventArgs)
+
+type TextInputPressedEventArgs struct {
+	TextInput *TextInput
+}
+
+type TextInputPressedHandlerFunc func(args *TextInputClickedEventArgs)
+
+type TextInputReleasedEventArgs struct {
+	TextInput *TextInput
+	Inside    bool
+}
+
+type TextInputReleasedHandlerFunc func(args *TextInputReleasedEventArgs)
 
 type TextInputChangedEventArgs struct {
 	TextInput *TextInput
@@ -130,6 +153,8 @@ type TextInputSubmittedHandlerFunc func(args *TextInputSubmittedEventArgs)
 func NewTextInput(options *TextInputOptions) *TextInput {
 	ti := &TextInput{
 		ClickedEvent:   &event.Event{},
+		PressedEvent:   &event.Event{},
+		ReleasedEvent:  &event.Event{},
 		ChangedEvent:   &event.Event{},
 		SubmittedEvent: &event.Event{},
 
@@ -151,8 +176,8 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		readyForActionRepeat: &atomic.Int32{},
 		readyForNewAction:    &atomic.Bool{},
 
-		onSubmitFunc:   func(s string) string { return s },
-		validationFunc: func(s string) (bool, string) { return true, s },
+		onSubmitFunc:        func(s string) string { return s },
+		inputValidationFunc: func(s string) (bool, string) { return true, s },
 
 		selectingFrom: -1,
 	}
@@ -202,6 +227,8 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 	})
 
 	if options != nil {
+		ti.submitOnUnfocus = options.SubmitOnUnfocus
+
 		if options.Width.IsSet() {
 			ti.width = options.Width.Val()
 		}
@@ -232,8 +259,8 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 			ti.onSubmitFunc = options.OnSubmitFunc
 		}
 
-		if options.ValidationFunc != nil {
-			ti.validationFunc = options.ValidationFunc
+		if options.InputValidationFunc != nil {
+			ti.inputValidationFunc = options.InputValidationFunc
 		}
 
 		if options.CursorOptions != nil {
@@ -269,21 +296,65 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 
 	ti.component.AddFocusedHandler(func(args *ComponentFocusedEventArgs) {
 		if !ti.disabled {
-			ti.focused = args.Focused
 			ti.cursor.ResetBlink()
+
+			if !args.Focused {
+				ti.Deselect()
+
+				if ti.submitOnUnfocus {
+					ti.Submit()
+				}
+			}
 		}
 	})
 
-	ti.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
-		if !ti.disabled && ti.focused {
-			ti.cursorPosition = ti.findClosestPossibleCursorPosition()
-			ti.cursor.ResetBlink()
-			ti.Deselect()
+	ti.component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
+		if ti.disabled || args.Button != ebiten.MouseButtonLeft {
+			return
+		}
 
+		ti.checkForShift()
+
+		ti.moveCursor(ti.findClosestPossibleCursorPosition())
+
+		if !ti.pressed {
+			ti.pressedPosition = ti.cursorPosition
+			ti.releasedPosition = -1
+		}
+
+		ti.pressed = true
+
+		if !ti.selecting {
+			ti.Deselect()
+			ti.selectingFrom = ti.pressedPosition
+		}
+
+		ti.eventManager.Fire(ti.PressedEvent, &TextInputPressedEventArgs{
+			TextInput: ti,
+		})
+	})
+
+	ti.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
+		if !ti.pressed || args.Button != ebiten.MouseButtonLeft {
+			return
+		}
+
+		ti.moveCursor(ti.findClosestPossibleCursorPosition())
+		ti.pressed = false
+		ti.releasedPosition = ti.cursorPosition
+
+		ti.eventManager.Fire(ti.ReleasedEvent, &TextInputReleasedEventArgs{
+			TextInput: ti,
+			Inside:    args.Inside,
+		})
+
+		if !ti.disabled && ti.pressedPosition == ti.releasedPosition {
 			ti.eventManager.Fire(ti.ClickedEvent, &TextInputClickedEventArgs{
 				TextInput: ti,
 			})
 		}
+
+		ti.pressedPosition = -1
 	})
 }
 
@@ -311,13 +382,13 @@ func (ti *TextInput) Value() string {
 
 // SetValue sets the value of the text input.
 func (ti *TextInput) SetValue(value string) {
-	if valid, valueAfterValidation := ti.validationFunc(value); valid {
+	if valid, valueAfterValidation := ti.inputValidationFunc(value); valid {
 		ti.setValue(valueAfterValidation)
 	}
 }
 
 func (ti *TextInput) HasSelectedText() bool {
-	return ti.selectingFrom != -1 && ti.selectingFrom != ti.cursorPosition
+	return ti.selectionStart != -1 && ti.selectionEnd != -1 && ti.selectionStart != ti.selectionEnd
 }
 
 func (ti *TextInput) Deselect() {
@@ -362,7 +433,7 @@ func (ti *TextInput) End() {
 func (ti *TextInput) Insert(chars []rune) {
 	newValue := ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
 
-	if valid, valueAfterValidation := ti.validationFunc(newValue); valid {
+	if valid, valueAfterValidation := ti.inputValidationFunc(newValue); valid {
 		ti.setValue(valueAfterValidation)
 		ti.moveCursor(ti.cursorPosition + textInputCursorPosition(len(chars)))
 		ti.fireChangedEvent()
@@ -573,10 +644,9 @@ func (ti *TextInput) calcScrollOffset() int {
 func (ti *TextInput) moveCursor(position textInputCursorPosition) {
 	ti.cursorPosition = position
 	ti.cursor.ResetBlink()
-	ti.afterMove()
 }
 
-func (ti *TextInput) afterMove() {
+func (ti *TextInput) updateSelectionBounds() {
 	ti.selectionStart = textInputCursorPosition(math.Min(float64(ti.selectingFrom), float64(ti.cursorPosition)))
 	ti.selectionEnd = textInputCursorPosition(math.Max(float64(ti.selectingFrom), float64(ti.cursorPosition)))
 }
@@ -707,9 +777,12 @@ func (ti *TextInput) handleKeyEnter() textInputAction {
 func (ti *TextInput) checkForShift() {
 	if !ti.modifierKeysPressed[ebiten.KeyShift] {
 		ti.selecting = false
+		ti.Deselect()
 	} else if !ti.selecting {
 		ti.selecting = true
-		ti.selectingFrom = ti.cursorPosition
+		if !ti.HasSelectedText() {
+			ti.selectingFrom = ti.cursorPosition
+		}
 	}
 }
 
@@ -801,7 +874,7 @@ func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 func (ti *TextInput) drawText(clr color.RGBA) {
 	textStartPosX := ti.textPosX - ti.scrollOffset + ti.padding.Left
 
-	if !ti.selecting || !ti.HasSelectedText() {
+	if !ti.HasSelectedText() {
 		text.Draw(ti.image, ti.value, ti.font, textStartPosX, ti.textPosY+ti.padding.Top, clr)
 		return
 	}
@@ -825,6 +898,8 @@ func (ti *TextInput) Draw() *ebiten.Image {
 	if !ti.disabled {
 		ti.state = ti.state(ti)
 	}
+
+	ti.updateSelectionBounds()
 
 	ti.drawer.Draw(ti)
 

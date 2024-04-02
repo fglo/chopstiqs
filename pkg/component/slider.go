@@ -155,6 +155,14 @@ func NewSlider(opt *SliderOptions) *Slider {
 	s.handle = NewButton(&ButtonOptions{Width: option.Int(7), Height: option.Int(s.component.height), Drawer: s.handleDrawer})
 	s.handle.SetPosision(s.calcHandlePosition(), 0)
 
+	s.handle.AddPressedHandler(func(args *ButtonPressedEventArgs) {
+		s.sliding = true
+	})
+
+	s.handle.AddReleasedHandler(func(args *ButtonReleasedEventArgs) {
+		s.sliding = false
+	})
+
 	s.setUpComponent(opt)
 
 	s.setDrawingDimensions()
@@ -184,8 +192,14 @@ func (s *Slider) setUpComponent(opt *SliderOptions) {
 	})
 
 	s.component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
-		if !s.disabled && args.Button == ebiten.MouseButtonLeft && !s.handle.pressed {
+		if !s.disabled && args.Button == ebiten.MouseButtonLeft {
 			s.pressed = true
+			s.sliding = true
+
+			if s.handle.posX >= 0 && s.handle.posX <= float64(s.width) {
+				s.updateHandlePosition()
+			}
+
 			s.eventManager.Fire(s.PressedEvent, &SliderPressedEventArgs{
 				Slider: s,
 			})
@@ -193,33 +207,21 @@ func (s *Slider) setUpComponent(opt *SliderOptions) {
 	})
 
 	s.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
-		if !s.disabled && args.Button == ebiten.MouseButtonLeft {
+		if s.pressed && args.Button == ebiten.MouseButtonLeft {
 			s.pressed = false
+			s.sliding = false
+
 			s.eventManager.Fire(s.ReleasedEvent, &SliderReleasedEventArgs{
 				Slider: s,
 				Inside: args.Inside,
 			})
 
-			s.eventManager.Fire(s.ClickedEvent, &SliderClickedEventArgs{
-				Slider: s,
-			})
+			if !s.disabled {
+				s.eventManager.Fire(s.ClickedEvent, &SliderClickedEventArgs{
+					Slider: s,
+				})
+			}
 		}
-	})
-
-	s.PressedEvent.AddHandler(func(args interface{}) {
-		s.sliding = true
-	})
-
-	s.ReleasedEvent.AddHandler(func(args interface{}) {
-		s.sliding = false
-	})
-
-	s.handle.AddPressedHandler(func(args *ButtonPressedEventArgs) {
-		s.sliding = true
-	})
-
-	s.handle.AddReleasedHandler(func(args *ButtonReleasedEventArgs) {
-		s.sliding = false
 	})
 }
 
@@ -292,10 +294,6 @@ func (s *Slider) Draw() *ebiten.Image {
 	}
 
 	s.drawer.Draw(s)
-
-	if s.sliding && s.handle.posX >= 0 && s.handle.posX <= float64(s.width) {
-		s.updateHandlePosition()
-	}
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(s.handle.Position())

@@ -69,11 +69,11 @@ func Update() {
 	CursorPosX, CursorPosY = ebiten.CursorPosition()
 
 	MouseLeftButtonPressed = ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
-	MouseLeftButtonJustPressed = MouseLeftButtonPressed != MouseLastUpdateLeftButtonPressed
+	MouseLeftButtonJustPressed = !MouseLeftButtonPressed && MouseLastUpdateLeftButtonPressed
 	MouseLastUpdateLeftButtonPressed = MouseLeftButtonPressed
 
 	MouseRightButtonPressed = ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
-	MouseRightButtonJustPressed = MouseRightButtonPressed != MouseLastUpdateRightButtonPressed
+	MouseRightButtonJustPressed = !MouseRightButtonPressed && MouseLastUpdateRightButtonPressed
 	MouseLastUpdateRightButtonPressed = MouseRightButtonPressed
 
 	InputChars = ebiten.AppendInputChars(InputChars)

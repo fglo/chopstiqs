@@ -112,7 +112,7 @@ What I want to achieve (not necessarily in the following order):
   - labels:
     - rethink aligning
   - text inputs:
-    - ctrl+c, ctrl+v, ctrl+z
+    - shortcuts: ctrl+c, ctrl+v, ctrl+z, ctrl+shift+z, ctrl+a
   - vertical list
     - aligning components
   - horizontal list

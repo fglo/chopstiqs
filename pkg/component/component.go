@@ -85,7 +85,7 @@ type Component interface {
 	EventManager() *event.Manager
 	SetEventManager(*event.Manager)
 
-	AddFocusedHandler(f ComponentFocusedHandlerFunc) *component
+	AddFocusedHandler(f ComponentFocusedHandlerFunc) Component
 }
 
 // component is an abstraction of a user interface component, like a button or checkbox.
@@ -400,7 +400,13 @@ func (c *component) Focused() bool {
 }
 
 func (c *component) SetFocused(focused bool) {
-	c.focused = focused
+	if c.focused != focused {
+		c.focused = focused
+		c.eventManager.Fire(c.FocusedEvent, &ComponentFocusedEventArgs{
+			Component: c,
+			Focused:   focused,
+		})
+	}
 }
 
 func (c *component) calcPixelColIds() {
@@ -510,44 +516,58 @@ func (c *component) FireEvents() {
 	if mouseEntered {
 		c.lastUpdateCursorEntered = true
 
-		if input.MouseLeftButtonJustPressed {
+		if !input.MouseLeftButtonPressed && !input.MouseRightButtonPressed {
+			c.eventManager.Fire(c.CursorEnterEvent, &ComponentCursorEnterEventArgs{
+				Component: c,
+			})
+		}
+
+		if input.MouseLeftButtonPressed {
 			c.lastUpdateMouseLeftButtonPressed = true
 			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
 				Component: c,
 				Button:    ebiten.MouseButtonLeft,
 			})
 
-			if !c.focused {
-				c.eventManager.Fire(c.FocusedEvent, &ComponentFocusedEventArgs{
-					Component: c,
-					Focused:   true,
-				})
+			if !c.focused { // TODO: don't focus when other component is focused and mouse just passes
+				c.SetFocused(true)
 			}
-		} else {
-			c.eventManager.Fire(c.CursorEnterEvent, &ComponentCursorEnterEventArgs{
-				Component: c,
-			})
 		}
 
-		if input.MouseRightButtonJustPressed {
+		if input.MouseRightButtonPressed {
 			c.lastUpdateMouseRightButtonPressed = true
 			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
 				Component: c,
 				Button:    ebiten.MouseButtonRight,
+				Inside:    mouseEntered,
 			})
 		}
+
+		if input.MouseLeftButtonJustPressed || input.MouseRightButtonJustPressed {
+			if !c.focused {
+				c.SetFocused(true)
+			}
+		}
+
 	} else {
 		c.lastUpdateCursorEntered = false
+
 		c.eventManager.Fire(c.CursorExitEvent, &ComponentCursorExitEventArgs{
 			Component: c,
 		})
 
-		if input.MouseLeftButtonJustPressed && c.focused {
-			c.lastUpdateMouseLeftButtonPressed = true
-			c.eventManager.Fire(c.FocusedEvent, &ComponentFocusedEventArgs{
+		if input.MouseLeftButtonPressed && c.lastUpdateMouseLeftButtonPressed {
+			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
 				Component: c,
-				Focused:   false,
+				Button:    ebiten.MouseButtonLeft,
+				Inside:    mouseEntered,
 			})
+		}
+
+		if input.MouseLeftButtonJustPressed && !c.lastUpdateMouseLeftButtonPressed || input.MouseRightButtonJustPressed && !c.lastUpdateMouseRightButtonPressed {
+			if c.focused {
+				c.SetFocused(false)
+			}
 		}
 	}
 
@@ -570,15 +590,32 @@ func (c *component) FireEvents() {
 	}
 }
 
+// ComponentMouseButtonJustPressedHandlerFunc is a function that handles mouse button press events.
+type ComponentMouseButtonJustPressedHandlerFunc func(args *ComponentMouseButtonJustPressedEventArgs) //nolint:golint
+// ComponentMouseButtonPressedEventArgs are the arguments for mouse button press events.
+type ComponentMouseButtonJustPressedEventArgs struct { //nolint:golint
+	Component Component
+	Button    ebiten.MouseButton
+}
+
+func (c *component) AddMouseButtonJustPressedHandler(f ComponentMouseButtonJustPressedHandlerFunc) Component {
+	c.MouseButtonPressedEvent.AddHandler(func(args interface{}) {
+		f(args.(*ComponentMouseButtonJustPressedEventArgs))
+	})
+
+	return c
+}
+
 // ComponentMouseButtonPressedHandlerFunc is a function that handles mouse button press events.
 type ComponentMouseButtonPressedHandlerFunc func(args *ComponentMouseButtonPressedEventArgs) //nolint:golint
 // ComponentMouseButtonPressedEventArgs are the arguments for mouse button press events.
 type ComponentMouseButtonPressedEventArgs struct { //nolint:golint
 	Component Component
 	Button    ebiten.MouseButton
+	Inside    bool
 }
 
-func (c *component) AddMouseButtonPressedHandler(f ComponentMouseButtonPressedHandlerFunc) *component {
+func (c *component) AddMouseButtonPressedHandler(f ComponentMouseButtonPressedHandlerFunc) Component {
 	c.MouseButtonPressedEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentMouseButtonPressedEventArgs))
 	})
@@ -595,7 +632,7 @@ type ComponentMouseButtonReleasedEventArgs struct { //nolint:golint
 	Inside    bool
 }
 
-func (c *component) AddMouseButtonReleasedHandler(f ComponentMouseButtonReleasedHandlerFunc) *component {
+func (c *component) AddMouseButtonReleasedHandler(f ComponentMouseButtonReleasedHandlerFunc) Component {
 	c.MouseButtonReleasedEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentMouseButtonReleasedEventArgs))
 	})
@@ -610,7 +647,7 @@ type ComponentCursorEnterEventArgs struct { //nolint:golint
 	Component Component
 }
 
-func (c *component) AddCursorEnterHandler(f ComponentCursorEnterHandlerFunc) *component {
+func (c *component) AddCursorEnterHandler(f ComponentCursorEnterHandlerFunc) Component {
 	c.CursorEnterEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentCursorEnterEventArgs))
 	})
@@ -625,7 +662,7 @@ type ComponentCursorExitEventArgs struct { //nolint:golint
 	Component Component
 }
 
-func (c *component) AddCursorExitHandler(f ComponentCursorExitHandlerFunc) *component {
+func (c *component) AddCursorExitHandler(f ComponentCursorExitHandlerFunc) Component {
 	c.CursorExitEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentCursorExitEventArgs))
 	})
@@ -639,7 +676,7 @@ type ComponentFocusedEventArgs struct {
 	Focused   bool
 }
 
-func (c *component) AddFocusedHandler(f ComponentFocusedHandlerFunc) *component {
+func (c *component) AddFocusedHandler(f ComponentFocusedHandlerFunc) Component {
 	c.FocusedEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentFocusedEventArgs))
 	})
