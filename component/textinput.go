@@ -512,11 +512,18 @@ func (ti *TextInput) End() {
 }
 
 func (ti *TextInput) Insert(chars []rune) {
-	newValue := ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
+	newValue := ""
+
+	if ti.HasSelectedText() {
+		newValue = ti.value[0:ti.selectionStart] + string(chars) + ti.value[ti.selectionEnd:]
+	} else {
+		newValue = ti.value[0:ti.cursorPosition] + string(chars) + ti.value[ti.cursorPosition:]
+	}
 
 	if valid, valueAfterValidation := ti.inputValidationFunc(newValue); valid {
 		ti.setValue(valueAfterValidation)
 		ti.moveCursor(ti.cursorPosition + textInputCursorPosition(len(chars)))
+		ti.Deselect()
 		ti.fireChangedEvent()
 	}
 
@@ -793,8 +800,15 @@ func (ti *TextInput) calcScrollOffset() int {
 }
 
 func (ti *TextInput) moveCursor(position textInputCursorPosition) {
-	ti.cursorPosition = position
-	ti.cursor.ResetBlink()
+	switch {
+	case position < 0:
+		ti.Home()
+	case int(position) >= len(ti.possibleCursorPosXs):
+		ti.End()
+	default:
+		ti.cursorPosition = position
+		ti.cursor.ResetBlink()
+	}
 }
 
 func (ti *TextInput) updateSelectionBounds() {
