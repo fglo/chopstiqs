@@ -3,7 +3,7 @@ package component
 import (
 	"testing"
 
-	"github.com/fglo/chopstiqs/pkg/input"
+	"github.com/fglo/chopstiqs/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 

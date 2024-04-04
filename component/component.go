@@ -5,9 +5,9 @@ import (
 	"image/color"
 	"regexp"
 
-	"github.com/fglo/chopstiqs/pkg/debug"
-	"github.com/fglo/chopstiqs/pkg/event"
-	"github.com/fglo/chopstiqs/pkg/input"
+	"github.com/fglo/chopstiqs/debug"
+	"github.com/fglo/chopstiqs/event"
+	"github.com/fglo/chopstiqs/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 

@@ -1,11 +1,9 @@
-package gui
+package chopstiqs
 
 import (
-	"fmt"
-
-	"github.com/fglo/chopstiqs/pkg/component"
-	"github.com/fglo/chopstiqs/pkg/event"
-	"github.com/fglo/chopstiqs/pkg/input"
+	"github.com/fglo/chopstiqs/component"
+	"github.com/fglo/chopstiqs/event"
+	"github.com/fglo/chopstiqs/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"golang.design/x/clipboard"
 )
@@ -19,7 +17,7 @@ type GUI struct {
 	focusedComponent component.Component
 }
 
-func New() *GUI {
+func NewGUI() *GUI {
 	err := clipboard.Init()
 	if err != nil {
 		panic(err)
@@ -98,9 +96,7 @@ func (gui *GUI) handleFocusEvent(args *component.ComponentFocusedEventArgs) {
 		}
 
 		gui.focusedComponent = args.Component
-		fmt.Printf("%T: %v\n", gui.focusedComponent, args.Focused)
 	} else if gui.focusedComponent == args.Component {
-		fmt.Printf("%T: %v\n", gui.focusedComponent, args.Focused)
 		gui.focusedComponent = nil
 	}
 }

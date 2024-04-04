@@ -37,7 +37,7 @@ jobs:
       - name: Build example with every component
         run: go build -v _examples/demo/main.go
 
-  goreleaser:
+  release:
     needs: [test-and-build]
     runs-on: ubuntu-latest
     steps:

@@ -5,8 +5,8 @@ import (
 	"image/color"
 	"log"
 
-	"github.com/fglo/chopstiqs/pkg/component"
-	"github.com/fglo/chopstiqs/pkg/gui"
+	"github.com/fglo/chopstiqs/component"
+	"github.com/fglo/chopstiqs/gui"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
