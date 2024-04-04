@@ -359,8 +359,9 @@ func TestTextInput_handleKeyLeft(t *testing.T) {
 			want:                textInputCursorLeft,
 		},
 		{
-			name:                "WordLeft",
+			name:                "Left + Alt (MacOS)",
 			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
+			before:              func() { input.OS = input.MacOS },
 			want:                textInputWordLeft,
 		},
 		{
@@ -438,8 +439,9 @@ func TestTextInput_handleKeyRight(t *testing.T) {
 			want:                textInputCursorRight,
 		},
 		{
-			name:                "WordRight",
+			name:                "Right + Alt (MacOS)",
 			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
+			before:              func() { input.OS = input.MacOS },
 			want:                textInputWordRight,
 		},
 		{
@@ -569,8 +571,15 @@ func TestTextInput_handleKeyDelete(t *testing.T) {
 			want: textInputDelete,
 		},
 		{
-			name:                "DeleteWord",
+			name:                "Delete + Alt (MacOS)",
 			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
+			before:              func(*TextInput) { input.OS = input.MacOS },
+			want:                textInputDeleteWord,
+		},
+		{
+			name:                "Delete + CTRL (Windows)",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
+			before:              func(*TextInput) { input.OS = input.Windows },
 			want:                textInputDeleteWord,
 		},
 		{
@@ -620,8 +629,15 @@ func TestTextInput_handleKeyBackspace(t *testing.T) {
 			want: textInputBackspace,
 		},
 		{
-			name:                "BackspaceWord",
+			name:                "Backspace + Alt (MacOS)",
 			pressedModifierKeys: []ebiten.Key{ebiten.KeyAlt},
+			before:              func(*TextInput) { input.OS = input.MacOS },
+			want:                textInputBackspaceWord,
+		},
+		{
+			name:                "Backspace + CTRL (Windows)",
+			pressedModifierKeys: []ebiten.Key{ebiten.KeyControl},
+			before:              func(*TextInput) { input.OS = input.Windows },
 			want:                textInputBackspaceWord,
 		},
 		{
