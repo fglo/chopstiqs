@@ -6,6 +6,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/hajimehoshi/ebiten/v2 v2.6.6
 	github.com/matryer/is v1.4.1
+	golang.design/x/clipboard v0.7.0
 	golang.org/x/image v0.15.0
 )
 

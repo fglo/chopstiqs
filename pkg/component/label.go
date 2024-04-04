@@ -202,6 +202,6 @@ func (l *Label) SetPosY(posY float64) {
 }
 
 func (l *Label) SetPosistion(posX, posY float64) {
-	l.component.SetPosision(posX, posY)
+	l.component.SetPosition(posX, posY)
 	l.align()
 }

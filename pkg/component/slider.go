@@ -153,7 +153,7 @@ func NewSlider(opt *SliderOptions) *Slider {
 	s.stepPixels = float64(s.component.width-4) / steps
 
 	s.handle = NewButton(&ButtonOptions{Width: option.Int(7), Height: option.Int(s.component.height), Drawer: s.handleDrawer})
-	s.handle.SetPosision(s.calcHandlePosition(), 0)
+	s.handle.SetPosition(s.calcHandlePosition(), 0)
 
 	s.handle.AddPressedHandler(func(args *ButtonPressedEventArgs) {
 		s.sliding = true
@@ -255,9 +255,9 @@ func (s *Slider) GetBackgroundColor() color.RGBA {
 	return s.container.GetBackgroundColor()
 }
 
-func (s *Slider) SetPosision(posX, posY float64) {
-	s.component.SetPosision(posX, posY)
-	s.handle.SetPosision(s.handle.posX, s.handle.posY)
+func (s *Slider) SetPosition(posX, posY float64) {
+	s.component.SetPosition(posX, posY)
+	s.handle.SetPosition(s.handle.posX, s.handle.posY)
 }
 
 func (s *Slider) setContainer(container *Container) {
@@ -308,7 +308,7 @@ func (s *Slider) Draw() *ebiten.Image {
 func (s *Slider) Set(value float64) {
 	prevValue := s.value
 	s.value = value
-	s.handle.SetPosision(s.calcHandlePosition(), 0)
+	s.handle.SetPosition(s.calcHandlePosition(), 0)
 	s.fireEventOnChange(prevValue)
 }
 

@@ -1,10 +1,13 @@
 package gui
 
 import (
+	"fmt"
+
 	"github.com/fglo/chopstiqs/pkg/component"
 	"github.com/fglo/chopstiqs/pkg/event"
 	"github.com/fglo/chopstiqs/pkg/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
+	"golang.design/x/clipboard"
 )
 
 type GUI struct {
@@ -17,6 +20,11 @@ type GUI struct {
 }
 
 func New() *GUI {
+	err := clipboard.Init()
+	if err != nil {
+		panic(err)
+	}
+
 	return &GUI{
 		eventManager: event.NewManager(),
 	}
@@ -90,7 +98,9 @@ func (gui *GUI) handleFocusEvent(args *component.ComponentFocusedEventArgs) {
 		}
 
 		gui.focusedComponent = args.Component
+		fmt.Printf("%T: %v\n", gui.focusedComponent, args.Focused)
 	} else if gui.focusedComponent == args.Component {
+		fmt.Printf("%T: %v\n", gui.focusedComponent, args.Focused)
 		gui.focusedComponent = nil
 	}
 }

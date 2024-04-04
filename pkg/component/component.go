@@ -64,8 +64,8 @@ type Component interface {
 	SetPosX(posX float64)
 	// SetPosY sets the component's position Y.
 	SetPosY(posY float64)
-	// SetPosision sets the component's position (x and y)
-	SetPosision(posX, posY float64)
+	// SetPosition sets the component's position (x and y)
+	SetPosition(posX, posY float64)
 	// SetPadding sets the component's padding.
 	SetPadding(padding Padding)
 	// SetPaddingTop sets the component's padding top.
@@ -302,8 +302,8 @@ func (c *component) SetPosY(posY float64) {
 	c.setRect()
 }
 
-// SetPosision sets the component's position (x and y).
-func (c *component) SetPosision(posX, posY float64) {
+// SetPosition sets the component's position (x and y).
+func (c *component) SetPosition(posX, posY float64) {
 	c.posX = posX
 	if c.container != nil {
 		c.absPosX = posX + c.container.AbsPosX()
@@ -565,7 +565,7 @@ func (c *component) FireEvents() {
 			})
 		}
 
-		if input.MouseLeftButtonJustPressed && !c.lastUpdateMouseLeftButtonPressed || input.MouseRightButtonJustPressed && !c.lastUpdateMouseRightButtonPressed {
+		if input.MouseLeftButtonJustPressed || input.MouseRightButtonJustPressed {
 			c.SetFocused(false)
 		}
 	}

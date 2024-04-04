@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync/atomic"
 	"time"
+	"unicode/utf8"
 
 	colorutils "github.com/fglo/chopstiqs/internal/color"
 	fontutils "github.com/fglo/chopstiqs/internal/font"
@@ -13,6 +14,7 @@ import (
 	"github.com/fglo/chopstiqs/pkg/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.design/x/clipboard"
 	"golang.org/x/image/font"
 )
 
@@ -32,11 +34,53 @@ const (
 	textInputEnd
 	textInputDelete
 	textInputDeleteWord
+	textInputDeleteToEnd
 	textInputBackspace
 	textInputBackspaceWord
+	textInputBackspaceToBeginning
+	textInputRemoveLine
 	textInputRemoveSelection
 	textInputSubmit
+	textInputSelectAll
+	textInputUndo
+	textInputRedo
+	textInputCopy
+	textInputPaste
+	textInputCut
+	textInputUnfocus
 )
+
+var (
+	textInputActionName = map[textInputAction]string{
+		textInputIdle:                 "textInputIdle",
+		textInputCursorLeft:           "textInputCursorLeft",
+		textInputWordLeft:             "textInputWordLeft",
+		textInputCursorRight:          "textInputCursorRight",
+		textInputWordRight:            "textInputWordRight",
+		textInputHome:                 "textInputHome",
+		textInputEnd:                  "textInputEnd",
+		textInputDelete:               "textInputDelete",
+		textInputDeleteWord:           "textInputDeleteWord",
+		textInputDeleteToEnd:          "textInputDeleteToEnd",
+		textInputBackspace:            "textInputBackspace",
+		textInputBackspaceWord:        "textInputBackspaceWord",
+		textInputBackspaceToBeginning: "textInputBackspaceToBeginning",
+		textInputRemoveLine:           "textInputRemoveLine",
+		textInputRemoveSelection:      "textInputRemoveSelection",
+		textInputSubmit:               "textInputSubmit",
+		textInputSelectAll:            "textInputSelectAll",
+		textInputUndo:                 "textInputUndo",
+		textInputRedo:                 "textInputRedo",
+		textInputCopy:                 "textInputCopy",
+		textInputPaste:                "textInputPaste",
+		textInputCut:                  "textInputCut",
+		textInputUnfocus:              "textInputUnfocus",
+	}
+)
+
+func (action textInputAction) String() string {
+	return textInputActionName[action]
+}
 
 type TextInput struct {
 	component
@@ -83,10 +127,11 @@ type TextInput struct {
 
 	state textInputState
 
-	lastActionKeyPressed ebiten.Key
+	lastAction           textInputAction
 	readyForActionRepeat *atomic.Int32
 	readyForNewAction    *atomic.Bool
 
+	actionKeys          []ebiten.Key
 	actionKeyHandlers   map[ebiten.Key]func() textInputAction
 	actionHandlers      map[textInputAction]func()
 	modifierKeysPressed map[ebiten.Key]bool
@@ -174,7 +219,7 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 			ColorHovered:  color.RGBA{250, 250, 250, 255},
 		},
 
-		lastActionKeyPressed: input.KeyNone,
+		lastAction:           textInputIdle,
 		readyForActionRepeat: &atomic.Int32{},
 		readyForNewAction:    &atomic.Bool{},
 
@@ -188,7 +233,22 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 	ti.readyForActionRepeat.Store(0)
 	ti.readyForNewAction.Store(true)
 
+	ti.actionKeys = []ebiten.Key{
+		ebiten.KeyControl,
+		ebiten.KeyMeta,
+		ebiten.KeyLeft,
+		ebiten.KeyRight,
+		ebiten.KeyHome,
+		ebiten.KeyEnd,
+		ebiten.KeyBackspace,
+		ebiten.KeyDelete,
+		ebiten.KeyEnter,
+		ebiten.KeyEscape,
+	}
+
 	ti.actionKeyHandlers = map[ebiten.Key]func() textInputAction{
+		ebiten.KeyControl:   ti.handleKeyCtrl,
+		ebiten.KeyMeta:      ti.handleKeyMeta,
 		ebiten.KeyLeft:      ti.handleKeyLeft,
 		ebiten.KeyRight:     ti.handleKeyRight,
 		ebiten.KeyHome:      ti.handleKeyHome,
@@ -196,21 +256,32 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		ebiten.KeyBackspace: ti.handleKeyBackspace,
 		ebiten.KeyDelete:    ti.handleKeyDelete,
 		ebiten.KeyEnter:     ti.handleKeyEnter,
+		ebiten.KeyEscape:    ti.handleKeyEscape,
 	}
 
 	ti.actionHandlers = map[textInputAction]func(){
-		textInputCursorLeft:      ti.CursorLeft,
-		textInputWordLeft:        ti.WordLeft,
-		textInputCursorRight:     ti.CursorRight,
-		textInputWordRight:       ti.WordRight,
-		textInputHome:            ti.Home,
-		textInputEnd:             ti.End,
-		textInputBackspace:       ti.Backspace,
-		textInputBackspaceWord:   ti.BackspaceWord,
-		textInputDelete:          ti.Delete,
-		textInputDeleteWord:      ti.DeleteWord,
-		textInputRemoveSelection: ti.RemoveSelection,
-		textInputSubmit:          ti.Submit,
+		textInputCursorLeft:           ti.CursorLeft,
+		textInputWordLeft:             ti.WordLeft,
+		textInputCursorRight:          ti.CursorRight,
+		textInputWordRight:            ti.WordRight,
+		textInputHome:                 ti.Home,
+		textInputEnd:                  ti.End,
+		textInputBackspace:            ti.Backspace,
+		textInputBackspaceWord:        ti.BackspaceWord,
+		textInputBackspaceToBeginning: ti.BackspaceToBegining,
+		textInputDelete:               ti.Delete,
+		textInputDeleteWord:           ti.DeleteWord,
+		textInputDeleteToEnd:          ti.DeleteToEnd,
+		textInputRemoveLine:           ti.RemoveLine,
+		textInputRemoveSelection:      ti.RemoveSelection,
+		textInputSubmit:               ti.Submit,
+		textInputSelectAll:            ti.SelectAll,
+		// textInputUndo
+		// textInputRedo
+		textInputCopy:    ti.Copy,
+		textInputPaste:   ti.Paste,
+		textInputCut:     ti.Cut,
+		textInputUnfocus: ti.Unfocus,
 	}
 
 	ti.modifierKeysPressed = map[ebiten.Key]bool{
@@ -393,6 +464,14 @@ func (ti *TextInput) HasSelectedText() bool {
 	return ti.selectionStart != -1 && ti.selectionEnd != -1 && ti.selectionStart != ti.selectionEnd
 }
 
+func (ti *TextInput) GetSelectedText() string {
+	if ti.HasSelectedText() {
+		return ti.value[ti.selectionStart:ti.selectionEnd]
+	}
+
+	return ""
+}
+
 func (ti *TextInput) Deselect() {
 	ti.selecting = false
 	ti.selectingFrom = -1
@@ -458,6 +537,14 @@ func (ti *TextInput) DeleteWord() {
 	}
 }
 
+func (ti *TextInput) DeleteToEnd() {
+	if ti.cursorPosition < textInputCursorPosition(len(ti.value)) {
+		ti.setValue(ti.value[0:ti.cursorPosition])
+		ti.fireChangedEvent()
+		ti.End()
+	}
+}
+
 func (ti *TextInput) Backspace() {
 	if ti.cursorPosition > 0 {
 		ti.setValue(ti.value[0:ti.cursorPosition-1] + ti.value[ti.cursorPosition:])
@@ -471,7 +558,24 @@ func (ti *TextInput) BackspaceWord() {
 		spaceToTheLeftPosition := ti.findPositionBeforeWord()
 		ti.setValue(ti.value[0:spaceToTheLeftPosition] + ti.value[ti.cursorPosition:])
 		ti.fireChangedEvent()
-		ti.moveCursor(spaceToTheLeftPosition)
+		ti.Home()
+	}
+}
+
+func (ti *TextInput) BackspaceToBegining() {
+	if ti.cursorPosition > 0 {
+		ti.setValue(ti.value[ti.cursorPosition:])
+		ti.fireChangedEvent()
+		ti.moveCursor(0)
+	}
+}
+
+func (ti *TextInput) RemoveLine() {
+	if ti.HasSelectedText() {
+		ti.setValue("")
+		ti.fireChangedEvent()
+		ti.moveCursor(ti.selectionStart)
+		ti.Deselect()
 	}
 }
 
@@ -490,6 +594,51 @@ func (ti *TextInput) Submit() {
 		TextInput: ti,
 		Text:      ti.value,
 	})
+}
+
+func (ti *TextInput) Unfocus() {
+	ti.SetFocused(false)
+}
+
+func (ti *TextInput) SelectAll() {
+	ti.selectingFrom = 0
+	ti.End()
+}
+
+func (ti *TextInput) Copy() {
+	if selectedText := ti.GetSelectedText(); len(selectedText) > 0 {
+		clipboard.Write(clipboard.FmtText, []byte(selectedText))
+	}
+}
+
+func (ti *TextInput) Paste() {
+	pastedText := clipboard.Read(clipboard.FmtText)
+	if len(pastedText) > 0 {
+		ti.RemoveSelection()
+
+		runes := make([]rune, 0)
+		i := 0
+		bytes := len(pastedText)
+		for bytes > 0 {
+			r, n := utf8.DecodeRune(pastedText[i:])
+			runes = append(runes, r)
+			bytes -= n
+			i += n
+		}
+
+		ti.Insert(runes)
+	}
+}
+
+func (ti *TextInput) Cut() {
+	ti.Copy()
+	ti.RemoveSelection()
+}
+
+func (ti *TextInput) Undo() {
+}
+
+func (ti *TextInput) Redo() {
 }
 
 func (ti *TextInput) fireChangedEvent() {
@@ -649,8 +798,13 @@ func (ti *TextInput) moveCursor(position textInputCursorPosition) {
 }
 
 func (ti *TextInput) updateSelectionBounds() {
-	ti.selectionStart = textInputCursorPosition(math.Min(float64(ti.selectingFrom), float64(ti.cursorPosition)))
-	ti.selectionEnd = textInputCursorPosition(math.Max(float64(ti.selectingFrom), float64(ti.cursorPosition)))
+	if ti.selectingFrom != -1 {
+		ti.selectionStart = textInputCursorPosition(math.Min(float64(ti.selectingFrom), float64(ti.cursorPosition)))
+		ti.selectionEnd = textInputCursorPosition(math.Max(float64(ti.selectingFrom), float64(ti.cursorPosition)))
+	} else {
+		ti.selectionStart = 0
+		ti.selectionEnd = 0
+	}
 }
 
 func (ti *TextInput) setValue(value string) {
@@ -673,15 +827,23 @@ func (ti *TextInput) actionKeyPressed() (bool, ebiten.Key) {
 		ti.modifierKeysPressed[key] = input.KeyPressed[key]
 	}
 
-	for key := range ti.actionKeyHandlers {
+	for _, key := range ti.actionKeys {
 		if input.KeyPressed[key] {
 			return true, key
 		}
 	}
 
-	ti.lastActionKeyPressed = input.KeyNone
+	ti.lastAction = textInputIdle
 
 	return false, input.KeyNone
+}
+
+func (ti *TextInput) handleActionKey(key ebiten.Key) textInputAction {
+	if handler, found := ti.actionKeyHandlers[key]; found {
+		return handler()
+	}
+
+	return textInputIdle
 }
 
 func (ti *TextInput) handleKeyLeft() textInputAction {
@@ -690,10 +852,14 @@ func (ti *TextInput) handleKeyLeft() textInputAction {
 	switch {
 	case ti.modifierKeysPressed[ebiten.KeyAlt] && (ti.modifierKeysPressed[ebiten.KeyControl] || ti.modifierKeysPressed[ebiten.KeyMeta]):
 		return textInputIdle
-	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+	case ti.modifierKeysPressed[ebiten.KeyAlt] && input.OSMacOS():
 		return textInputWordLeft
-	case input.OSMacOS() && ti.modifierKeysPressed[ebiten.KeyMeta] || !input.OSMacOS() && ti.modifierKeysPressed[ebiten.KeyControl]:
+	case ti.modifierKeysPressed[ebiten.KeyControl] && !input.OSMacOS():
+		return textInputWordLeft
+	case ti.modifierKeysPressed[ebiten.KeyMeta] && input.OSMacOS():
 		return textInputHome
+	case ti.modifierKeysPressed[ebiten.KeyMeta] && !input.OSMacOS():
+		return textInputIdle
 	default:
 		return textInputCursorLeft
 	}
@@ -705,10 +871,14 @@ func (ti *TextInput) handleKeyRight() textInputAction {
 	switch {
 	case ti.modifierKeysPressed[ebiten.KeyAlt] && (ti.modifierKeysPressed[ebiten.KeyControl] || ti.modifierKeysPressed[ebiten.KeyMeta]):
 		return textInputIdle
-	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+	case ti.modifierKeysPressed[ebiten.KeyAlt] && input.OSMacOS():
 		return textInputWordRight
-	case input.OSMacOS() && ti.modifierKeysPressed[ebiten.KeyMeta] || !input.OSMacOS() && ti.modifierKeysPressed[ebiten.KeyControl]:
+	case ti.modifierKeysPressed[ebiten.KeyControl] && !input.OSMacOS():
+		return textInputWordRight
+	case ti.modifierKeysPressed[ebiten.KeyMeta] && input.OSMacOS():
 		return textInputEnd
+	case ti.modifierKeysPressed[ebiten.KeyMeta] && !input.OSMacOS():
+		return textInputIdle
 	default:
 		return textInputCursorRight
 	}
@@ -717,23 +887,13 @@ func (ti *TextInput) handleKeyRight() textInputAction {
 func (ti *TextInput) handleKeyHome() textInputAction {
 	ti.checkForShift()
 
-	switch {
-	case ti.modifierKeysPressed[ebiten.KeyAlt]:
-		return textInputIdle
-	default:
-		return textInputHome
-	}
+	return textInputHome
 }
 
 func (ti *TextInput) handleKeyEnd() textInputAction {
 	ti.checkForShift()
 
-	switch {
-	case ti.modifierKeysPressed[ebiten.KeyAlt]:
-		return textInputIdle
-	default:
-		return textInputEnd
-	}
+	return textInputEnd
 }
 
 func (ti *TextInput) handleKeyDelete() textInputAction {
@@ -742,10 +902,16 @@ func (ti *TextInput) handleKeyDelete() textInputAction {
 	switch {
 	case ti.HasSelectedText():
 		return textInputRemoveSelection
-	case ti.modifierKeysPressed[ebiten.KeyShift]:
+	case ti.modifierKeysPressed[ebiten.KeyShift] && !input.OSMacOS():
+		return textInputRemoveLine
+	case ti.modifierKeysPressed[ebiten.KeyShift] && input.OSMacOS():
 		return textInputIdle
-	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+	case ti.modifierKeysPressed[ebiten.KeyControl] && !input.OSMacOS():
 		return textInputDeleteWord
+	case ti.modifierKeysPressed[ebiten.KeyAlt] && input.OSMacOS():
+		return textInputDeleteWord
+	case ti.modifierKeysPressed[ebiten.KeyMeta] && input.OSMacOS():
+		return textInputDeleteToEnd
 	default:
 		return textInputDelete
 	}
@@ -757,10 +923,12 @@ func (ti *TextInput) handleKeyBackspace() textInputAction {
 	switch {
 	case ti.HasSelectedText():
 		return textInputRemoveSelection
-	case ti.modifierKeysPressed[ebiten.KeyShift]:
-		return textInputIdle
-	case ti.modifierKeysPressed[ebiten.KeyAlt]:
+	case ti.modifierKeysPressed[ebiten.KeyControl] && !input.OSMacOS():
 		return textInputBackspaceWord
+	case ti.modifierKeysPressed[ebiten.KeyAlt] && input.OSMacOS():
+		return textInputBackspaceWord
+	case ti.modifierKeysPressed[ebiten.KeyMeta] && input.OSMacOS():
+		return textInputBackspaceToBeginning
 	default:
 		return textInputBackspace
 	}
@@ -774,6 +942,80 @@ func (ti *TextInput) handleKeyEnter() textInputAction {
 	}
 
 	return textInputSubmit
+}
+
+func (ti *TextInput) handleKeyEscape() textInputAction {
+	for _, pressed := range ti.modifierKeysPressed {
+		if pressed {
+			return textInputIdle
+		}
+	}
+
+	return textInputUnfocus
+}
+
+func (ti *TextInput) handleKeyCtrl() textInputAction {
+	if input.OSMacOS() {
+		return textInputIdle
+	}
+
+	switch {
+	case input.KeyPressed[ebiten.KeyLeft]:
+		return ti.handleKeyLeft()
+	case input.KeyPressed[ebiten.KeyRight]:
+		return ti.handleKeyRight()
+	case input.KeyPressed[ebiten.KeyBackspace]:
+		return ti.handleKeyBackspace()
+	case input.KeyPressed[ebiten.KeyDelete]:
+		return ti.handleKeyDelete()
+	case input.KeyPressed[ebiten.KeyA]:
+		return textInputSelectAll
+	case input.KeyPressed[ebiten.KeyShift] && input.KeyPressed[ebiten.KeyZ]:
+		return textInputRedo
+	case input.KeyPressed[ebiten.KeyY]:
+		return textInputRedo
+	case input.KeyPressed[ebiten.KeyZ]:
+		return textInputUndo
+	case input.KeyPressed[ebiten.KeyC]:
+		return textInputCopy
+	case input.KeyPressed[ebiten.KeyV]:
+		return textInputPaste
+	case input.KeyPressed[ebiten.KeyX]:
+		return textInputCut
+	default:
+		return textInputIdle
+	}
+}
+
+func (ti *TextInput) handleKeyMeta() textInputAction {
+	if !input.OSMacOS() {
+		return textInputIdle
+	}
+
+	switch {
+	case input.KeyPressed[ebiten.KeyLeft]:
+		return ti.handleKeyLeft()
+	case input.KeyPressed[ebiten.KeyRight]:
+		return ti.handleKeyRight()
+	case input.KeyPressed[ebiten.KeyBackspace]:
+		return ti.handleKeyBackspace()
+	case input.KeyPressed[ebiten.KeyDelete]:
+		return ti.handleKeyDelete()
+	case input.KeyPressed[ebiten.KeyA]:
+		return textInputSelectAll
+	case input.KeyPressed[ebiten.KeyShift] && input.KeyPressed[ebiten.KeyZ]:
+		return textInputRedo
+	case input.KeyPressed[ebiten.KeyZ]:
+		return textInputUndo
+	case input.KeyPressed[ebiten.KeyC]:
+		return textInputCopy
+	case input.KeyPressed[ebiten.KeyV]:
+		return textInputPaste
+	case input.KeyPressed[ebiten.KeyX]:
+		return textInputCut
+	default:
+		return textInputIdle
+	}
 }
 
 func (ti *TextInput) checkForShift() {
@@ -801,7 +1043,7 @@ func (ti *TextInput) idleStateFactory() textInputState {
 		}
 
 		if pressed, key := ti.actionKeyPressed(); pressed {
-			return ti.actionStateFactory(key)
+			return ti.actionStateFactory(ti.handleActionKey(key))
 		}
 
 		return ti.idleStateFactory()
@@ -817,26 +1059,31 @@ func (ti *TextInput) inputStateFactory(chars []rune) textInputState {
 		ti.Insert(chars)
 
 		if pressed, key := ti.actionKeyPressed(); pressed {
-			return ti.actionStateFactory(key)
+			return ti.actionStateFactory(ti.handleActionKey(key))
 		}
 
 		return ti.idleStateFactory()
 	}
 }
 
-var textInputActionKeyRepeatDelay = 350 * time.Millisecond
-var textInputActionKeyRepeatInterval = 35 * time.Millisecond
+var textInputActionRepeatDelay = 350 * time.Millisecond
+var textInputActionRepeatInterval = 35 * time.Millisecond
 var textInputDelayBeforeNewAction = 35 * time.Millisecond
 
-func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
+func (ti *TextInput) actionStateFactory(action textInputAction) textInputState {
 	return func(ti *TextInput) textInputState {
 		if !ti.focused || ti.disabled {
 			return ti.idleStateFactory()
 		}
 
-		delay := textInputActionKeyRepeatDelay
-		if ti.lastActionKeyPressed == pressedKey {
-			delay = textInputActionKeyRepeatInterval
+		if action == textInputIdle {
+			ti.lastAction = action
+			return ti.idleStateFactory()
+		}
+
+		delay := textInputActionRepeatDelay
+		if ti.lastAction == action {
+			delay = textInputActionRepeatInterval
 
 			if ti.readyForActionRepeat.Load() > 0 {
 				return ti.idleStateFactory()
@@ -845,19 +1092,9 @@ func (ti *TextInput) actionStateFactory(pressedKey ebiten.Key) textInputState {
 			return ti.idleStateFactory()
 		}
 
-		ti.lastActionKeyPressed = pressedKey
-
-		handler, found := ti.actionKeyHandlers[pressedKey]
-		if !found {
-			return ti.idleStateFactory()
-		}
-
-		action := handler()
-		if action == textInputIdle {
-			return ti.idleStateFactory()
-		}
-
 		ti.actionHandlers[action]()
+
+		ti.lastAction = action
 
 		ti.readyForActionRepeat.Add(1)
 		time.AfterFunc(delay, func() {

@@ -101,24 +101,28 @@ What I have already:
   - horizontal list
   - vertical list
   - grid (not the greatest thing in the world)
-- text inputs (without copy, paste and undo functionality :/)
+- text inputs (without undo/redo functionality :/)
 
 ## Roadmap
 
 What I want to achieve (not necessarily in the following order):
 
 - better documentation
-- component beviour:
+- component behaviour:
   - labels:
     - rethink aligning
   - text inputs:
-    - shortcuts: ctrl+c, ctrl+v, ctrl+z, ctrl+shift+z, ctrl+a
+    - shortcuts: ctrl+z, ctrl+shift+z, ctrl+y
   - vertical list
     - aligning components
   - horizontal list
     - aligning components
-  - grid
-    - redesing
+  - grid container layout
+    - redesign
+  - drawers:
+    - initialization
+    - caching
+    - separate package
 - more components:
   - dropdowns
   - radio groups
@@ -130,5 +134,4 @@ What I want to achieve (not necessarily in the following order):
   - horizontal scroll
   - flexbox
 - reusing cached images if component wasn't modified
-- drawers in separate package(?)
 - layers (mulitple containers on top of each other)

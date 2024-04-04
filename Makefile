@@ -35,7 +35,7 @@ watch-demo: ## Run the code with cosmtrek/air to have automatic reload on change
 
 ## Test:
 test: ## Run the tests of the project
-	$(GOTEST) -v -race ./... $(OUTPUT_OPTIONS)
+	$(GOTEST) -p 1 -v -race ./... $(OUTPUT_OPTIONS)
 
 ## Format:
 tidy: ## go mod tidy
