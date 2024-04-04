@@ -10,6 +10,15 @@ import (
 	"github.com/matryer/is"
 )
 
+func newTestTextInput() *TextInput {
+	eventManager := event.NewManager()
+
+	ti := NewTextInput(nil)
+	ti.SetEventManager(eventManager)
+
+	return ti
+}
+
 func handleState(t *testing.T, ti *TextInput) {
 	t.Helper()
 
@@ -32,11 +41,8 @@ func TestTextInput_PressedLeft(t *testing.T) {
 	is := is.New(t)
 	resetInput(t)
 
-	eventManager := event.NewManager()
-
-	ti := NewTextInput(&TextInputOptions{})
+	ti := newTestTextInput()
 	ti.SetValue("qwerty")
-	ti.SetEventManager(eventManager)
 
 	ti.focused = true
 	ti.cursorPosition = 2
@@ -67,11 +73,8 @@ func TestTextInput_PressedLeftWithControl_onWindows(t *testing.T) {
 
 	input.OS = input.Windows
 
-	eventManager := event.NewManager()
-
-	ti := NewTextInput(&TextInputOptions{})
+	ti := newTestTextInput()
 	ti.SetValue("01234 6789")
-	ti.SetEventManager(eventManager)
 
 	ti.focused = true
 	ti.cursorPosition = 9
@@ -102,11 +105,8 @@ func TestTextInput_PressedLeftWithAlt_onMacOS(t *testing.T) {
 
 	input.OS = input.MacOS
 
-	eventManager := event.NewManager()
-
-	ti := NewTextInput(&TextInputOptions{})
+	ti := newTestTextInput()
 	ti.SetValue("01234 6789")
-	ti.SetEventManager(eventManager)
 
 	ti.focused = true
 	ti.cursorPosition = 9
@@ -135,11 +135,8 @@ func TestTextInput_PressedLeftWithShift(t *testing.T) {
 	is := is.New(t)
 	resetInput(t)
 
-	eventManager := event.NewManager()
-
-	ti := NewTextInput(&TextInputOptions{})
+	ti := newTestTextInput()
 	ti.SetValue("qwerty")
-	ti.SetEventManager(eventManager)
 
 	ti.focused = true
 	ti.cursorPosition = 2
@@ -160,11 +157,8 @@ func TestTextInput_PressedRight(t *testing.T) {
 	is := is.New(t)
 	resetInput(t)
 
-	eventManager := event.NewManager()
-
-	ti := NewTextInput(&TextInputOptions{})
+	ti := newTestTextInput()
 	ti.SetValue("qwerty")
-	ti.SetEventManager(eventManager)
 
 	ti.focused = true
 	ti.cursorPosition = 0
@@ -195,11 +189,8 @@ func TestTextInput_PressedRightWithControl_onWindows(t *testing.T) {
 
 	input.OS = input.Windows
 
-	eventManager := event.NewManager()
-
-	ti := NewTextInput(&TextInputOptions{})
+	ti := newTestTextInput()
 	ti.SetValue("01234 6789")
-	ti.SetEventManager(eventManager)
 
 	ti.focused = true
 	ti.cursorPosition = 1
@@ -230,11 +221,8 @@ func TestTextInput_PressedRightWithAlt_onMacOS(t *testing.T) {
 
 	input.OS = input.MacOS
 
-	eventManager := event.NewManager()
-
-	ti := NewTextInput(&TextInputOptions{})
+	ti := newTestTextInput()
 	ti.SetValue("01234 6789")
-	ti.SetEventManager(eventManager)
 
 	ti.focused = true
 	ti.cursorPosition = 1
@@ -263,11 +251,8 @@ func TestTextInput_PressedRightWithShift(t *testing.T) {
 	is := is.New(t)
 	resetInput(t)
 
-	eventManager := event.NewManager()
-
-	ti := NewTextInput(&TextInputOptions{})
+	ti := newTestTextInput()
 	ti.SetValue("qwerty")
-	ti.SetEventManager(eventManager)
 
 	ti.focused = true
 	ti.cursorPosition = 0
@@ -290,11 +275,8 @@ func TestTextInput_PressedEnter(t *testing.T) {
 
 	firedEventsCounter := 0
 
-	eventManager := event.NewManager()
-
-	ti := NewTextInput(&TextInputOptions{})
+	ti := newTestTextInput()
 	ti.SetValue("qwerty")
-	ti.SetEventManager(eventManager)
 	ti.AddSubmittedHandler(func(args *TextInputSubmittedEventArgs) {
 		firedEventsCounter++
 	})
@@ -1343,6 +1325,92 @@ func TestTextInput_keyCombinations(t *testing.T) {
 				}
 			} else {
 				t.Fatal("No action keys were pressed.")
+			}
+		})
+	}
+}
+
+func TestTextInput_Insert(t *testing.T) {
+	type args struct {
+		chars []rune
+	}
+
+	tests := []struct {
+		name   string
+		args   args
+		before func(ti *TextInput)
+		want   string
+	}{
+		{
+			name: "Insert some characters",
+			args: args{
+				chars: []rune{'q', 'w', 'e', 'r', 't', 'y'},
+			},
+			want: "qwerty",
+		},
+		{
+			name: "Insert some characters at the beginning",
+			args: args{
+				chars: []rune{'q', 'w', 'e'},
+			},
+			before: func(ti *TextInput) {
+				ti.value = "rty"
+				ti.cursorPosition = 0
+			},
+			want: "qwerty",
+		},
+		{
+			name: "Insert some characters in the middle",
+			args: args{
+				chars: []rune{'y', 'u', 'i'},
+			},
+			before: func(ti *TextInput) {
+				ti.value = "qwertop"
+				ti.cursorPosition = 5
+			},
+			want: "qwertyuiop",
+		},
+		{
+			name: "Insert some characters at the end",
+			args: args{
+				chars: []rune{'r', 't', 'y'},
+			},
+			before: func(ti *TextInput) {
+				ti.value = "qwe"
+				ti.cursorPosition = 3
+			},
+			want: "qwerty",
+		},
+		{
+			name: "Replace some",
+			args: args{
+				chars: []rune{'a', 's', 'd', 'f'},
+			},
+			before: func(ti *TextInput) {
+				ti.value = "qwerty"
+				ti.selectingFrom = 0
+				ti.cursorPosition = 6
+				ti.updateSelectionBounds()
+			},
+			want: "asdf",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			resetInput(t)
+
+			ti := newTestTextInput()
+
+			if tt.before != nil {
+				tt.before(ti)
+			}
+
+			ti.Insert(tt.args.chars)
+
+			if ti.value != tt.want {
+				t.Errorf("got %s, want %s", ti.value, tt.want)
 			}
 		})
 	}
