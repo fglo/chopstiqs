@@ -1,10 +1,13 @@
 package gui
 
 import (
+	"fmt"
+
 	"github.com/fglo/chopstiqs/pkg/component"
 	"github.com/fglo/chopstiqs/pkg/event"
 	"github.com/fglo/chopstiqs/pkg/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
+	"golang.design/x/clipboard"
 )
 
 type GUI struct {
@@ -12,9 +15,16 @@ type GUI struct {
 	rootContainer *component.Container
 	// eventManager is a queue of events by GUI components
 	eventManager *event.Manager
+
+	focusedComponent component.Component
 }
 
 func New() *GUI {
+	err := clipboard.Init()
+	if err != nil {
+		panic(err)
+	}
+
 	return &GUI{
 		eventManager: event.NewManager(),
 	}
@@ -24,6 +34,7 @@ func New() *GUI {
 func (gui *GUI) SetRootContainer(container *component.Container) {
 	container.SetEventManager(gui.eventManager)
 	gui.rootContainer = container
+	gui.rootContainer.AddFocusedHandler(gui.handleFocusEvent)
 }
 
 // Update updates containers.
@@ -36,6 +47,9 @@ func (gui *GUI) Update() {
 // Draw draws containers to the guiImage.
 // It should be called in the Ebiten Game's Draw function.
 func (gui *GUI) Draw(guiImage *ebiten.Image) {
+	input.Draw()
+	defer input.AfterDraw()
+
 	gui.eventManager.HandleFired()
 
 	op := &ebiten.DrawImageOptions{}
@@ -71,4 +85,22 @@ func (gui *GUI) NewSlider(options *component.SliderOptions) *component.Slider {
 	s := component.NewSlider(options)
 	s.SetEventManager(gui.eventManager)
 	return s
+}
+
+func (gui *GUI) FocusedComponent() component.Component {
+	return gui.focusedComponent
+}
+
+func (gui *GUI) handleFocusEvent(args *component.ComponentFocusedEventArgs) {
+	if args.Focused {
+		if gui.focusedComponent != nil && gui.focusedComponent != args.Component {
+			gui.focusedComponent.SetFocused(false)
+		}
+
+		gui.focusedComponent = args.Component
+		fmt.Printf("%T: %v\n", gui.focusedComponent, args.Focused)
+	} else if gui.focusedComponent == args.Component {
+		fmt.Printf("%T: %v\n", gui.focusedComponent, args.Focused)
+		gui.focusedComponent = nil
+	}
 }

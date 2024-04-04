@@ -43,3 +43,7 @@ func LoadFontFromFile(path string, size float64) (font.Face, error) {
 		Hinting: font.HintingFull,
 	}), nil
 }
+
+func MeasureString(text string, fontFace font.Face) int {
+	return FixedInt26_6ToInt(font.MeasureString(fontFace, text))
+}

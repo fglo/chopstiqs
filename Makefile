@@ -16,7 +16,7 @@ all: help
 
 ## Build:
 run-demo: ## Run project
-	go run $(PATH_TO_MAIN_GO)
+	go run -race $(PATH_TO_MAIN_GO)
 
 build-demo: ## Build your project and put the output binary in out/bin/
 	mkdir -p out/bin
@@ -35,7 +35,7 @@ watch-demo: ## Run the code with cosmtrek/air to have automatic reload on change
 
 ## Test:
 test: ## Run the tests of the project
-	$(GOTEST) -v -race ./... $(OUTPUT_OPTIONS)
+	$(GOTEST) -p=1 -v -race ./... $(OUTPUT_OPTIONS)
 
 ## Format:
 tidy: ## go mod tidy

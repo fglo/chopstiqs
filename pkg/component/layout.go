@@ -28,7 +28,7 @@ func (hl *HorizontalListLayout) Arrange(c *Container, component Component) {
 }
 
 func (hl *HorizontalListLayout) arrange(c *Container, component Component, width, height int) (int, int) {
-	component.SetPosision(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top))
+	component.SetPosition(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top))
 	c.lastComponentPosX += component.WidthWithPadding() + hl.ColumnGap
 
 	if component.HeightWithPadding() > height {
@@ -61,7 +61,7 @@ func (vl *VerticalListLayout) Arrange(c *Container, component Component) {
 }
 
 func (vl *VerticalListLayout) arrange(c *Container, component Component, width, height int) (int, int) {
-	component.SetPosision(float64(c.padding.Left), float64(c.lastComponentPosY+c.padding.Top))
+	component.SetPosition(float64(c.padding.Left), float64(c.lastComponentPosY+c.padding.Top))
 	c.lastComponentPosY += component.HeightWithPadding() + vl.RowGap
 
 	if component.WidthWithPadding() > width {
@@ -147,7 +147,7 @@ func (gl *GridLayout) Rearrange(c *Container) {
 			break
 		}
 
-		component.SetPosision(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top+c.lastComponentPosY))
+		component.SetPosition(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top+c.lastComponentPosY))
 
 		c.lastComponentPosX += gl.ColumnsWidths[currColId] + gl.ColumnGap
 

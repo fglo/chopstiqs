@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: build
+  test-and-build:
+    name: test and build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,13 +32,13 @@ jobs:
           version: 1.0
 
       - name: Test
-        run: go test -v ./...
+        run: go test -p=1 -v ./...
 
-      - name: Build
-        run: go build -v ./...
+      - name: Build example with every component
+        run: go build -v _examples/demo/main.go
 
   goreleaser:
-    needs: [build]
+    needs: [test-and-build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

@@ -3,6 +3,7 @@ package component
 import (
 	"image"
 	"image/color"
+	"regexp"
 
 	"github.com/fglo/chopstiqs/pkg/debug"
 	"github.com/fglo/chopstiqs/pkg/event"
@@ -10,9 +11,16 @@ import (
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
+var wordSeparatorRegex *regexp.Regexp
+
+func init() {
+	var wordSeparator = `[^a-zA-Z0-9_]`
+	wordSeparatorRegex = regexp.MustCompile(wordSeparator)
+}
+
 // Component is an abstraction of a user interface component, like a button or checkbox.
 type Component interface {
-	// Draw draws the component to it's image.
+	// Draw draws the component to it's image during ebiten.Draw().
 	Draw() *ebiten.Image
 	// Dimensions returns the component's dimensions (width and height).
 	Dimensions() (width int, height int)
@@ -56,8 +64,8 @@ type Component interface {
 	SetPosX(posX float64)
 	// SetPosY sets the component's position Y.
 	SetPosY(posY float64)
-	// SetPosision sets the component's position (x and y)
-	SetPosision(posX, posY float64)
+	// SetPosition sets the component's position (x and y)
+	SetPosition(posX, posY float64)
 	// SetPadding sets the component's padding.
 	SetPadding(padding Padding)
 	// SetPaddingTop sets the component's padding top.
@@ -69,10 +77,15 @@ type Component interface {
 	// SetPaddingRight sets the component's padding right.
 	SetPaddingRight(padding int)
 
+	Focused() bool
+	SetFocused(bool)
+
 	setContainer(*Container)
 
 	EventManager() *event.Manager
 	SetEventManager(*event.Manager)
+
+	AddFocusedHandler(f ComponentFocusedHandlerFunc) Component
 }
 
 // component is an abstraction of a user interface component, like a button or checkbox.
@@ -114,6 +127,8 @@ type component struct {
 	posX float64
 	posY float64
 
+	focused bool
+
 	lastUpdateMouseLeftButtonPressed  bool
 	lastUpdateMouseRightButtonPressed bool
 	lastUpdateCursorEntered           bool
@@ -122,6 +137,7 @@ type component struct {
 	MouseButtonReleasedEvent *event.Event
 	CursorEnterEvent         *event.Event
 	CursorExitEvent          *event.Event
+	FocusedEvent             *event.Event
 }
 
 // ComponentOptions is a struct that holds component options.
@@ -137,6 +153,7 @@ func (c *component) setUpComponent(opt *ComponentOptions) {
 	c.MouseButtonReleasedEvent = &event.Event{}
 	c.CursorEnterEvent = &event.Event{}
 	c.CursorExitEvent = &event.Event{}
+	c.FocusedEvent = &event.Event{}
 
 	c.padding = DefaultPadding
 
@@ -285,8 +302,8 @@ func (c *component) SetPosY(posY float64) {
 	c.setRect()
 }
 
-// SetPosision sets the component's position (x and y).
-func (c *component) SetPosision(posX, posY float64) {
+// SetPosition sets the component's position (x and y).
+func (c *component) SetPosition(posX, posY float64) {
 	c.posX = posX
 	if c.container != nil {
 		c.absPosX = posX + c.container.AbsPosX()
@@ -375,6 +392,20 @@ func (c *component) SetDimensions(width, height int) {
 
 		c.setImage()
 		c.setRect()
+	}
+}
+
+func (c *component) Focused() bool {
+	return c.focused
+}
+
+func (c *component) SetFocused(focused bool) {
+	if c.focused != focused {
+		c.focused = focused
+		c.eventManager.Fire(c.FocusedEvent, &ComponentFocusedEventArgs{
+			Component: c,
+			Focused:   focused,
+		})
 	}
 }
 
@@ -485,30 +516,58 @@ func (c *component) FireEvents() {
 	if mouseEntered {
 		c.lastUpdateCursorEntered = true
 
-		if input.MouseLeftButtonJustPressed {
-			c.lastUpdateMouseLeftButtonPressed = true
-			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
-				Component: c,
-				Button:    ebiten.MouseButtonLeft,
-			})
-		} else {
+		if !input.MouseLeftButtonPressed && !input.MouseRightButtonPressed {
 			c.eventManager.Fire(c.CursorEnterEvent, &ComponentCursorEnterEventArgs{
 				Component: c,
 			})
 		}
 
+		if input.MouseLeftButtonJustPressed {
+			c.lastUpdateMouseLeftButtonPressed = true
+			c.SetFocused(true)
+		}
+
+		if input.MouseLeftButtonPressed {
+			if c.focused {
+				c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
+					Component: c,
+					Button:    ebiten.MouseButtonLeft,
+				})
+			}
+		}
+
 		if input.MouseRightButtonJustPressed {
 			c.lastUpdateMouseRightButtonPressed = true
-			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
-				Component: c,
-				Button:    ebiten.MouseButtonRight,
-			})
+			c.SetFocused(true)
+		}
+
+		if input.MouseRightButtonPressed {
+			if c.focused {
+				c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
+					Component: c,
+					Button:    ebiten.MouseButtonRight,
+					Inside:    mouseEntered,
+				})
+			}
 		}
 	} else {
 		c.lastUpdateCursorEntered = false
+
 		c.eventManager.Fire(c.CursorExitEvent, &ComponentCursorExitEventArgs{
 			Component: c,
 		})
+
+		if input.MouseLeftButtonPressed && c.lastUpdateMouseLeftButtonPressed {
+			c.eventManager.Fire(c.MouseButtonPressedEvent, &ComponentMouseButtonPressedEventArgs{
+				Component: c,
+				Button:    ebiten.MouseButtonLeft,
+				Inside:    mouseEntered,
+			})
+		}
+
+		if input.MouseLeftButtonJustPressed || input.MouseRightButtonJustPressed {
+			c.SetFocused(false)
+		}
 	}
 
 	if !input.MouseLeftButtonPressed && c.lastUpdateMouseLeftButtonPressed {
@@ -530,15 +589,32 @@ func (c *component) FireEvents() {
 	}
 }
 
+// ComponentMouseButtonJustPressedHandlerFunc is a function that handles mouse button press events.
+type ComponentMouseButtonJustPressedHandlerFunc func(args *ComponentMouseButtonJustPressedEventArgs) //nolint:golint
+// ComponentMouseButtonPressedEventArgs are the arguments for mouse button press events.
+type ComponentMouseButtonJustPressedEventArgs struct { //nolint:golint
+	Component Component
+	Button    ebiten.MouseButton
+}
+
+func (c *component) AddMouseButtonJustPressedHandler(f ComponentMouseButtonJustPressedHandlerFunc) Component {
+	c.MouseButtonPressedEvent.AddHandler(func(args interface{}) {
+		f(args.(*ComponentMouseButtonJustPressedEventArgs))
+	})
+
+	return c
+}
+
 // ComponentMouseButtonPressedHandlerFunc is a function that handles mouse button press events.
 type ComponentMouseButtonPressedHandlerFunc func(args *ComponentMouseButtonPressedEventArgs) //nolint:golint
 // ComponentMouseButtonPressedEventArgs are the arguments for mouse button press events.
 type ComponentMouseButtonPressedEventArgs struct { //nolint:golint
-	Component *component
+	Component Component
 	Button    ebiten.MouseButton
+	Inside    bool
 }
 
-func (c *component) AddMouseButtonPressedHandler(f ComponentMouseButtonPressedHandlerFunc) *component {
+func (c *component) AddMouseButtonPressedHandler(f ComponentMouseButtonPressedHandlerFunc) Component {
 	c.MouseButtonPressedEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentMouseButtonPressedEventArgs))
 	})
@@ -550,12 +626,12 @@ func (c *component) AddMouseButtonPressedHandler(f ComponentMouseButtonPressedHa
 type ComponentMouseButtonReleasedHandlerFunc func(args *ComponentMouseButtonReleasedEventArgs) //nolint:golint
 // ComponentMouseButtonReleasedEventArgs are the arguments for mouse button release events.
 type ComponentMouseButtonReleasedEventArgs struct { //nolint:golint
-	Component *component
+	Component Component
 	Button    ebiten.MouseButton
 	Inside    bool
 }
 
-func (c *component) AddMouseButtonReleasedHandler(f ComponentMouseButtonReleasedHandlerFunc) *component {
+func (c *component) AddMouseButtonReleasedHandler(f ComponentMouseButtonReleasedHandlerFunc) Component {
 	c.MouseButtonReleasedEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentMouseButtonReleasedEventArgs))
 	})
@@ -567,10 +643,10 @@ func (c *component) AddMouseButtonReleasedHandler(f ComponentMouseButtonReleased
 type ComponentCursorEnterHandlerFunc func(args *ComponentCursorEnterEventArgs) //nolint:golint
 // ComponentCursorEnterEventArgs are the arguments for cursor enter events.
 type ComponentCursorEnterEventArgs struct { //nolint:golint
-	Component *component
+	Component Component
 }
 
-func (c *component) AddCursorEnterHandler(f ComponentCursorEnterHandlerFunc) *component {
+func (c *component) AddCursorEnterHandler(f ComponentCursorEnterHandlerFunc) Component {
 	c.CursorEnterEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentCursorEnterEventArgs))
 	})
@@ -582,12 +658,26 @@ func (c *component) AddCursorEnterHandler(f ComponentCursorEnterHandlerFunc) *co
 type ComponentCursorExitHandlerFunc func(args *ComponentCursorExitEventArgs) //nolint:golint
 // ComponentCursorExitEventArgs are the arguments for cursor exit events.
 type ComponentCursorExitEventArgs struct { //nolint:golint
-	Component *component
+	Component Component
 }
 
-func (c *component) AddCursorExitHandler(f ComponentCursorExitHandlerFunc) *component {
+func (c *component) AddCursorExitHandler(f ComponentCursorExitHandlerFunc) Component {
 	c.CursorExitEvent.AddHandler(func(args interface{}) {
 		f(args.(*ComponentCursorExitEventArgs))
+	})
+
+	return c
+}
+
+type ComponentFocusedHandlerFunc func(args *ComponentFocusedEventArgs) //nolint:golint
+type ComponentFocusedEventArgs struct {
+	Component Component
+	Focused   bool
+}
+
+func (c *component) AddFocusedHandler(f ComponentFocusedHandlerFunc) Component {
+	c.FocusedEvent.AddHandler(func(args interface{}) {
+		f(args.(*ComponentFocusedEventArgs))
 	})
 
 	return c

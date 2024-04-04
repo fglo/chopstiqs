@@ -4,8 +4,8 @@ import (
 	"image"
 	"image/color"
 
-	color1 "github.com/fglo/chopstiqs/internal/color"
-	font1 "github.com/fglo/chopstiqs/internal/font"
+	colorutils "github.com/fglo/chopstiqs/internal/color"
+	fontutils "github.com/fglo/chopstiqs/internal/font"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
@@ -31,17 +31,19 @@ type Label struct {
 	component
 	text  string
 	color color.RGBA
-	font  font.Face
+
+	font    font.Face
+	metrics fontutils.Metrics
 
 	horizontalAlignment HorizontalAlignment
 	verticalAlignment   VerticalAlignment
 
 	alignHorizontally func()
 	alignVertically   func()
-	textPosX          int
-	textPosY          int
+	textOriginX       int
+	textOriginY       int
 
-	textBounds image.Rectangle
+	bounds image.Rectangle
 
 	Inverted bool
 }
@@ -60,17 +62,23 @@ type LabelOptions struct {
 
 func NewLabel(text string, opt *LabelOptions) *Label {
 	l := &Label{
-		color:    color.RGBA{230, 230, 230, 255},
-		font:     font1.DefaultFontFace,
-		textPosX: 0,
-		Inverted: false,
+		color:       color.RGBA{230, 230, 230, 255},
+		font:        fontutils.DefaultFontFace,
+		metrics:     fontutils.NewMetrics(fontutils.DefaultFontFace.Metrics()),
+		textOriginX: 0,
+		Inverted:    false,
 	}
 
 	l.SetText(text)
 
 	if opt != nil {
 		if opt.Color != nil {
-			l.color = color1.ColorToRGBA(opt.Color)
+			l.color = colorutils.ToRGBA(opt.Color)
+		}
+
+		if opt.Font != nil {
+			l.font = opt.Font
+			l.metrics = fontutils.NewMetrics(l.font.Metrics())
 		}
 
 		l.horizontalAlignment = opt.HorizontalAlignment
@@ -125,11 +133,11 @@ func (l *Label) align() {
 }
 
 func (l *Label) centerHorizontally() {
-	l.posX = l.posX - float64(l.textBounds.Dx())/2
+	l.posX = l.posX - float64(l.bounds.Dx())/2
 }
 
 func (l *Label) centerVertically() {
-	l.posY = l.posY - float64(l.textBounds.Dy())/2
+	l.posY = l.posY - float64(l.bounds.Dy())/2
 }
 
 func (l *Label) alignToLeft() {
@@ -137,7 +145,7 @@ func (l *Label) alignToLeft() {
 }
 
 func (l *Label) alignToRight() {
-	l.posX = l.posX - float64(l.textBounds.Dx())
+	l.posX = l.posX - float64(l.bounds.Dx())
 }
 
 func (l *Label) alignToTop() {
@@ -145,19 +153,16 @@ func (l *Label) alignToTop() {
 }
 
 func (l *Label) alignToBottom() {
-	l.posY = l.posY - float64(l.textBounds.Dy())
+	l.posY = l.posY - float64(l.bounds.Dy())
 }
 
 func (l *Label) SetText(labelText string) {
 	// TODO: change deprecated function
-	bounds := text.BoundString(font1.DefaultFontFace, labelText) // nolint
-
+	l.bounds = text.BoundString(fontutils.DefaultFontFace, labelText) // nolint
 	l.text = labelText
+	l.textOriginY = -l.bounds.Min.Y
 
-	l.textPosY = -bounds.Min.Y
-	l.textBounds = bounds
-
-	l.SetDimensions(bounds.Dx(), bounds.Dy())
+	l.SetDimensions(l.bounds.Dx(), l.bounds.Dy())
 
 	if l.container != nil {
 		l.container.SetWidth(l.container.Width() + l.component.width)
@@ -176,9 +181,9 @@ func (l *Label) Draw() *ebiten.Image {
 	l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
 
 	if l.Inverted {
-		text.Draw(l.image, l.text, l.font, l.textPosX+l.padding.Left, l.textPosY+l.padding.Top, color.RGBA{255 - l.color.R, 255 - l.color.G, 255 - l.color.B, l.color.A})
+		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, colorutils.Invert(l.color))
 	} else {
-		text.Draw(l.image, l.text, l.font, l.textPosX+l.padding.Left, l.textPosY+l.padding.Top, l.color)
+		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, l.color)
 	}
 
 	l.component.Draw()
@@ -197,6 +202,6 @@ func (l *Label) SetPosY(posY float64) {
 }
 
 func (l *Label) SetPosistion(posX, posY float64) {
-	l.component.SetPosision(posX, posY)
+	l.component.SetPosition(posX, posY)
 	l.align()
 }

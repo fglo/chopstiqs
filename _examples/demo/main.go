@@ -56,7 +56,7 @@ func NewGame() *Game {
 	g := &Game{
 		gui:             gui.New(),
 		screenWidth:     200,
-		screenHeight:    200,
+		screenHeight:    250,
 		backgroundColor: color.RGBA{32, 32, 32, 255},
 	}
 
@@ -130,12 +130,32 @@ func NewGame() *Game {
 	sliderContainer.AddComponent(slider)
 	sliderContainer.AddComponent(sliderLabel)
 
-	sliderLabel2 := g.gui.NewLabel("0.50", &component.LabelOptions{
-		Color: color.RGBA{230, 230, 230, 255},
-		Padding: &component.Padding{
-			Top: 4,
+	slider2TextInput := component.NewTextInput(&component.TextInputOptions{
+		Width: option.Int(25),
+		InputValidationFunc: func(s string) (bool, string) {
+			val, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				return false, ""
+			}
+
+			return true, fmt.Sprintf("%.2f", val)
 		},
+		OnSubmitFunc: func(s string) string {
+			val, err := strconv.ParseFloat(s, 64)
+			switch {
+			case err != nil:
+				return "0.50"
+			case val < 0:
+				return "0.00"
+			case val > 1:
+				return "1.00"
+			default:
+				return fmt.Sprintf("%.2f", val)
+			}
+		},
+		SubmitOnUnfocus: true,
 	})
+	slider2TextInput.SetValue("0.50")
 
 	slider2 := g.gui.NewSlider(&component.SliderOptions{
 		Min:          option.Float(0.),
@@ -147,15 +167,26 @@ func NewGame() *Game {
 	})
 
 	slider2.AddSlidedHandler(func(args *component.SliderSlidedEventArgs) {
-		sliderLabel2.SetText(fmt.Sprintf("%.2f", args.Value))
+		slider2TextInput.SetValue(fmt.Sprintf("%.2f", args.Value))
+	})
+
+	slider2TextInput.AddSubmittedHandler(func(args *component.TextInputSubmittedEventArgs) {
+		val, err := strconv.ParseFloat(slider2TextInput.Value(), 64)
+		if err != nil {
+			val = 0
+		}
+		slider2.Set(val)
 	})
 
 	sliderContainer2 := g.gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	sliderContainer2.AddComponent(slider2)
-	sliderContainer2.AddComponent(sliderLabel2)
+	sliderContainer2.AddComponent(slider2TextInput)
+
+	textInput := component.NewTextInput(&component.TextInputOptions{Width: option.Int(100)})
+	textInput.SetValue("Lorem Ipsum dolor sit amet")
 
 	cb2Opts := &component.CheckBoxOptions{
-		Label: g.gui.NewLabel("disable buttons", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
+		Label: g.gui.NewLabel("disable components", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
 	}
 	cb2 := g.gui.NewCheckBox(cb2Opts)
 	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
@@ -163,6 +194,7 @@ func NewGame() *Game {
 		btn2.SetDisabled(args.CheckBox.Checked())
 		sliderContainer.SetDisabled(args.CheckBox.Checked())
 		sliderContainer2.SetDisabled(args.CheckBox.Checked())
+		textInput.SetDisabled(args.CheckBox.Checked())
 	})
 
 	checkBoxContainer := g.gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
@@ -173,24 +205,25 @@ func NewGame() *Game {
 	sprite := component.NewSprite(img, nil)
 
 	rootContainer.AddComponent(sprite)
-	lblTitle.SetPosision(5, 5)
+	lblTitle.SetPosition(5, 5)
 	rootContainer.AddComponent(lblTitle)
-	lblInstructions.SetPosision(5, 15)
+	lblInstructions.SetPosition(5, 15)
 	rootContainer.AddComponent(lblInstructions)
-	checkBoxContainer.SetPosision(5, 45)
+	checkBoxContainer.SetPosition(5, 45)
 	rootContainer.AddComponent(checkBoxContainer)
-	btn.SetPosision(5, 60)
+	btn.SetPosition(5, 60)
 	rootContainer.AddComponent(btn)
-	btn2.SetPosision(5, 75)
+	btn2.SetPosition(5, 75)
 	rootContainer.AddComponent(btn2)
 	rootContainer.AddComponent(sliderContainer)
 	rootContainer.AddComponent(sliderContainer2)
+	rootContainer.AddComponent(textInput)
 
 	return g
 }
 
 func (g *Game) getWindowSize() (int, int) {
-	var factor float64 = 2
+	var factor float64 = 1.75
 	return int(float64(g.screenWidth) * factor), int(float64(g.screenHeight) * factor)
 }
 
@@ -209,7 +242,15 @@ func (g *Game) Update() error {
 	return g.checkQuitButton()
 }
 
+func (g *Game) textInputHasFocus() bool {
+	_, ok := g.gui.FocusedComponent().(*component.TextInput)
+	return ok
+}
+
 func (g *Game) checkQuitButton() error {
+	if g.textInputHasFocus() {
+		return nil
+	}
 	if !g.quitIsPressed && inpututil.IsKeyJustPressed(ebiten.KeyQ) {
 		g.quitIsPressed = true
 	}
@@ -221,6 +262,9 @@ func (g *Game) checkQuitButton() error {
 }
 
 func (g *Game) checkShowBordersButton() {
+	if g.textInputHasFocus() {
+		return
+	}
 	if !g.showBordersIsPressed && inpututil.IsKeyJustPressed(ebiten.KeyB) {
 		g.showBordersIsPressed = true
 	}
@@ -231,6 +275,9 @@ func (g *Game) checkShowBordersButton() {
 }
 
 func (g *Game) checkShowPaddingButton() {
+	if g.textInputHasFocus() {
+		return
+	}
 	if !g.showPaddingIsPressed && inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		g.showPaddingIsPressed = true
 	}
