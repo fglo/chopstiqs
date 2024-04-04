@@ -3,7 +3,7 @@ package component
 import (
 	"testing"
 
-	"github.com/fglo/chopstiqs/pkg/event"
+	"github.com/fglo/chopstiqs/event"
 	"github.com/matryer/is"
 )
 

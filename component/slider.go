@@ -4,9 +4,9 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/fglo/chopstiqs/pkg/event"
-	"github.com/fglo/chopstiqs/pkg/input"
-	"github.com/fglo/chopstiqs/pkg/option"
+	"github.com/fglo/chopstiqs/event"
+	"github.com/fglo/chopstiqs/input"
+	"github.com/fglo/chopstiqs/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 

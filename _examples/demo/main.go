@@ -9,10 +9,10 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/fglo/chopstiqs/pkg/component"
-	"github.com/fglo/chopstiqs/pkg/debug"
-	"github.com/fglo/chopstiqs/pkg/gui"
-	"github.com/fglo/chopstiqs/pkg/option"
+	"github.com/fglo/chopstiqs"
+	"github.com/fglo/chopstiqs/component"
+	"github.com/fglo/chopstiqs/debug"
+	"github.com/fglo/chopstiqs/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -37,7 +37,7 @@ func main() {
 
 // Game encapsulates game logic
 type Game struct {
-	gui *gui.GUI
+	gui *chopstiqs.GUI
 
 	bgColorToggled bool
 
@@ -54,7 +54,7 @@ type Game struct {
 // New generates a new Game object.
 func NewGame() *Game {
 	g := &Game{
-		gui:             gui.New(),
+		gui:             chopstiqs.NewGUI(),
 		screenWidth:     200,
 		screenHeight:    250,
 		backgroundColor: color.RGBA{32, 32, 32, 255},

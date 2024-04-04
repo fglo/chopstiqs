@@ -3,7 +3,7 @@ package component
 import (
 	"image/color"
 
-	colorutils "github.com/fglo/chopstiqs/internal/color"
+	colorutils "github.com/fglo/chopstiqs/color"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 

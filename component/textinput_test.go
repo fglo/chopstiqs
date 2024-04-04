@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fglo/chopstiqs/pkg/event"
-	"github.com/fglo/chopstiqs/pkg/input"
+	"github.com/fglo/chopstiqs/event"
+	"github.com/fglo/chopstiqs/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/matryer/is"
 )
