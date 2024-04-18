@@ -22,7 +22,7 @@ func (d *DefaultTextInputCursorDrawer) Draw(cursor *textInputCursor) *ebiten.Ima
 func (d *DefaultTextInputCursorDrawer) draw(cursor *textInputCursor) []byte {
 	arr := make([]byte, cursor.pixelRows*cursor.pixelCols)
 
-	if cursor.frameCount >= 50 {
+	if cursor.frameCount >= 45 {
 		return arr
 	}
 

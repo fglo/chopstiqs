@@ -5,7 +5,6 @@ import (
 	"github.com/fglo/chopstiqs/event"
 	"github.com/fglo/chopstiqs/input"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
-	"golang.design/x/clipboard"
 )
 
 type GUI struct {
@@ -18,11 +17,6 @@ type GUI struct {
 }
 
 func NewGUI() *GUI {
-	err := clipboard.Init()
-	if err != nil {
-		panic(err)
-	}
-
 	return &GUI{
 		eventManager: event.NewManager(),
 	}
