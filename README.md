@@ -21,10 +21,10 @@ Running example: <https://fglo.github.io/chopstiqs/>
 
 ## Quick Start
 
-You can create gui using the `gui.New()` function:
+You can create gui using the `chopstiqs.NewGUI()` function:
 
 ```go
-gui := gui.New()
+gui := chopstiqs.NewGUI()
 ```
 
 The gui object has two methods: `Update()` and `Draw(screen *ebiten.Image)` that should be called in the ebiten game's object `Update()` and `Draw(screen *ebiten.Image)` methods, e.g.:
@@ -40,7 +40,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 ```
 
-Every gui has one root container that contains all components. You can create container using `gui.NewContainer()` method.
+Every gui has one root container that contains all components. You can create container using gui's `NewContainer()` method.
 
 ```go
 rootContainer := gui.NewContainer(&component.ContainerOptions{
