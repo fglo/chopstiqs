@@ -15,6 +15,9 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      DISPLAY: ":99.0"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
