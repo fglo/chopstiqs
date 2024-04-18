@@ -29,7 +29,7 @@ func handleState(t *testing.T, ti *TextInput) {
 func resetInput(t *testing.T) {
 	t.Helper()
 
-	input.SetSystem()
+	input.DetectSystem()
 	input.InputChars = ebiten.AppendInputChars(input.InputChars)
 	input.AnyKeyPressed = false
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {

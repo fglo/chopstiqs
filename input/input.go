@@ -1,9 +1,8 @@
 package input
 
 import (
-	"runtime"
-
 	ebiten "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type OperatingSystem string
@@ -30,23 +29,14 @@ var (
 
 	InputChars []rune
 
-	AnyKeyPressed bool
-	KeyPressed    map[ebiten.Key]bool = make(map[ebiten.Key]bool)
+	AnyKeyPressed     bool
+	AnyJustKeyPressed bool
+	KeyPressed        [ebiten.KeyMax + 1]bool
+	KeyJustPressed    [ebiten.KeyMax + 1]bool
 )
 
 func init() {
-	SetSystem()
-}
-
-func SetSystem() {
-	switch runtime.GOOS {
-	case "windows":
-		OS = Windows
-	case "linux":
-		OS = Linux
-	case "darwin":
-		OS = MacOS
-	}
+	DetectSystem()
 }
 
 func OSWindows() bool {
@@ -69,22 +59,17 @@ func Update() {
 	CursorPosX, CursorPosY = ebiten.CursorPosition()
 
 	MouseLeftButtonPressed = ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
-	MouseLeftButtonJustPressed = MouseLeftButtonPressed && !MouseLastUpdateLeftButtonPressed
+	MouseLeftButtonJustPressed = inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)
 	MouseLastUpdateLeftButtonPressed = MouseLeftButtonPressed
 
 	MouseRightButtonPressed = ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight)
-	MouseRightButtonJustPressed = MouseRightButtonPressed && !MouseLastUpdateRightButtonPressed
+	MouseRightButtonJustPressed = inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight)
 	MouseLastUpdateRightButtonPressed = MouseRightButtonPressed
 
 	InputChars = ebiten.AppendInputChars(InputChars)
 	AnyKeyPressed = false
-	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-		p := ebiten.IsKeyPressed(k)
-		KeyPressed[k] = p
-		if p {
-			AnyKeyPressed = true
-		}
-	}
+
+	DetectPressedKeys()
 }
 
 func Draw() {

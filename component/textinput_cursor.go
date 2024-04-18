@@ -59,7 +59,7 @@ func (tic *textInputCursor) ResetBlink() {
 }
 
 func (tic *textInputCursor) incFrameCount() {
-	tic.frameCount = (tic.frameCount + 1) % 90
+	tic.frameCount = (tic.frameCount + 1) % 80
 }
 
 func (tic *textInputCursor) Draw() *ebiten.Image {

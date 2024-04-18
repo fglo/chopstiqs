@@ -5,8 +5,8 @@ import (
 	"math"
 	"sync/atomic"
 	"time"
-	"unicode/utf8"
 
+	"github.com/fglo/chopstiqs/clipboard"
 	colorutils "github.com/fglo/chopstiqs/color"
 	"github.com/fglo/chopstiqs/event"
 	fontutils "github.com/fglo/chopstiqs/font"
@@ -14,7 +14,6 @@ import (
 	"github.com/fglo/chopstiqs/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
-	"golang.design/x/clipboard"
 	"golang.org/x/image/font"
 )
 
@@ -276,12 +275,12 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		textInputRemoveSelection:      ti.RemoveSelection,
 		textInputSubmit:               ti.Submit,
 		textInputSelectAll:            ti.SelectAll,
-		// textInputUndo
-		// textInputRedo
-		textInputCopy:    ti.Copy,
-		textInputPaste:   ti.Paste,
-		textInputCut:     ti.Cut,
-		textInputUnfocus: ti.Unfocus,
+		textInputUndo:                 func() {},
+		textInputRedo:                 func() {},
+		textInputCopy:                 ti.Copy,
+		textInputPaste:                ti.Paste,
+		textInputCut:                  ti.Cut,
+		textInputUnfocus:              ti.Unfocus,
 	}
 
 	ti.modifierKeysPressed = map[ebiten.Key]bool{
@@ -484,31 +483,46 @@ func (ti *TextInput) CursorLeft() {
 }
 
 func (ti *TextInput) WordLeft() {
-	if ti.cursorPosition <= 0 {
-		return
+	posBeforeWord := ti.findPositionBeforeWord()
+	if posBeforeWord <= 0 {
+		posBeforeWord = 0
 	}
-	ti.moveCursor(ti.findPositionBeforeWord())
+
+	if ti.cursorPosition > 0 {
+		ti.moveCursor(posBeforeWord)
+	}
 }
 
 func (ti *TextInput) CursorRight() {
-	if int(ti.cursorPosition) < len(ti.possibleCursorPosXs)-1 {
+	endPos := textInputCursorPosition(len(ti.possibleCursorPosXs) - 1)
+	if ti.cursorPosition < endPos {
 		ti.moveCursor(ti.cursorPosition + 1)
 	}
 }
 
 func (ti *TextInput) WordRight() {
-	if int(ti.cursorPosition) >= len(ti.possibleCursorPosXs)-1 {
-		return
+	endPos := textInputCursorPosition(len(ti.possibleCursorPosXs) - 1)
+	posAfterWord := ti.findPositionAfterWord()
+	if posAfterWord > endPos {
+		posAfterWord = endPos
 	}
-	ti.moveCursor(ti.findPositionAfterWord())
+
+	if ti.cursorPosition < endPos {
+		ti.moveCursor(posAfterWord)
+	}
 }
 
 func (ti *TextInput) Home() {
-	ti.moveCursor(0)
+	if ti.cursorPosition > 0 {
+		ti.moveCursor(0)
+	}
 }
 
 func (ti *TextInput) End() {
-	ti.moveCursor(textInputCursorPosition(len(ti.possibleCursorPosXs) - 1))
+	endPos := textInputCursorPosition(len(ti.possibleCursorPosXs) - 1)
+	if ti.cursorPosition < endPos {
+		ti.moveCursor(endPos)
+	}
 }
 
 func (ti *TextInput) Insert(chars []rune) {
@@ -522,7 +536,11 @@ func (ti *TextInput) Insert(chars []rune) {
 
 	if valid, valueAfterValidation := ti.inputValidationFunc(newValue); valid {
 		ti.setValue(valueAfterValidation)
-		ti.moveCursor(ti.cursorPosition + textInputCursorPosition(len(chars)))
+		if ti.HasSelectedText() {
+			ti.moveCursor(ti.selectionStart + textInputCursorPosition(len(chars)))
+		} else {
+			ti.moveCursor(ti.cursorPosition + textInputCursorPosition(len(chars)))
+		}
 		ti.Deselect()
 		ti.fireChangedEvent()
 	}
@@ -614,27 +632,12 @@ func (ti *TextInput) SelectAll() {
 
 func (ti *TextInput) Copy() {
 	if selectedText := ti.GetSelectedText(); len(selectedText) > 0 {
-		clipboard.Write(clipboard.FmtText, []byte(selectedText))
+		clipboard.Write(selectedText)
 	}
 }
 
 func (ti *TextInput) Paste() {
-	pastedText := clipboard.Read(clipboard.FmtText)
-	if len(pastedText) > 0 {
-		ti.RemoveSelection()
-
-		runes := make([]rune, 0)
-		i := 0
-		bytes := len(pastedText)
-		for bytes > 0 {
-			r, n := utf8.DecodeRune(pastedText[i:])
-			runes = append(runes, r)
-			bytes -= n
-			i += n
-		}
-
-		ti.Insert(runes)
-	}
+	ti.Insert([]rune(clipboard.Read()))
 }
 
 func (ti *TextInput) Cut() {
@@ -800,6 +803,14 @@ func (ti *TextInput) calcScrollOffset() int {
 }
 
 func (ti *TextInput) moveCursor(position textInputCursorPosition) {
+	if position == ti.cursorPosition {
+		return
+	}
+
+	if !ti.selecting {
+		ti.Deselect()
+	}
+
 	switch {
 	case position < 0:
 		ti.Home()
@@ -1035,7 +1046,6 @@ func (ti *TextInput) handleKeyMeta() textInputAction {
 func (ti *TextInput) checkForShift() {
 	if !ti.modifierKeysPressed[ebiten.KeyShift] {
 		ti.selecting = false
-		ti.Deselect()
 	} else if !ti.selecting {
 		ti.selecting = true
 		if !ti.HasSelectedText() {
