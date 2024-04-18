@@ -135,3 +135,7 @@ What I want to achieve (not necessarily in the following order):
   - flexbox
 - reusing cached images if component wasn't modified
 - layers (mulitple containers on top of each other)
+
+## Known issues
+
+- keyboard is buggy on MacOS browsers - `keyup` event is not fired when meta key (command ⌘) is pressed which leads to unreliable behaviour when using shortcuts with the meta key (MacOS only)
