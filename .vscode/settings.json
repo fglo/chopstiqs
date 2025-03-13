@@ -8,4 +8,10 @@
     "go.lintOnSave": "package",
     "go.formatTool": "gofmt",
     "go.vetOnSave": "package",
+    "gopls": {
+        // "build.env": {
+        //     "GOOS": "js",
+        //     "GOARCH": "wasm"
+        // }
+    }
 }

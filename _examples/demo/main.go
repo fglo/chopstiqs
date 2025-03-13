@@ -57,22 +57,23 @@ var lblPressedKeys *component.Label
 
 // New generates a new Game object.
 func NewGame() *Game {
-	gui := chopstiqs.NewGUI().WithOptions(chopstiqs.GUIOptions{
-		HorizontalAlignment: option.AlignmentCenteredHorizontally,
+	gui := chopstiqs.NewGUI(&chopstiqs.GUIOptions{
+		HorizontalAlignment: option.AlignmentLeft,
 		VerticalAlignment:   option.AlignmentTop,
 	})
 
 	g := &Game{
 		gui:             gui,
-		screenWidth:     220,
-		screenHeight:    260,
+		screenWidth:     385,
+		screenHeight:    455,
 		backgroundColor: color.RGBA{32, 32, 32, 255},
 	}
 
 	ebiten.SetWindowSize(g.getWindowSize())
 	ebiten.SetWindowTitle("chopstiqs demo")
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
-	// component.SetDefaultPadding(2, 2, 2, 2)
+	component.SetDefaultPadding(1, 1, 1, 1)
 
 	rootContainer := gui.NewContainer(&component.ContainerOptions{
 		Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
@@ -150,24 +151,24 @@ func NewGame() *Game {
 			val, err := strconv.ParseFloat(s, 64)
 			switch {
 			case err != nil:
-				return "0.50"
-			case val < 0:
-				return "0.00"
-			case val > 1:
+				return "1.50"
+			case val < 1:
 				return "1.00"
+			case val > 2:
+				return "2.00"
 			default:
 				return fmt.Sprintf("%.2f", val)
 			}
 		},
 		SubmitOnUnfocus: true,
 	})
-	slider2TextInput.SetValue("0.50")
+	slider2TextInput.SetValue("1.50")
 
 	slider2 := gui.NewSlider(&component.SliderOptions{
-		Min:          option.Float(0.),
-		Max:          option.Float(1.),
+		Min:          option.Float(1.),
+		Max:          option.Float(2.),
 		Step:         option.Float(.05),
-		DefaultValue: option.Float(.5),
+		DefaultValue: option.Float(1.5),
 		Width:        option.Int(100),
 		Height:       option.Int(15),
 	})
@@ -176,12 +177,17 @@ func NewGame() *Game {
 		slider2TextInput.SetValue(fmt.Sprintf("%.2f", args.Value))
 	})
 
+	slider2.AddMouseButtonReleasedHandler(func(args *component.ComponentMouseButtonReleasedEventArgs) {
+		component.SetDefaultScale(slider2.GetValue())
+	})
+
 	slider2TextInput.AddSubmittedHandler(func(args *component.TextInputSubmittedEventArgs) {
 		val, err := strconv.ParseFloat(slider2TextInput.Value(), 64)
 		if err != nil {
-			val = 0
+			val = 1.
 		}
 		slider2.Set(val)
+		component.SetDefaultScale(slider2.GetValue())
 	})
 
 	sliderContainer2 := gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
@@ -248,13 +254,17 @@ func NewGame() *Game {
 }
 
 func (g *Game) getWindowSize() (int, int) {
-	var factor float64 = 1.75
-	return int(float64(g.screenWidth) * factor), int(float64(g.screenHeight) * factor)
+	return g.screenWidth, g.screenHeight
 }
 
 // Layout implements ebiten.Game's Layout.
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return g.screenWidth, g.screenHeight
+	w, h := ebiten.WindowSize()
+	if w == 0 || h == 0 {
+		return int(float64(g.screenWidth) / component.DefaultScale), int(float64(g.screenHeight) / component.DefaultScale)
+	}
+
+	return int(float64(w) / component.DefaultScale), int(float64(h) / component.DefaultScale) // TODO: proper scaling
 }
 
 var pressedKeysStr string
@@ -270,13 +280,10 @@ func (g *Game) Update() error {
 	_pressedKeys := make([]string, 0)
 	_justPressedKeys := make([]string, 0)
 
-	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-		if inpututil.IsKeyJustPressed(k) {
-			_justPressedKeys = append(_justPressedKeys, k.String())
+	for key, justPressed := range input.KeyJustPressed {
+		if justPressed {
+			_justPressedKeys = append(_justPressedKeys, ebiten.Key(key).String())
 		}
-		// if ebiten.IsKeyPressed(k) {
-		// 	_pressedKeys = append(_pressedKeys, k.String())
-		// }
 	}
 
 	for key, pressed := range input.KeyPressed {
@@ -299,7 +306,10 @@ func (g *Game) Update() error {
 		justPressedKeysStr = _justPressedKeysStr
 	}
 
-	lblPressedKeys.SetText(_pressedKeysStr)
+	w, h := ebiten.WindowSize()
+
+	// lblPressedKeys.SetText(_pressedKeysStr)
+	lblPressedKeys.SetText(fmt.Sprintf("%d, %d", w, h))
 
 	return g.checkQuitButton()
 }

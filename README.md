@@ -135,6 +135,7 @@ What I want to achieve (not necessarily in the following order):
   - flexbox
 - reusing cached images if component wasn't modified
 - layers (mulitple containers on top of each other)
+- proper UI scaling
 
 ## Known issues
 

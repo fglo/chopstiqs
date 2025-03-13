@@ -25,15 +25,15 @@ type GUIOptions struct {
 	VerticalAlignment   option.VerticalAlignment
 }
 
-func NewGUI() *GUI {
-	return &GUI{
+func NewGUI(opt *GUIOptions) *GUI {
+	gui := &GUI{
 		eventManager: event.NewManager(),
 	}
-}
 
-func (gui *GUI) WithOptions(opt GUIOptions) *GUI {
-	gui.horizontalAlignment = opt.HorizontalAlignment
-	gui.verticalAlignment = opt.VerticalAlignment
+	if opt != nil {
+		gui.horizontalAlignment = opt.HorizontalAlignment
+		gui.verticalAlignment = opt.VerticalAlignment
+	}
 
 	return gui
 }

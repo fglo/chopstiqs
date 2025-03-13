@@ -231,7 +231,8 @@ func (s *Slider) setUpComponent(opt *SliderOptions) {
 }
 
 func (s *Slider) calcHandlePosition() float64 {
-	return (s.value / s.step) * s.stepPixels
+	dVal := s.value - s.min
+	return (dVal / s.step) * s.stepPixels
 }
 
 func (s *Slider) setDrawingDimensions() {
@@ -269,11 +270,6 @@ func (s *Slider) RecalculateAbsPosition() {
 		s.handle.RecalculateAbsPosition()
 	}
 }
-
-// func (s *Slider) setContainer(container container) {
-// 	s.component.setContainer(container)
-// 	s.handle.setContainer(s.container)
-// }
 
 func (s *Slider) SetDisabled(disabled bool) {
 	s.handle.SetDisabled(disabled)
@@ -362,7 +358,7 @@ func (s *Slider) updateHandlePosition() {
 	default:
 		diff := float64(currCursorPosX) - s.absPosX
 		steps := math.Floor(diff / s.stepPixels)
-		value := float64(steps) * s.step
+		value := s.min + (float64(steps) * s.step)
 		newHandlePosX := s.calcHandlePosition()
 
 		switch {
