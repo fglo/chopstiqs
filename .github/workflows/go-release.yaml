@@ -10,8 +10,12 @@ permissions:
 
 jobs:
   test-and-build:
-    name: test and build
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        go: ["1.22.x", "1.23.x", "1.24.x"]
+    name: Test and build with Go ${{ matrix.go }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash
@@ -25,7 +29,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.19
+          go-version: ${{ matrix.go }}
           cache: true
 
       - name: Install dependencies
@@ -53,7 +57,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.20
+          go-version: 1.24
           cache: true
 
       - name: Update CHANGELOG
