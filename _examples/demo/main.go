@@ -307,8 +307,6 @@ func (g *Game) Update() error {
 		justPressedKeysStr = _justPressedKeysStr
 	}
 
-	w, h := ebiten.WindowSize()
-
 	lblPressedKeys.SetText(_pressedKeysStr)
 
 	return g.checkQuitButton()

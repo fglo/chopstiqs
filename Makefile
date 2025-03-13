@@ -28,6 +28,9 @@ build-demo: ## Build demo project and put the output binary in out/bin/
 #    GO111MODULE=on $(GOCMD) build -mod vendor -o $(OUT_PATH)/$(BINARY_NAME) $(PATH_TO_MAIN_GO)
 	GO111MODULE=on $(GOCMD) build -o $(OUT_PATH)$(BINARY_NAME) $(PATH_TO_MAIN_GO)
 
+build-demo-wasm:
+	GOOS=js GOARCH=wasm $(GOCMD) build -tags wasm -o static/main.wasm $(PATH_TO_MAIN_GO)
+
 wasmserve-demo: ## Run demo app as webapp and expose it under http://localhost:8080
 	wasmserve -tags wasm $(PATH_TO_MAIN_GO)
 

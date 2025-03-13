@@ -14,66 +14,9 @@ import (
 
 var (
 	lastPressedKeys [ebiten.KeyMax + 1]bool
-	keyState        map[ebiten.Key]int = make(map[ebiten.Key]int)
 )
 
-func init() {
-	js.Global().Get("document").Call("addEventListener", "keyup", js.FuncOf(func(this js.Value, args []js.Value) any {
-		e := args[0]
-		key := jsKeyToID(e.Get("code"))
-		keyState[key]--
-
-		if key == ebiten.KeyMetaLeft || key == ebiten.KeyMetaRight {
-			for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-				keyState[k] = 0
-			}
-		}
-
-		switch {
-		case key == ebiten.KeyMetaLeft && keyState[ebiten.KeyMetaRight] == 0 || key == ebiten.KeyMetaRight && keyState[ebiten.KeyMetaLeft] == 0:
-			keyState[ebiten.KeyMeta] = 0
-		case key == ebiten.KeyAltLeft && keyState[ebiten.KeyAltRight] == 0 || key == ebiten.KeyAltRight && keyState[ebiten.KeyAltLeft] == 0:
-			keyState[ebiten.KeyAlt] = 0
-		case key == ebiten.KeyControlLeft && keyState[ebiten.KeyControlRight] == 0 || key == ebiten.KeyControlRight && keyState[ebiten.KeyControlLeft] == 0:
-			keyState[ebiten.KeyControl] = 0
-		case key == ebiten.KeyShiftLeft && keyState[ebiten.KeyShiftRight] == 0 || key == ebiten.KeyShiftRight && keyState[ebiten.KeyShiftLeft] == 0:
-			keyState[ebiten.KeyShift] = 0
-		}
-
-		return nil
-	}))
-
-	js.Global().Get("document").Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
-		e := args[0]
-		key := jsKeyToID(e.Get("code"))
-		meta := e.Get("metaKey").Bool()
-
-		if !meta && keyState[ebiten.KeyMeta] > 0 {
-			for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-				keyState[k] = 0
-			}
-		}
-
-		keyState[key]++
-
-		switch {
-		case key == ebiten.KeyMetaLeft || key == ebiten.KeyMetaRight:
-			keyState[ebiten.KeyMeta]++
-		case key == ebiten.KeyAltLeft || key == ebiten.KeyAltRight:
-			keyState[ebiten.KeyAlt]++
-		case key == ebiten.KeyControlLeft || key == ebiten.KeyControlRight:
-			keyState[ebiten.KeyControl]++
-		case key == ebiten.KeyShiftLeft || key == ebiten.KeyShiftRight:
-			keyState[ebiten.KeyShift]++
-		}
-
-		return nil
-	}))
-
-	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-		keyState[k] = 0
-	}
-}
+func init() {}
 
 func DetectSystem() {
 	switch runtime.GOOS {
@@ -101,30 +44,15 @@ func DetectPressedKeys() {
 		lastPressedKeys[k] = p
 	}
 
-	if OSMacOS() {
-		for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-			KeyPressed[k] = keyState[k] > 0
-			if KeyPressed[k] {
-				AnyKeyPressed = true
-			}
-
-			KeyJustPressed[k] = inpututil.IsKeyJustPressed(k)
-			if KeyJustPressed[k] {
-				AnyJustKeyPressed = true
-			}
+	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
+		KeyPressed[k] = ebiten.IsKeyPressed(k)
+		if KeyPressed[k] {
+			AnyKeyPressed = true
 		}
 
-	} else {
-		for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-			KeyPressed[k] = ebiten.IsKeyPressed(k)
-			if KeyPressed[k] {
-				AnyKeyPressed = true
-			}
-
-			KeyJustPressed[k] = inpututil.IsKeyJustPressed(k)
-			if KeyJustPressed[k] {
-				AnyJustKeyPressed = true
-			}
+		KeyJustPressed[k] = inpututil.IsKeyJustPressed(k)
+		if KeyJustPressed[k] {
+			AnyJustKeyPressed = true
 		}
 	}
 }
