@@ -13,7 +13,9 @@ import (
 	"github.com/fglo/chopstiqs/input"
 	"github.com/fglo/chopstiqs/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
+
+	// TODO: update to github.com/hajimehoshi/ebiten/v2/text/v2
+	"github.com/hajimehoshi/ebiten/v2/text" // nolint
 	"golang.org/x/image/font"
 )
 
