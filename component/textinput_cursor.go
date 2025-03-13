@@ -48,12 +48,12 @@ func newTextInputCursor(options *TextInputCursorOptions) *textInputCursor {
 		}
 	}
 
-	tic.setUpComponent(options)
+	tic.setUpComponent()
 
 	return tic
 }
 
-func (tic *textInputCursor) setUpComponent(options *TextInputCursorOptions) {
+func (tic *textInputCursor) setUpComponent() {
 	var componentOptions ComponentOptions
 	tic.component.setUpComponent(&componentOptions)
 }
