@@ -1,6 +1,8 @@
 package chopstiqs
 
 import (
+	"image"
+
 	"github.com/fglo/chopstiqs/component"
 	"github.com/fglo/chopstiqs/event"
 	"github.com/fglo/chopstiqs/input"
@@ -60,34 +62,9 @@ func (gui *GUI) Draw(guiImage *ebiten.Image) {
 
 	gui.eventManager.HandleFired()
 
+	gui.alignRootContainerInBounds(guiImage.Bounds())
+
 	op := &ebiten.DrawImageOptions{}
-
-	bounds := guiImage.Bounds()
-	w := gui.rootContainer.WidthWithPadding()
-	h := gui.rootContainer.HeightWithPadding()
-
-	var xTranslation int
-	switch gui.horizontalAlignment {
-	case option.AlignmentLeft:
-		xTranslation = 0
-	case option.AlignmentCenteredHorizontally:
-		xTranslation = (bounds.Dx() - w) / 2
-	case option.AlignmentRight:
-		xTranslation = bounds.Dx() - w
-	}
-
-	var yTranslation int
-	switch gui.verticalAlignment {
-	case option.AlignmentTop:
-		yTranslation = 0
-	case option.AlignmentCenteredVertically:
-		yTranslation = (bounds.Dy() - h) / 2
-	case option.AlignmentBottom:
-		yTranslation = bounds.Dy() - h
-	}
-
-	gui.rootContainer.SetPosition(float64(xTranslation), float64(yTranslation))
-
 	op.GeoM.Translate(gui.rootContainer.Position())
 	guiImage.DrawImage(gui.rootContainer.Draw(), op)
 }
@@ -136,4 +113,31 @@ func (gui *GUI) handleFocusEvent(args *component.ComponentFocusedEventArgs) {
 	} else if gui.focusedComponent == args.Component {
 		gui.focusedComponent = nil
 	}
+}
+
+func (gui *GUI) alignRootContainerInBounds(bounds image.Rectangle) {
+	w := gui.rootContainer.WidthWithPadding()
+	h := gui.rootContainer.HeightWithPadding()
+
+	var xTranslation int
+	switch gui.horizontalAlignment {
+	case option.AlignmentLeft:
+		xTranslation = 0
+	case option.AlignmentCenteredHorizontally:
+		xTranslation = (bounds.Dx() - w) / 2
+	case option.AlignmentRight:
+		xTranslation = bounds.Dx() - w
+	}
+
+	var yTranslation int
+	switch gui.verticalAlignment {
+	case option.AlignmentTop:
+		yTranslation = 0
+	case option.AlignmentCenteredVertically:
+		yTranslation = (bounds.Dy() - h) / 2
+	case option.AlignmentBottom:
+		yTranslation = bounds.Dy() - h
+	}
+
+	gui.rootContainer.SetPosition(float64(xTranslation), float64(yTranslation))
 }

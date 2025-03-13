@@ -13,5 +13,6 @@
         //     "GOOS": "js",
         //     "GOARCH": "wasm"
         // }
-    }
+    },
+    "makefile.configureOnOpen": false
 }

@@ -172,6 +172,7 @@ func NewGame() *Game {
 		Width:        option.Int(100),
 		Height:       option.Int(15),
 	})
+	component.SetDefaultScale(slider2.GetValue())
 
 	slider2.AddSlidedHandler(func(args *component.SliderSlidedEventArgs) {
 		slider2TextInput.SetValue(fmt.Sprintf("%.2f", args.Value))
