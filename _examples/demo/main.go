@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"sort"
 	"strconv"
 
 	"github.com/fglo/chopstiqs"
 	"github.com/fglo/chopstiqs/component"
 	"github.com/fglo/chopstiqs/debug"
+	"github.com/fglo/chopstiqs/input"
 	"github.com/fglo/chopstiqs/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -51,12 +53,19 @@ type Game struct {
 	backgroundColor color.RGBA
 }
 
+var lblPressedKeys *component.Label
+
 // New generates a new Game object.
 func NewGame() *Game {
+	gui := chopstiqs.NewGUI().WithOptions(chopstiqs.GUIOptions{
+		HorizontalAlignment: option.AlignmentCenteredHorizontally,
+		VerticalAlignment:   option.AlignmentTop,
+	})
+
 	g := &Game{
-		gui:             chopstiqs.NewGUI(),
-		screenWidth:     200,
-		screenHeight:    250,
+		gui:             gui,
+		screenWidth:     220,
+		screenHeight:    260,
 		backgroundColor: color.RGBA{32, 32, 32, 255},
 	}
 
@@ -65,19 +74,16 @@ func NewGame() *Game {
 
 	// component.SetDefaultPadding(2, 2, 2, 2)
 
-	// rootContainer := g.gui.NewContainer(&component.ContainerOptions{Width: option.Int(200), Height: option.Int(200)})
-	rootContainer := g.gui.NewContainer(&component.ContainerOptions{
+	rootContainer := gui.NewContainer(&component.ContainerOptions{
 		Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
 		Layout:  &component.VerticalListLayout{RowGap: 5}})
-	// rootContainer := g.gui.NewContainer(&component.ContainerOptions{
-	// 	Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
-	// 	Layout:  &component.GridLayout{Columns: 2, ColumnGap: 5, Rows: 2, RowGap: 5}})
 
-	g.gui.SetRootContainer(rootContainer)
+	gui.SetRootContainer(rootContainer)
 
-	lblTitle := g.gui.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: component.AlignmentTop})
+	lblTitle := gui.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: option.AlignmentTop})
 
-	lblInstructions := g.gui.NewLabel("b - show borders\np - show padding\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: component.AlignmentTop})
+	lblInstructions := gui.NewLabel("b - show borders\np - show padding\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: option.AlignmentTop})
+	lblPressedKeys = gui.NewLabel("[]", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: option.AlignmentTop})
 
 	cbOpts := &component.CheckBoxOptions{
 		Drawer: component.DefaultCheckBoxDrawer{
@@ -85,16 +91,16 @@ func NewGame() *Game {
 		},
 		Width: option.Int(15),
 	}
-	cb := g.gui.NewCheckBox(cbOpts)
+	cb := gui.NewCheckBox(cbOpts)
 	cb.Toggle()
 
-	btn := g.gui.NewButton(&component.ButtonOptions{
-		Label: g.gui.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{50, 50, 50, 255}}),
+	btn := gui.NewButton(&component.ButtonOptions{
+		Label: gui.NewLabel("toggle background", &component.LabelOptions{Color: color.RGBA{50, 50, 50, 255}}),
 	})
 	btn.AddClickedHandler(func(args *component.ButtonClickedEventArgs) { g.toggleBackground() })
 
-	btn2 := g.gui.NewButton(&component.ButtonOptions{
-		Drawer: component.DefaultButtonDrawer{
+	btn2 := gui.NewButton(&component.ButtonOptions{
+		Drawer: &component.DefaultButtonDrawer{
 			Color:         color.RGBA{100, 180, 90, 255},
 			ColorPressed:  color.RGBA{90, 160, 80, 255},
 			ColorHovered:  color.RGBA{120, 190, 100, 255},
@@ -102,14 +108,14 @@ func NewGame() *Game {
 		},
 	})
 
-	sliderLabel := g.gui.NewLabel("4", &component.LabelOptions{
+	sliderLabel := gui.NewLabel("4", &component.LabelOptions{
 		Color: color.RGBA{230, 230, 230, 255},
 		Padding: &component.Padding{
 			Top: 4,
 		},
 	})
 
-	slider := g.gui.NewSlider(&component.SliderOptions{
+	slider := gui.NewSlider(&component.SliderOptions{
 		Min:          option.Float(0.),
 		Max:          option.Float(10.),
 		Step:         option.Float(1.),
@@ -126,7 +132,7 @@ func NewGame() *Game {
 		}
 	})
 
-	sliderContainer := g.gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	sliderContainer := gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	sliderContainer.AddComponent(slider)
 	sliderContainer.AddComponent(sliderLabel)
 
@@ -157,7 +163,7 @@ func NewGame() *Game {
 	})
 	slider2TextInput.SetValue("0.50")
 
-	slider2 := g.gui.NewSlider(&component.SliderOptions{
+	slider2 := gui.NewSlider(&component.SliderOptions{
 		Min:          option.Float(0.),
 		Max:          option.Float(1.),
 		Step:         option.Float(.05),
@@ -178,7 +184,7 @@ func NewGame() *Game {
 		slider2.Set(val)
 	})
 
-	sliderContainer2 := g.gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	sliderContainer2 := gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	sliderContainer2.AddComponent(slider2)
 	sliderContainer2.AddComponent(slider2TextInput)
 
@@ -186,9 +192,9 @@ func NewGame() *Game {
 	textInput.SetValue("Lorem Ipsum dolor sit amet")
 
 	cb2Opts := &component.CheckBoxOptions{
-		Label: g.gui.NewLabel("disable components", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
+		Label: gui.NewLabel("disable components", &component.LabelOptions{Color: color.RGBA{230, 230, 230, 255}}),
 	}
-	cb2 := g.gui.NewCheckBox(cb2Opts)
+	cb2 := gui.NewCheckBox(cb2Opts)
 	cb2.AddToggledHandler(func(args *component.CheckBoxToggledEventArgs) {
 		btn.SetDisabled(args.CheckBox.Checked())
 		btn2.SetDisabled(args.CheckBox.Checked())
@@ -197,9 +203,26 @@ func NewGame() *Game {
 		textInput.SetDisabled(args.CheckBox.Checked())
 	})
 
-	checkBoxContainer := g.gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
+	checkBoxContainer := gui.NewContainer(&component.ContainerOptions{Layout: &component.HorizontalListLayout{ColumnGap: 5}})
 	checkBoxContainer.AddComponent(cb)
 	checkBoxContainer.AddComponent(cb2)
+
+	abcContainer := gui.NewContainer(&component.ContainerOptions{
+		Padding: &component.Padding{Left: 5, Right: 5, Top: 5, Bottom: 5},
+		Layout:  &component.GridLayout{Columns: 4, ColumnGap: 5, Rows: 3, RowGap: 5}})
+
+	abcContainer.AddComponent(gui.NewLabel("a", nil))
+	abcContainer.AddComponent(gui.NewLabel("b", nil))
+	abcContainer.AddComponent(gui.NewLabel("c", nil))
+	abcContainer.AddComponent(gui.NewLabel("d", nil))
+	abcContainer.AddComponent(gui.NewLabel("e", nil))
+	abcContainer.AddComponent(gui.NewLabel("f", nil))
+	abcContainer.AddComponent(gui.NewLabel("g", nil))
+	abcContainer.AddComponent(gui.NewLabel("h", nil))
+	abcContainer.AddComponent(gui.NewLabel("i", nil))
+	abcContainer.AddComponent(gui.NewLabel("j", nil))
+	abcContainer.AddComponent(gui.NewLabel("k", nil))
+	abcContainer.AddComponent(gui.NewLabel("l", nil))
 
 	img, _, _ := ebitenutil.NewImageFromReader(bytes.NewReader(chopstiqsLogo))
 	sprite := component.NewSprite(img, nil)
@@ -209,6 +232,7 @@ func NewGame() *Game {
 	rootContainer.AddComponent(lblTitle)
 	lblInstructions.SetPosition(5, 15)
 	rootContainer.AddComponent(lblInstructions)
+	rootContainer.AddComponent(lblPressedKeys)
 	checkBoxContainer.SetPosition(5, 45)
 	rootContainer.AddComponent(checkBoxContainer)
 	btn.SetPosition(5, 60)
@@ -218,6 +242,7 @@ func NewGame() *Game {
 	rootContainer.AddComponent(sliderContainer)
 	rootContainer.AddComponent(sliderContainer2)
 	rootContainer.AddComponent(textInput)
+	rootContainer.AddComponent(abcContainer)
 
 	return g
 }
@@ -232,12 +257,49 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return g.screenWidth, g.screenHeight
 }
 
+var pressedKeysStr string
+var justPressedKeysStr string
+
 // Update updates the current game state.
 func (g *Game) Update() error {
 	g.gui.Update()
 
 	g.checkShowBordersButton()
 	g.checkShowPaddingButton()
+
+	_pressedKeys := make([]string, 0)
+	_justPressedKeys := make([]string, 0)
+
+	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
+		if inpututil.IsKeyJustPressed(k) {
+			_justPressedKeys = append(_justPressedKeys, k.String())
+		}
+		// if ebiten.IsKeyPressed(k) {
+		// 	_pressedKeys = append(_pressedKeys, k.String())
+		// }
+	}
+
+	for key, pressed := range input.KeyPressed {
+		if pressed {
+			_pressedKeys = append(_pressedKeys, ebiten.Key(key).String())
+		}
+	}
+
+	sort.Strings(_pressedKeys)
+	sort.Strings(_justPressedKeys)
+
+	_pressedKeysStr := fmt.Sprintf("%v", _pressedKeys)
+	_justPressedKeysStr := fmt.Sprintf("%v", _justPressedKeys)
+
+	if _pressedKeysStr != pressedKeysStr {
+		pressedKeysStr = _pressedKeysStr
+	}
+
+	if _justPressedKeysStr != justPressedKeysStr {
+		justPressedKeysStr = _justPressedKeysStr
+	}
+
+	lblPressedKeys.SetText(_pressedKeysStr)
 
 	return g.checkQuitButton()
 }

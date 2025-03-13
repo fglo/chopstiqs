@@ -27,8 +27,10 @@ func newTextInputCursor(options *TextInputCursorOptions) *textInputCursor {
 		},
 	}
 
-	tic.width = 1
-	tic.height = 11
+	width := 1
+	height := 11
+
+	tic.SetDimensions(width, height)
 
 	if options != nil {
 		if options.Width.IsSet() {
@@ -38,6 +40,8 @@ func newTextInputCursor(options *TextInputCursorOptions) *textInputCursor {
 		if options.Height.IsSet() {
 			tic.height = options.Height.Val()
 		}
+
+		tic.SetDimensions(width, height)
 
 		if options.Drawer != nil {
 			tic.drawer = options.Drawer

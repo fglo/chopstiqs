@@ -4,6 +4,7 @@ import (
 	"github.com/fglo/chopstiqs/component"
 	"github.com/fglo/chopstiqs/event"
 	"github.com/fglo/chopstiqs/input"
+	"github.com/fglo/chopstiqs/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -14,12 +15,27 @@ type GUI struct {
 	eventManager *event.Manager
 
 	focusedComponent component.Component
+
+	horizontalAlignment option.HorizontalAlignment
+	verticalAlignment   option.VerticalAlignment
+}
+
+type GUIOptions struct {
+	HorizontalAlignment option.HorizontalAlignment
+	VerticalAlignment   option.VerticalAlignment
 }
 
 func NewGUI() *GUI {
 	return &GUI{
 		eventManager: event.NewManager(),
 	}
+}
+
+func (gui *GUI) WithOptions(opt GUIOptions) *GUI {
+	gui.horizontalAlignment = opt.HorizontalAlignment
+	gui.verticalAlignment = opt.VerticalAlignment
+
+	return gui
 }
 
 // SetRootContainer sets the gui root container.
@@ -45,6 +61,33 @@ func (gui *GUI) Draw(guiImage *ebiten.Image) {
 	gui.eventManager.HandleFired()
 
 	op := &ebiten.DrawImageOptions{}
+
+	bounds := guiImage.Bounds()
+	w := gui.rootContainer.WidthWithPadding()
+	h := gui.rootContainer.HeightWithPadding()
+
+	var xTranslation int
+	switch gui.horizontalAlignment {
+	case option.AlignmentLeft:
+		xTranslation = 0
+	case option.AlignmentCenteredHorizontally:
+		xTranslation = (bounds.Dx() - w) / 2
+	case option.AlignmentRight:
+		xTranslation = bounds.Dx() - w
+	}
+
+	var yTranslation int
+	switch gui.verticalAlignment {
+	case option.AlignmentTop:
+		yTranslation = 0
+	case option.AlignmentCenteredVertically:
+		yTranslation = (bounds.Dy() - h) / 2
+	case option.AlignmentBottom:
+		yTranslation = bounds.Dy() - h
+	}
+
+	gui.rootContainer.SetPosition(float64(xTranslation), float64(yTranslation))
+
 	op.GeoM.Translate(gui.rootContainer.Position())
 	guiImage.DrawImage(gui.rootContainer.Draw(), op)
 }

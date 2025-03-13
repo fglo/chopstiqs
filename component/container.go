@@ -7,6 +7,16 @@ import (
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 )
 
+type container interface {
+	Component
+	// SetBackgroundColor sets the container's background color
+	SetBackgroundColor(color imgColor.RGBA)
+	// GetBackgroundColor gets the container's background color
+	GetBackgroundColor() imgColor.RGBA
+	// FireEvents fires the container's components deferred events
+	FireEvents()
+}
+
 type Container struct {
 	component
 
@@ -75,7 +85,7 @@ func (c *Container) setUpComponent(opt *ContainerOptions) {
 }
 
 // setContainer sets the component's container.
-func (c *Container) setContainer(container *Container) {
+func (c *Container) setContainer(container container) {
 	if c.layout != nil {
 		c.layout.Rearrange(c)
 	}
@@ -126,6 +136,37 @@ func (c *Container) AddComponents(components ...Component) {
 
 // 	return c
 // }
+
+// SetPosX sets the container's position X.
+func (c *Container) SetPosX(posX float64) {
+	c.component.SetPosX(posX)
+	for _, component := range c.components {
+		component.RecalculateAbsPosition()
+	}
+}
+
+// SetPosY sets the container's position Y.
+func (c *Container) SetPosY(posY float64) {
+	c.component.SetPosY(posY)
+	for _, component := range c.components {
+		component.RecalculateAbsPosition()
+	}
+}
+
+// SetPosition sets the container's position (x and y).
+func (c *Container) SetPosition(posX, posY float64) {
+	c.component.SetPosition(posX, posY)
+	for _, component := range c.components {
+		component.RecalculateAbsPosition()
+	}
+}
+
+func (c *Container) RecalculateAbsPosition() {
+	c.component.RecalculateAbsPosition()
+	for _, component := range c.components {
+		component.RecalculateAbsPosition()
+	}
+}
 
 // SetBackgroundColor sets the container's background color
 func (c *Container) SetBackgroundColor(color imgColor.RGBA) {

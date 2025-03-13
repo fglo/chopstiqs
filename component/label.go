@@ -6,25 +6,10 @@ import (
 
 	colorutils "github.com/fglo/chopstiqs/color"
 	fontutils "github.com/fglo/chopstiqs/font"
+	"github.com/fglo/chopstiqs/option"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
-)
-
-type HorizontalAlignment int
-
-const (
-	AlignmentLeft HorizontalAlignment = iota
-	AlignmentCenteredHorizontally
-	AlignmentRight
-)
-
-type VerticalAlignment int
-
-const (
-	AlignmentTop VerticalAlignment = iota
-	AlignmentCenteredVertically
-	AlignmentBottom
 )
 
 type Label struct {
@@ -35,13 +20,11 @@ type Label struct {
 	font    font.Face
 	metrics fontutils.Metrics
 
-	horizontalAlignment HorizontalAlignment
-	verticalAlignment   VerticalAlignment
+	horizontalAlignment option.HorizontalAlignment
+	verticalAlignment   option.VerticalAlignment
 
-	alignHorizontally func()
-	alignVertically   func()
-	textOriginX       int
-	textOriginY       int
+	textOriginX int
+	textOriginY int
 
 	bounds image.Rectangle
 
@@ -52,8 +35,8 @@ type LabelOptions struct {
 	Color color.Color
 	Font  font.Face
 
-	HorizontalAlignment HorizontalAlignment
-	VerticalAlignment   VerticalAlignment
+	HorizontalAlignment option.HorizontalAlignment
+	VerticalAlignment   option.VerticalAlignment
 
 	Inverted bool
 
@@ -85,24 +68,6 @@ func NewLabel(text string, opt *LabelOptions) *Label {
 		l.verticalAlignment = opt.VerticalAlignment
 	}
 
-	switch l.horizontalAlignment {
-	case AlignmentLeft:
-		l.alignHorizontally = l.alignToLeft
-	case AlignmentCenteredHorizontally:
-		l.alignHorizontally = l.centerHorizontally
-	case AlignmentRight:
-		l.alignHorizontally = l.alignToRight
-	}
-
-	switch l.verticalAlignment {
-	case AlignmentTop:
-		l.alignVertically = l.alignToTop
-	case AlignmentCenteredVertically:
-		l.alignVertically = l.centerVertically
-	case AlignmentBottom:
-		l.alignVertically = l.alignToBottom
-	}
-
 	l.setUpComponent(opt)
 
 	l.align()
@@ -122,38 +87,48 @@ func (l *Label) setUpComponent(opt *LabelOptions) {
 	l.component.setUpComponent(&componentOptions)
 }
 
-func (l *Label) align() {
-	if l.alignHorizontally != nil {
-		l.alignHorizontally()
-	}
-
-	if l.alignVertically != nil {
-		l.alignVertically()
-	}
-}
-
 func (l *Label) centerHorizontally() {
-	l.posX = l.posX - float64(l.bounds.Dx())/2
-}
-
-func (l *Label) centerVertically() {
-	l.posY = l.posY - float64(l.bounds.Dy())/2
+	l.SetPosX(float64(l.container.WidthWithPadding()-l.bounds.Dx()) / 2)
 }
 
 func (l *Label) alignToLeft() {
-	// l.posX = l.posX
+	l.SetPosX(0)
 }
 
 func (l *Label) alignToRight() {
-	l.posX = l.posX - float64(l.bounds.Dx())
+	l.SetPosX(float64(l.container.WidthWithPadding() - l.bounds.Dx()))
+}
+
+func (l *Label) centerVertically() {
+	l.SetPosY(float64(l.container.HeightWithPadding()-l.bounds.Dy()) / 2)
 }
 
 func (l *Label) alignToTop() {
-	// l.posY = l.posY
+	l.SetPosY(0)
 }
 
 func (l *Label) alignToBottom() {
-	l.posY = l.posY - float64(l.bounds.Dy())
+	l.SetPosY(float64(l.container.HeightWithPadding() - l.bounds.Dy()))
+}
+
+func (l *Label) align() {
+	switch l.horizontalAlignment {
+	case option.AlignmentLeft:
+		l.alignToLeft()
+	case option.AlignmentCenteredHorizontally:
+		l.centerHorizontally()
+	case option.AlignmentRight:
+		l.alignToRight()
+	}
+
+	switch l.verticalAlignment {
+	case option.AlignmentTop:
+		l.alignToTop()
+	case option.AlignmentCenteredVertically:
+		l.centerVertically()
+	case option.AlignmentBottom:
+		l.alignToBottom()
+	}
 }
 
 func (l *Label) SetText(labelText string) {
@@ -164,8 +139,8 @@ func (l *Label) SetText(labelText string) {
 
 	l.SetDimensions(l.bounds.Dx(), l.bounds.Dy())
 
-	if l.container != nil {
-		l.container.SetWidth(l.container.Width() + l.component.width)
+	if l.container != nil && l.container.Width() < l.widthWithPadding {
+		l.container.SetWidth(l.widthWithPadding)
 	}
 }
 
@@ -189,19 +164,4 @@ func (l *Label) Draw() *ebiten.Image {
 	l.component.Draw()
 
 	return l.image
-}
-
-func (l *Label) SetPosX(posX float64) {
-	l.component.SetPosX(posX)
-	l.align()
-}
-
-func (l *Label) SetPosY(posY float64) {
-	l.component.SetPosY(posY)
-	l.align()
-}
-
-func (l *Label) SetPosistion(posX, posY float64) {
-	l.component.SetPosition(posX, posY)
-	l.align()
 }

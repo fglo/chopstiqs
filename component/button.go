@@ -67,17 +67,21 @@ func NewButton(opt *ButtonOptions) *Button {
 		},
 	}
 
-	b.width = 45
-	b.height = 15
+	width := 45
+	height := 15
+
+	b.SetDimensions(width, height)
 
 	if opt != nil {
 		if opt.Width.IsSet() {
-			b.width = opt.Width.Val()
+			width = opt.Width.Val()
 		}
 
 		if opt.Height.IsSet() {
-			b.height = opt.Height.Val()
+			height = opt.Height.Val()
 		}
+
+		b.SetDimensions(width, height)
 
 		if opt.Label != nil {
 			b.SetLabel(opt.Label)
@@ -168,13 +172,55 @@ func (b *Button) AddClickedHandler(f ButtonClickedHandlerFunc) *Button {
 
 // SetLabel sets the label of the button and sets the dimensions of the button accordingly.
 func (b *Button) SetLabel(label *Label) {
+	label.setContainer(b)
+
 	b.label = label
-	b.label.alignHorizontally = b.label.centerHorizontally
-	b.label.alignVertically = b.label.centerVertically
+	b.label.horizontalAlignment = option.AlignmentCenteredHorizontally
+	b.label.verticalAlignment = option.AlignmentCenteredVertically
 
-	b.label.SetPosistion(float64(b.label.bounds.Dx())/2+5, 7.5)
+	width := b.width
+	if width <= b.label.width {
+		width = b.label.width + 10
+	}
 
-	b.SetDimensions(b.label.width+10, 15)
+	height := b.height
+	if height <= b.label.height {
+		height = b.label.height + 2
+	}
+
+	b.SetDimensions(width, height)
+
+	b.label.align()
+}
+
+func (b *Button) SetPosition(posX, posY float64) {
+	b.component.SetPosition(posX, posY)
+	if b.label != nil {
+		b.label.RecalculateAbsPosition()
+	}
+}
+
+func (b *Button) RecalculateAbsPosition() {
+	b.component.RecalculateAbsPosition()
+	if b.label != nil {
+		b.label.RecalculateAbsPosition()
+	}
+}
+
+func (b *Button) SetBackgroundColor(color color.RGBA) {
+	b.container.SetBackgroundColor(color)
+}
+
+func (b *Button) GetBackgroundColor() color.RGBA {
+	return b.container.GetBackgroundColor()
+}
+
+func (b *Button) FireEvents() {
+	if b.label != nil {
+		b.label.FireEvents()
+	}
+
+	b.component.FireEvents()
 }
 
 func (b *Button) Draw() *ebiten.Image {

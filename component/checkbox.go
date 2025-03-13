@@ -63,19 +63,23 @@ func NewCheckBox(opt *CheckBoxOptions) *CheckBox {
 		},
 	}
 
-	cb.component.width = cb.cbWidth
-	cb.component.height = cb.cbHeight
+	width := cb.cbWidth
+	height := cb.cbHeight
+
+	cb.SetDimensions(width, height)
 
 	if opt != nil {
-		if opt.Width.IsSet() {
+		if opt.Width.IsSet() && opt.Height.IsSet() {
 			cb.cbWidth = opt.Width.Val()
-			cb.component.width = cb.cbWidth
+			width = cb.cbWidth
 		}
 
 		if opt.Height.IsSet() {
 			cb.cbHeight = opt.Height.Val()
-			cb.component.height = cb.cbHeight
+			height = cb.cbHeight
 		}
+
+		cb.SetDimensions(width, height)
 
 		if opt.Label != nil {
 			cb.SetLabel(opt.Label)
@@ -136,17 +140,28 @@ func (cb *CheckBox) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox {
 
 // SetLabel sets the label of the checkbox and adjusts the checkbox's dimensions accordingly.
 func (cb *CheckBox) SetLabel(label *Label) {
+	label.setContainer(cb)
 	cb.label = label
-	cb.label.alignHorizontally = cb.label.alignToLeft
-	cb.label.alignVertically = cb.label.centerVertically
+	cb.label.horizontalAlignment = option.AlignmentRight
+	cb.label.verticalAlignment = option.AlignmentCenteredVertically
 
 	if cb.label.padding.Left == 0 {
-		cb.label.SetPaddingLeft(3)
+		cb.label.SetPaddingLeft(2)
 	}
 
-	cb.label.SetPosistion(float64(cb.cbWidth), float64(cb.cbHeight)/2)
+	width := cb.width
+	if width <= cb.cbWidth+cb.label.widthWithPadding {
+		width = cb.cbWidth + cb.label.widthWithPadding
+	}
 
-	cb.SetDimensions(cb.cbWidth+cb.label.widthWithPadding, cb.cbHeight)
+	height := cb.height // cb.cbHeight
+	if height <= cb.label.height {
+		height = cb.label.height
+	}
+
+	cb.SetDimensions(width, height)
+
+	cb.label.align()
 }
 
 func (cb *CheckBox) Set(checked bool) {
@@ -168,6 +183,36 @@ func (cb *CheckBox) Toggle() {
 	cb.eventManager.Fire(cb.ToggledEvent, &CheckBoxToggledEventArgs{
 		CheckBox: cb,
 	})
+}
+
+func (cb *CheckBox) SetPosition(posX, posY float64) {
+	cb.component.SetPosition(posX, posY)
+	if cb.label != nil {
+		cb.label.RecalculateAbsPosition()
+	}
+}
+
+func (cb *CheckBox) RecalculateAbsPosition() {
+	cb.component.RecalculateAbsPosition()
+	if cb.label != nil {
+		cb.label.RecalculateAbsPosition()
+	}
+}
+
+func (cb *CheckBox) SetBackgroundColor(color color.RGBA) {
+	cb.container.SetBackgroundColor(color)
+}
+
+func (cb *CheckBox) GetBackgroundColor() color.RGBA {
+	return cb.container.GetBackgroundColor()
+}
+
+func (cb *CheckBox) FireEvents() {
+	if cb.label != nil {
+		cb.label.FireEvents()
+	}
+
+	cb.component.FireEvents()
 }
 
 func (cb *CheckBox) Draw() *ebiten.Image {

@@ -290,8 +290,10 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		ebiten.KeyMeta:    false,
 	}
 
-	ti.width = 60
-	ti.height = 15
+	width := 60
+	height := 15
+
+	ti.SetDimensions(width, height)
 
 	ti.cursor = *newTextInputCursor(&TextInputCursorOptions{
 		Width:  option.Int(1),
@@ -302,13 +304,14 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		ti.submitOnUnfocus = options.SubmitOnUnfocus
 
 		if options.Width.IsSet() {
-			ti.width = options.Width.Val()
+			width = options.Width.Val()
 		}
 
 		if options.Height.IsSet() {
-			ti.height = options.Height.Val()
-			ti.cursor.height = ti.height - 4
+			height = options.Height.Val()
 		}
+
+		ti.SetDimensions(width, height)
 
 		if options.Color != nil {
 			ti.color = colorutils.ToRGBA(options.Color)
@@ -428,6 +431,25 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 
 		ti.pressedPosition = -1
 	})
+}
+
+// SetHeight sets the component's height.
+func (ti *TextInput) SetHeight(height int) {
+	if height > 0 {
+		ti.height = height
+		ti.cursor.height = ti.height - 4
+		ti.recalculateHeight()
+	}
+}
+
+// SetDimensions sets the component's dimensions (width and height).
+func (ti *TextInput) SetDimensions(width, height int) {
+	if width > 0 && height > 0 {
+		ti.width = width
+		ti.height = height
+		ti.cursor.height = ti.height - 4
+		ti.recalculateDimensions()
+	}
 }
 
 func (ti *TextInput) AddClickedHandler(f TextInputClickedHandlerFunc) *TextInput {
