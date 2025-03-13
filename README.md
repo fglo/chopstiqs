@@ -14,17 +14,20 @@ Chopstiqs is heavily inspired by [ebitenui](https://github.com/ebitenui/ebitenui
 ## Examples
 
 Simple example with few components: [_examples/simple/main.go](https://github.com/fglo/chopstiqs/blob/main/_examples/simple/main.go)
+Run `make run-simple-demo` to run it.
 
-Example containing every component: [_examples/demo/main.go](https://github.com/fglo/chopstiqs/blob/main/_examples/demo/main.go)
+Example containing (nearly) every component: [_examples/demo/main.go](https://github.com/fglo/chopstiqs/blob/main/_examples/demo/main.go)
+Run `make run-demo` to run it.
 
 Running example: <https://fglo.github.io/chopstiqs/>
+Run `make wasmserve-demo` to run it locally under <http://localhost:8080> (requres [wasmserve](https://github.com/hajimehoshi/wasmserve))
 
 ## Quick Start
 
 You can create gui using the `chopstiqs.NewGUI()` function:
 
 ```go
-gui := chopstiqs.NewGUI()
+gui := chopstiqs.NewGUI(&chopstiqs.GUIOptions{})
 ```
 
 The gui object has two methods: `Update()` and `Draw(screen *ebiten.Image)` that should be called in the ebiten game's object `Update()` and `Draw(screen *ebiten.Image)` methods, e.g.:

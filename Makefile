@@ -3,6 +3,7 @@ GOTEST=$(GOCMD) test
 GOVET=$(GOCMD) vet
 BINARY_NAME=chopstiqs
 PATH_TO_MAIN_GO=./_examples/demo/main.go
+PATH_TO_MAIN_GO2=./_examples/simple/main.go
 OUT_PATH=out/bin/
 
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -19,12 +20,15 @@ all: help
 run-demo: ## Run project
 	go run -race $(PATH_TO_MAIN_GO)
 
+run-simple-demo: ## Run project
+	go run -race $(PATH_TO_MAIN_GO2)
+
 build-demo: ## Build demo project and put the output binary in out/bin/
 	mkdir -p $(OUT_PATH)
 #    GO111MODULE=on $(GOCMD) build -mod vendor -o $(OUT_PATH)/$(BINARY_NAME) $(PATH_TO_MAIN_GO)
 	GO111MODULE=on $(GOCMD) build -o $(OUT_PATH)$(BINARY_NAME) $(PATH_TO_MAIN_GO)
 
-wasmserve-demo: ## Run demo app as webapp
+wasmserve-demo: ## Run demo app as webapp and expose it under http://localhost:8080
 	wasmserve -tags wasm $(PATH_TO_MAIN_GO)
 
 clean: ## Remove build related file

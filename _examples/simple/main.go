@@ -5,15 +5,15 @@ import (
 	"image/color"
 	"log"
 
+	"github.com/fglo/chopstiqs"
 	"github.com/fglo/chopstiqs/component"
-	"github.com/fglo/chopstiqs/gui"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 // Game encapsulates game logic
 type Game struct {
-	gui            *gui.GUI
+	gui            *chopstiqs.GUI
 	bgColorToggled bool
 	screenWidth    int
 	screenHeight   int
@@ -22,7 +22,7 @@ type Game struct {
 // New generates a new Game object.
 func NewGame() *Game {
 	g := &Game{
-		gui:          gui.New(),
+		gui:          chopstiqs.NewGUI(nil),
 		screenWidth:  130,
 		screenHeight: 70,
 	}

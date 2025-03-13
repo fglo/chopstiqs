@@ -309,8 +309,7 @@ func (g *Game) Update() error {
 
 	w, h := ebiten.WindowSize()
 
-	// lblPressedKeys.SetText(_pressedKeysStr)
-	lblPressedKeys.SetText(fmt.Sprintf("%d, %d", w, h))
+	lblPressedKeys.SetText(_pressedKeysStr)
 
 	return g.checkQuitButton()
 }
