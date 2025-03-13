@@ -16,18 +16,18 @@ func (hl *HorizontalListLayout) Rearrange(c *Container) {
 	c.lastComponentPosX = 0
 
 	for _, component := range c.components {
-		width, height = hl.arrange(c, component, width, height)
+		width, height = hl.arrange(c, component, height)
 	}
 
 	c.SetDimensions(width, height)
 }
 
 func (hl *HorizontalListLayout) Arrange(c *Container, component Component) {
-	width, height := hl.arrange(c, component, c.width, c.height)
+	width, height := hl.arrange(c, component, c.height)
 	c.SetDimensions(width, height)
 }
 
-func (hl *HorizontalListLayout) arrange(c *Container, component Component, width, height int) (int, int) {
+func (hl *HorizontalListLayout) arrange(c *Container, component Component, height int) (int, int) {
 	component.SetPosition(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top))
 	c.lastComponentPosX += component.WidthWithPadding() + hl.ColumnGap
 
@@ -49,18 +49,18 @@ func (vl *VerticalListLayout) Rearrange(c *Container) {
 	c.lastComponentPosY = 0.
 
 	for _, component := range c.components {
-		width, height = vl.arrange(c, component, width, height)
+		width, height = vl.arrange(c, component, width)
 	}
 
 	c.SetDimensions(width, height)
 }
 
 func (vl *VerticalListLayout) Arrange(c *Container, component Component) {
-	width, height := vl.arrange(c, component, c.width, c.height)
+	width, height := vl.arrange(c, component, c.width)
 	c.SetDimensions(width, height)
 }
 
-func (vl *VerticalListLayout) arrange(c *Container, component Component, width, height int) (int, int) {
+func (vl *VerticalListLayout) arrange(c *Container, component Component, width int) (int, int) {
 	component.SetPosition(float64(c.padding.Left), float64(c.lastComponentPosY+c.padding.Top))
 	c.lastComponentPosY += component.HeightWithPadding() + vl.RowGap
 

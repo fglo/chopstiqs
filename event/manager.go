@@ -24,6 +24,10 @@ func NewManager() *Manager {
 // Events are not fired directly, but are put into a deferred queue. This queue is then
 // processed by the GUI.
 func (m *Manager) Fire(e *Event, args any) {
+	if m == nil {
+		return
+	}
+
 	m.firedEvents = append(m.firedEvents, &Fired{
 		event: e,
 		args:  args,
@@ -32,6 +36,10 @@ func (m *Manager) Fire(e *Event, args any) {
 
 // HandleFired processes the queue of fired events and calls their handlers.
 func (m *Manager) HandleFired() {
+	if m == nil {
+		return
+	}
+
 	for len(m.firedEvents) > 0 {
 		fired := m.firedEvents[0]
 		m.firedEvents = m.firedEvents[1:]

@@ -66,6 +66,8 @@ type Component interface {
 	SetPosY(posY float64)
 	// SetPosition sets the component's position (x and y)
 	SetPosition(posX, posY float64)
+	// Recalculates component's absolute position
+	RecalculateAbsPosition()
 	// SetPadding sets the component's padding.
 	SetPadding(padding Padding)
 	// SetPaddingTop sets the component's padding top.
@@ -80,7 +82,7 @@ type Component interface {
 	Focused() bool
 	SetFocused(bool)
 
-	setContainer(*Container)
+	setContainer(container)
 
 	EventManager() *event.Manager
 	SetEventManager(*event.Manager)
@@ -90,7 +92,7 @@ type Component interface {
 
 // component is an abstraction of a user interface component, like a button or checkbox.
 type component struct {
-	container *Container
+	container container
 
 	eventManager *event.Manager
 
@@ -159,8 +161,7 @@ func (c *component) setUpComponent(opt *ComponentOptions) {
 
 	if opt != nil {
 		if opt.Padding != nil {
-			opt.Padding.Validate()
-			c.padding = *opt.Padding
+			c.SetPadding(*opt.Padding)
 		}
 
 		c.disabled = opt.Disabled
@@ -171,12 +172,12 @@ func (c *component) setUpComponent(opt *ComponentOptions) {
 }
 
 // setContainer sets the component's container.
-func (c *component) setContainer(container *Container) {
+func (c *component) setContainer(container container) {
 	c.container = container
 	c.absPosX = c.posX + c.container.AbsPosX()
 	c.absPosY = c.posY + c.container.AbsPosY()
 	c.setRect()
-	c.eventManager = container.EventManager()
+	c.SetEventManager(container.EventManager())
 }
 
 func (c *component) EventManager() *event.Manager {
@@ -281,41 +282,34 @@ func (c *component) Draw() *ebiten.Image {
 // SetPosX sets the component's position X.
 func (c *component) SetPosX(posX float64) {
 	c.posX = posX
-	if c.container != nil {
-		c.absPosX = posX + c.container.AbsPosX()
-	} else {
-		c.absPosX = posX
-	}
-
-	c.setRect()
+	c.RecalculateAbsPosition()
 }
 
 // SetPosY sets the component's position Y.
 func (c *component) SetPosY(posY float64) {
 	c.posY = posY
-	if c.container != nil {
-		c.absPosY = posY + c.container.AbsPosY()
-	} else {
-		c.absPosY = posY
-	}
-
-	c.setRect()
+	c.RecalculateAbsPosition()
 }
 
 // SetPosition sets the component's position (x and y).
 func (c *component) SetPosition(posX, posY float64) {
 	c.posX = posX
+	c.posY = posY
+	c.RecalculateAbsPosition()
+}
+
+// SetPosition sets the component's position (x and y).
+func (c *component) RecalculateAbsPosition() {
 	if c.container != nil {
-		c.absPosX = posX + c.container.AbsPosX()
+		c.absPosX = c.posX + c.container.AbsPosX()
 	} else {
-		c.absPosX = posX
+		c.absPosX = c.posX
 	}
 
-	c.posY = posY
 	if c.container != nil {
-		c.absPosY = posY + c.container.AbsPosY()
+		c.absPosY = c.posY + c.container.AbsPosY()
 	} else {
-		c.absPosY = posY
+		c.absPosY = c.posY
 	}
 
 	c.setRect()
@@ -325,73 +319,127 @@ func (c *component) SetPosition(posX, posY float64) {
 func (c *component) SetPadding(padding Padding) {
 	padding.Validate()
 	c.padding = padding
-	c.SetDimensions(c.width, c.height)
+	c.recalculateDimensions()
 }
 
 // SetPaddingTop sets the component's padding top.
 func (c *component) SetPaddingTop(padding int) {
+	if padding < 0 {
+		padding = DefaultPadding.Top
+	}
+
 	c.padding.Top = padding
-	c.SetDimensions(c.width, c.height)
+	c.recalculateHeight()
 }
 
 // SetPaddingBottom sets the component's padding bottom.
 func (c *component) SetPaddingBottom(padding int) {
+	if padding < 0 {
+		padding = DefaultPadding.Bottom
+	}
+
 	c.padding.Bottom = padding
-	c.SetDimensions(c.width, c.height)
+	c.recalculateHeight()
 }
 
 // SetPaddingLeft sets the component's padding left.
 func (c *component) SetPaddingLeft(padding int) {
+	if padding < 0 {
+		padding = DefaultPadding.Left
+	}
+
 	c.padding.Left = padding
-	c.SetDimensions(c.width, c.height)
+	c.recalculateWidth()
 }
 
 // SetPaddingRight sets the component's padding right.
 func (c *component) SetPaddingRight(padding int) {
+	if padding < 0 {
+		padding = DefaultPadding.Right
+	}
+
 	c.padding.Right = padding
-	c.SetDimensions(c.width, c.height)
+	c.recalculateWidth()
 }
 
 // SetWidth sets the component's width.
 func (c *component) SetWidth(width int) {
-	c.width = width
-	c.widthWithPadding = width + c.padding.Left + c.padding.Right
+	if width > 0 {
+		c.width = width
+		c.recalculateWidth()
+	}
+}
+
+// SetHeight sets the component's height.
+func (c *component) SetHeight(height int) {
+	if height > 0 {
+		c.height = height
+		c.recalculateHeight()
+	}
+}
+
+// SetDimensions sets the component's dimensions (width and height).
+func (c *component) SetDimensions(width, height int) {
+	if width > 0 && height > 0 {
+		c.width = width
+		c.height = height
+		c.recalculateDimensions()
+	}
+}
+
+func (c *component) recalculateWidth() {
+	c.widthWithPadding = c.width + c.padding.Left + c.padding.Right
 	c.pixelCols = c.widthWithPadding * 4
 
 	c.calcPixelColIds()
 
 	c.setImage()
 	c.setRect()
+
+	if c.container != nil && c.container.Width() < c.widthWithPadding {
+		c.container.SetWidth(c.widthWithPadding)
+	}
 }
 
-// SetHeight sets the component's height.
-func (c *component) SetHeight(height int) {
-	c.height = height
-	c.heightWithPadding = height + c.padding.Top + c.padding.Bottom
+func (c *component) recalculateHeight() {
+	c.heightWithPadding = c.height + c.padding.Top + c.padding.Bottom
 	c.pixelRows = c.heightWithPadding
 
 	c.calcPixelRowIds()
 
 	c.setImage()
 	c.setRect()
+
+	if c.container != nil && c.container.Height() < c.heightWithPadding {
+		c.container.SetHeight(c.heightWithPadding)
+	}
 }
 
-// SetDimensions sets the component's dimensions (width and height).
-func (c *component) SetDimensions(width, height int) {
-	if width != 0 && height != 0 {
-		c.width = width
-		c.widthWithPadding = width + c.padding.Left + c.padding.Right
-		c.pixelCols = c.widthWithPadding * 4
+func (c *component) recalculateDimensions() {
+	c.widthWithPadding = c.width + c.padding.Left + c.padding.Right
+	c.pixelCols = c.widthWithPadding * 4
 
-		c.height = height
-		c.heightWithPadding = height + c.padding.Top + c.padding.Bottom
-		c.pixelRows = c.heightWithPadding
+	c.heightWithPadding = c.height + c.padding.Top + c.padding.Bottom
+	c.pixelRows = c.heightWithPadding
 
-		c.calcPixelColIds()
-		c.calcPixelRowIds()
+	c.calcPixelColIds()
+	c.calcPixelRowIds()
 
-		c.setImage()
-		c.setRect()
+	c.setImage()
+	c.setRect()
+
+	if c.container != nil {
+		containerWidth := c.container.Width()
+		if containerWidth < c.widthWithPadding {
+			containerWidth = c.widthWithPadding
+		}
+
+		containerHeight := c.container.Height()
+		if containerHeight < c.heightWithPadding {
+			containerHeight = c.heightWithPadding
+		}
+
+		c.container.SetDimensions(containerWidth, containerHeight)
 	}
 }
 
@@ -483,9 +531,9 @@ func (c *component) AbsPosY() float64 {
 	return c.absPosY
 }
 
-// Dimensions returns the component's size (width and height).
+// Dimensions returns the component's size (width and height with padding).
 func (c *component) Dimensions() (int, int) {
-	return c.width, c.height
+	return c.widthWithPadding, c.heightWithPadding
 }
 
 // Width returns the component's width.

@@ -27,8 +27,10 @@ func newTextInputCursor(options *TextInputCursorOptions) *textInputCursor {
 		},
 	}
 
-	tic.width = 1
-	tic.height = 11
+	width := 1
+	height := 11
+
+	tic.SetDimensions(width, height)
 
 	if options != nil {
 		if options.Width.IsSet() {
@@ -39,17 +41,19 @@ func newTextInputCursor(options *TextInputCursorOptions) *textInputCursor {
 			tic.height = options.Height.Val()
 		}
 
+		tic.SetDimensions(width, height)
+
 		if options.Drawer != nil {
 			tic.drawer = options.Drawer
 		}
 	}
 
-	tic.setUpComponent(options)
+	tic.setUpComponent()
 
 	return tic
 }
 
-func (tic *textInputCursor) setUpComponent(options *TextInputCursorOptions) {
+func (tic *textInputCursor) setUpComponent() {
 	var componentOptions ComponentOptions
 	tic.component.setUpComponent(&componentOptions)
 }

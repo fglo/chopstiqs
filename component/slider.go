@@ -110,8 +110,10 @@ func NewSlider(opt *SliderOptions) *Slider {
 		},
 	}
 
-	s.component.width = 45
-	s.component.height = 15
+	width := 45
+	height := 15
+
+	s.SetDimensions(width, height)
 
 	if opt != nil {
 		if opt.Min.IsSet() {
@@ -140,6 +142,8 @@ func NewSlider(opt *SliderOptions) *Slider {
 			s.component.height = opt.Height.Val()
 		}
 
+		s.SetDimensions(width, height)
+
 		if opt.Drawer != nil {
 			s.drawer = opt.Drawer
 		}
@@ -153,6 +157,7 @@ func NewSlider(opt *SliderOptions) *Slider {
 	s.stepPixels = float64(s.component.width-4) / steps
 
 	s.handle = NewButton(&ButtonOptions{Width: option.Int(7), Height: option.Int(s.component.height), Drawer: s.handleDrawer})
+	s.handle.setContainer(s)
 	s.handle.SetPosition(s.calcHandlePosition(), 0)
 
 	s.handle.AddPressedHandler(func(args *ButtonPressedEventArgs) {
@@ -226,7 +231,8 @@ func (s *Slider) setUpComponent(opt *SliderOptions) {
 }
 
 func (s *Slider) calcHandlePosition() float64 {
-	return (s.value / s.step) * s.stepPixels
+	dVal := s.value - s.min
+	return (dVal / s.step) * s.stepPixels
 }
 
 func (s *Slider) setDrawingDimensions() {
@@ -243,10 +249,6 @@ func (s *Slider) setDrawingDimensions() {
 	s.penultimatePixelRowId = s.lastPixelRowId - 1
 }
 
-func (s *Slider) AddComponent(Component) {
-	panic("Slider can't have children")
-}
-
 func (s *Slider) SetBackgroundColor(color color.RGBA) {
 	s.container.SetBackgroundColor(color)
 }
@@ -257,12 +259,16 @@ func (s *Slider) GetBackgroundColor() color.RGBA {
 
 func (s *Slider) SetPosition(posX, posY float64) {
 	s.component.SetPosition(posX, posY)
-	s.handle.SetPosition(s.handle.posX, s.handle.posY)
+	if s.handle != nil {
+		s.handle.RecalculateAbsPosition()
+	}
 }
 
-func (s *Slider) setContainer(container *Container) {
-	s.component.setContainer(container)
-	s.handle.setContainer(s.container)
+func (s *Slider) RecalculateAbsPosition() {
+	s.component.RecalculateAbsPosition()
+	if s.handle != nil {
+		s.handle.RecalculateAbsPosition()
+	}
 }
 
 func (s *Slider) SetDisabled(disabled bool) {
@@ -352,7 +358,7 @@ func (s *Slider) updateHandlePosition() {
 	default:
 		diff := float64(currCursorPosX) - s.absPosX
 		steps := math.Floor(diff / s.stepPixels)
-		value := float64(steps) * s.step
+		value := s.min + (float64(steps) * s.step)
 		newHandlePosX := s.calcHandlePosition()
 
 		switch {
