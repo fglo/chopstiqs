@@ -11,12 +11,12 @@ func Write(text string) {
 	setResult := make(chan struct{}, 1)
 	js.Global().Get("navigator").Get("clipboard").Call("writeText", js.ValueOf(text)).
 		Call("then",
-			js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			js.FuncOf(func(this js.Value, args []js.Value) any {
 				setResult <- struct{}{}
 				return nil
 			})).
 		Call("catch",
-			js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			js.FuncOf(func(this js.Value, args []js.Value) any {
 				println("failed to set clipboard: " + args[0].String())
 				setResult <- struct{}{}
 				return nil
@@ -30,12 +30,12 @@ func Read() string {
 	setResult := make(chan string, 1)
 	js.Global().Get("navigator").Get("clipboard").Call("readText").
 		Call("then",
-			js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			js.FuncOf(func(this js.Value, args []js.Value) any {
 				setResult <- args[0].String()
 				return nil
 			})).
 		Call("catch",
-			js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			js.FuncOf(func(this js.Value, args []js.Value) any {
 				println("failed to get clipboard: " + args[0].String())
 				setResult <- ""
 				return nil

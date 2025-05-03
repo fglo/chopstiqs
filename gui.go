@@ -51,6 +51,7 @@ func (gui *GUI) SetRootContainer(container *component.Container) {
 // It should be called in the Ebiten Game's Update function.
 func (gui *GUI) Update() {
 	input.Update()
+	gui.rootContainer.Update()
 	gui.rootContainer.FireEvents()
 }
 

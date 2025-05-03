@@ -2,7 +2,6 @@ package component
 
 import (
 	"image/color"
-	"math"
 	"sync/atomic"
 	"time"
 
@@ -455,19 +454,19 @@ func (ti *TextInput) SetDimensions(width, height int) {
 }
 
 func (ti *TextInput) AddClickedHandler(f TextInputClickedHandlerFunc) *TextInput {
-	ti.ClickedEvent.AddHandler(func(args interface{}) { f(args.(*TextInputClickedEventArgs)) })
+	ti.ClickedEvent.AddHandler(func(args any) { f(args.(*TextInputClickedEventArgs)) })
 
 	return ti
 }
 
 func (ti *TextInput) AddChangedHandler(f TextInputChangedHandlerFunc) *TextInput {
-	ti.ChangedEvent.AddHandler(func(args interface{}) { f(args.(*TextInputChangedEventArgs)) })
+	ti.ChangedEvent.AddHandler(func(args any) { f(args.(*TextInputChangedEventArgs)) })
 
 	return ti
 }
 
 func (ti *TextInput) AddSubmittedHandler(f TextInputSubmittedHandlerFunc) *TextInput {
-	ti.SubmittedEvent.AddHandler(func(args interface{}) { f(args.(*TextInputSubmittedEventArgs)) })
+	ti.SubmittedEvent.AddHandler(func(args any) { f(args.(*TextInputSubmittedEventArgs)) })
 
 	return ti
 }
@@ -507,13 +506,8 @@ func (ti *TextInput) CursorLeft() {
 }
 
 func (ti *TextInput) WordLeft() {
-	posBeforeWord := ti.findPositionBeforeWord()
-	if posBeforeWord <= 0 {
-		posBeforeWord = 0
-	}
-
 	if ti.cursorPosition > 0 {
-		ti.moveCursor(posBeforeWord)
+		ti.moveCursor(max(ti.findPositionBeforeWord(), 0))
 	}
 }
 
@@ -526,13 +520,9 @@ func (ti *TextInput) CursorRight() {
 
 func (ti *TextInput) WordRight() {
 	endPos := textInputCursorPosition(len(ti.possibleCursorPosXs) - 1)
-	posAfterWord := ti.findPositionAfterWord()
-	if posAfterWord > endPos {
-		posAfterWord = endPos
-	}
 
 	if ti.cursorPosition < endPos {
-		ti.moveCursor(posAfterWord)
+		ti.moveCursor(min(ti.findPositionAfterWord(), endPos))
 	}
 }
 
@@ -607,7 +597,7 @@ func (ti *TextInput) BackspaceWord() {
 		spaceToTheLeftPosition := ti.findPositionBeforeWord()
 		ti.setValue(ti.value[0:spaceToTheLeftPosition] + ti.value[ti.cursorPosition:])
 		ti.fireChangedEvent()
-		ti.Home()
+		ti.moveCursor(spaceToTheLeftPosition)
 	}
 }
 
@@ -798,9 +788,7 @@ func (ti *TextInput) calcScrollOffset() int {
 	cursorPosX := ti.cursorPosX()
 	scrollOffsetLowerBound := 0
 	scrollOffsetUpperBound := fontutils.MeasureString(ti.value, ti.font) - (ti.width - ti.textPosX - ti.cursor.width - 2)
-	if scrollOffsetUpperBound < 0 {
-		scrollOffsetUpperBound = 0
-	}
+	scrollOffsetUpperBound = max(scrollOffsetUpperBound, 0)
 
 	applyBoundsToScrollOffset := func(offset int) int {
 		switch {
@@ -848,8 +836,8 @@ func (ti *TextInput) moveCursor(position textInputCursorPosition) {
 
 func (ti *TextInput) updateSelectionBounds() {
 	if ti.selectingFrom != -1 {
-		ti.selectionStart = textInputCursorPosition(math.Min(float64(ti.selectingFrom), float64(ti.cursorPosition)))
-		ti.selectionEnd = textInputCursorPosition(math.Max(float64(ti.selectingFrom), float64(ti.cursorPosition)))
+		ti.selectionStart = textInputCursorPosition(min(ti.selectingFrom, ti.cursorPosition))
+		ti.selectionEnd = textInputCursorPosition(max(ti.selectingFrom, ti.cursorPosition))
 	} else {
 		ti.selectionStart = 0
 		ti.selectionEnd = 0
@@ -1158,23 +1146,27 @@ func (ti *TextInput) actionStateFactory(action textInputAction) textInputState {
 	}
 }
 
-func (ti *TextInput) drawText(clr color.RGBA) {
-	textStartPosX := ti.textPosX - ti.scrollOffset + ti.padding.Left
+func (ti *TextInput) drawText(clr color.RGBA) *ebiten.Image {
+	textImage := ebiten.NewImage(ti.width, ti.height)
+
+	textStartPosX := ti.textPosX - ti.scrollOffset
 
 	if !ti.HasSelectedText() {
-		text.Draw(ti.image, ti.value, ti.font, textStartPosX, ti.textPosY+ti.padding.Top, clr)
-		return
+		text.Draw(textImage, ti.value, ti.font, textStartPosX, ti.textPosY+ti.padding.Top, clr)
+		return textImage
 	}
 
 	if ti.selectionStart > 0 {
-		text.Draw(ti.image, ti.value[0:ti.selectionStart], ti.font, textStartPosX, ti.textPosY+ti.padding.Top, clr)
+		text.Draw(textImage, ti.value[0:ti.selectionStart], ti.font, textStartPosX, ti.textPosY+ti.padding.Top, clr)
 	}
 
-	text.Draw(ti.image, ti.value[ti.selectionStart:ti.selectionEnd], ti.font, textStartPosX+ti.possibleCursorPosXs[ti.selectionStart], ti.textPosY+ti.padding.Top, colorutils.Invert(clr))
+	text.Draw(textImage, ti.value[ti.selectionStart:ti.selectionEnd], ti.font, textStartPosX+ti.possibleCursorPosXs[ti.selectionStart], ti.textPosY+ti.padding.Top, colorutils.Invert(clr))
 
 	if int(ti.selectionEnd) <= len(ti.value)-1 {
-		text.Draw(ti.image, ti.value[ti.selectionEnd:], ti.font, textStartPosX+ti.possibleCursorPosXs[ti.selectionEnd], ti.textPosY+ti.padding.Top, clr)
+		text.Draw(textImage, ti.value[ti.selectionEnd:], ti.font, textStartPosX+ti.possibleCursorPosXs[ti.selectionEnd], ti.textPosY+ti.padding.Top, clr)
 	}
+
+	return textImage
 }
 
 func (ti *TextInput) Draw() *ebiten.Image {
@@ -1200,13 +1192,15 @@ func (ti *TextInput) Draw() *ebiten.Image {
 		ti.scrollOffset = 0
 	}
 
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(ti.padding.Left), float64(ti.padding.Top))
 	switch {
 	case ti.disabled:
-		ti.drawText(ti.colorDisabled)
+		ti.image.DrawImage(ti.drawText(ti.colorDisabled), op)
 	case ti.hovering:
-		ti.drawText(ti.colorHovered)
+		ti.image.DrawImage(ti.drawText(ti.colorHovered), op)
 	default:
-		ti.drawText(ti.color)
+		ti.image.DrawImage(ti.drawText(ti.color), op)
 	}
 
 	ti.component.Draw()

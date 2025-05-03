@@ -133,7 +133,7 @@ func (cb *CheckBox) setDrawingDimensions() {
 }
 
 func (cb *CheckBox) AddToggledHandler(f CheckBoxToggledHandlerFunc) *CheckBox {
-	cb.ToggledEvent.AddHandler(func(args interface{}) { f(args.(*CheckBoxToggledEventArgs)) })
+	cb.ToggledEvent.AddHandler(func(args any) { f(args.(*CheckBoxToggledEventArgs)) })
 
 	return cb
 }
@@ -149,15 +149,8 @@ func (cb *CheckBox) SetLabel(label *Label) {
 		cb.label.SetPaddingLeft(2)
 	}
 
-	width := cb.width
-	if width <= cb.cbWidth+cb.label.widthWithPadding {
-		width = cb.cbWidth + cb.label.widthWithPadding
-	}
-
-	height := cb.height // cb.cbHeight
-	if height <= cb.label.height {
-		height = cb.label.height
-	}
+	width := max(cb.width, cb.cbWidth+cb.label.widthWithPadding)
+	height := max(cb.height, cb.label.height)
 
 	cb.SetDimensions(width, height)
 

@@ -277,7 +277,7 @@ func (s *Slider) SetDisabled(disabled bool) {
 }
 
 func (s *Slider) AddSlidedHandler(f SliderSlidedHandlerFunc) *Slider {
-	s.SlidedEvent.AddHandler(func(args interface{}) {
+	s.SlidedEvent.AddHandler(func(args any) {
 		f(args.(*SliderSlidedEventArgs))
 	})
 

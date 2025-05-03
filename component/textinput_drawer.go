@@ -57,8 +57,8 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput, borderColor color.RG
 	selectingToColId := -1
 
 	if textInput.HasSelectedText() {
-		selectingFromColId = (textInput.possibleCursorPosXs[textInput.selectionStart] - textInput.scrollOffset + 3) * 4
-		selectingToColId = (textInput.possibleCursorPosXs[textInput.selectionEnd] - textInput.scrollOffset + 1) * 4
+		selectingFromColId = (textInput.possibleCursorPosXs[textInput.selectionStart] - textInput.scrollOffset + textInput.padding.Left + textInput.cursor.Width()) * 4
+		selectingToColId = (textInput.possibleCursorPosXs[textInput.selectionEnd] - textInput.scrollOffset + textInput.padding.Left + textInput.cursor.Width()) * 4
 	}
 
 	for rowId := textInput.firstPixelRowId; rowId <= textInput.lastPixelRowId; rowId++ {
@@ -66,7 +66,7 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput, borderColor color.RG
 
 		for colId := textInput.firstPixelColId; colId <= textInput.lastPixelColId; colId += 4 {
 			bgColor := d.backgroundColor
-			if selectingFromColId <= colId && colId <= selectingToColId &&
+			if selectingFromColId < colId && colId <= selectingToColId &&
 				textInput.firstPixelRowId+1 < rowId && rowId < textInput.lastPixelRowId-1 {
 				bgColor = colorutils.Invert(bgColor)
 			}

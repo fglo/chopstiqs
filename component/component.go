@@ -20,6 +20,8 @@ func init() {
 
 // Component is an abstraction of a user interface component, like a button or checkbox.
 type Component interface {
+	// Update updates the component during ebiten.Update().
+	Update()
 	// Draw draws the component to it's image during ebiten.Draw().
 	Draw() *ebiten.Image
 	// Dimensions returns the component's dimensions (width and height).
@@ -240,7 +242,7 @@ func (c *component) drawPadding(arr []byte) []byte {
 		arr[colId+3+lastRowNumber] = paddingBorderColor.A
 	}
 
-	for rowId := 0; rowId < c.pixelRows; rowId++ {
+	for rowId := range c.pixelRows {
 		rowNumber := c.pixelCols * rowId
 
 		arr[rowNumber] = paddingBorderColor.R
@@ -256,6 +258,8 @@ func (c *component) drawPadding(arr []byte) []byte {
 
 	return arr
 }
+
+func (c *component) Update() {}
 
 func (c *component) Draw() *ebiten.Image {
 	if debug.Debug {
@@ -429,15 +433,8 @@ func (c *component) recalculateDimensions() {
 	c.setRect()
 
 	if c.container != nil {
-		containerWidth := c.container.Width()
-		if containerWidth < c.widthWithPadding {
-			containerWidth = c.widthWithPadding
-		}
-
-		containerHeight := c.container.Height()
-		if containerHeight < c.heightWithPadding {
-			containerHeight = c.heightWithPadding
-		}
+		containerWidth := max(c.container.Width(), c.widthWithPadding)
+		containerHeight := max(c.container.Height(), c.heightWithPadding)
 
 		c.container.SetDimensions(containerWidth, containerHeight)
 	}
@@ -646,7 +643,7 @@ type ComponentMouseButtonJustPressedEventArgs struct { //nolint:golint
 }
 
 func (c *component) AddMouseButtonJustPressedHandler(f ComponentMouseButtonJustPressedHandlerFunc) Component {
-	c.MouseButtonPressedEvent.AddHandler(func(args interface{}) {
+	c.MouseButtonPressedEvent.AddHandler(func(args any) {
 		f(args.(*ComponentMouseButtonJustPressedEventArgs))
 	})
 
@@ -663,7 +660,7 @@ type ComponentMouseButtonPressedEventArgs struct { //nolint:golint
 }
 
 func (c *component) AddMouseButtonPressedHandler(f ComponentMouseButtonPressedHandlerFunc) Component {
-	c.MouseButtonPressedEvent.AddHandler(func(args interface{}) {
+	c.MouseButtonPressedEvent.AddHandler(func(args any) {
 		f(args.(*ComponentMouseButtonPressedEventArgs))
 	})
 
@@ -680,7 +677,7 @@ type ComponentMouseButtonReleasedEventArgs struct { //nolint:golint
 }
 
 func (c *component) AddMouseButtonReleasedHandler(f ComponentMouseButtonReleasedHandlerFunc) Component {
-	c.MouseButtonReleasedEvent.AddHandler(func(args interface{}) {
+	c.MouseButtonReleasedEvent.AddHandler(func(args any) {
 		f(args.(*ComponentMouseButtonReleasedEventArgs))
 	})
 
@@ -695,7 +692,7 @@ type ComponentCursorEnterEventArgs struct { //nolint:golint
 }
 
 func (c *component) AddCursorEnterHandler(f ComponentCursorEnterHandlerFunc) Component {
-	c.CursorEnterEvent.AddHandler(func(args interface{}) {
+	c.CursorEnterEvent.AddHandler(func(args any) {
 		f(args.(*ComponentCursorEnterEventArgs))
 	})
 
@@ -710,7 +707,7 @@ type ComponentCursorExitEventArgs struct { //nolint:golint
 }
 
 func (c *component) AddCursorExitHandler(f ComponentCursorExitHandlerFunc) Component {
-	c.CursorExitEvent.AddHandler(func(args interface{}) {
+	c.CursorExitEvent.AddHandler(func(args any) {
 		f(args.(*ComponentCursorExitEventArgs))
 	})
 
@@ -724,7 +721,7 @@ type ComponentFocusedEventArgs struct {
 }
 
 func (c *component) AddFocusedHandler(f ComponentFocusedHandlerFunc) Component {
-	c.FocusedEvent.AddHandler(func(args interface{}) {
+	c.FocusedEvent.AddHandler(func(args any) {
 		f(args.(*ComponentFocusedEventArgs))
 	})
 
