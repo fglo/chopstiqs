@@ -401,7 +401,6 @@ func (ti *TextInput) setUpComponent(options *TextInputOptions) {
 		ti.pressed = true
 
 		if !ti.selecting {
-			ti.Deselect()
 			ti.selectingFrom = ti.pressedPosition
 		}
 
@@ -550,11 +549,13 @@ func (ti *TextInput) Insert(chars []rune) {
 
 	if valid, valueAfterValidation := ti.inputValidationFunc(newValue); valid {
 		ti.setValue(valueAfterValidation)
+
 		if ti.HasSelectedText() {
 			ti.moveCursor(ti.selectionStart + textInputCursorPosition(len(chars)))
 		} else {
 			ti.moveCursor(ti.cursorPosition + textInputCursorPosition(len(chars)))
 		}
+
 		ti.Deselect()
 		ti.fireChangedEvent()
 	}
@@ -820,7 +821,7 @@ func (ti *TextInput) moveCursor(position textInputCursorPosition) {
 	}
 
 	if !ti.selecting {
-		ti.Deselect()
+		ti.selectingFrom = -1
 	}
 
 	switch {
@@ -886,6 +887,10 @@ func (ti *TextInput) handleActionKey(key ebiten.Key) textInputAction {
 func (ti *TextInput) handleKeyLeft() textInputAction {
 	ti.checkForShift()
 
+	if !ti.selecting {
+		ti.selectingFrom = -1
+	}
+
 	switch {
 	case ti.modifierKeysPressed[ebiten.KeyAlt] && (ti.modifierKeysPressed[ebiten.KeyControl] || ti.modifierKeysPressed[ebiten.KeyMeta]):
 		return textInputIdle
@@ -904,6 +909,10 @@ func (ti *TextInput) handleKeyLeft() textInputAction {
 
 func (ti *TextInput) handleKeyRight() textInputAction {
 	ti.checkForShift()
+
+	if !ti.selecting {
+		ti.selectingFrom = -1
+	}
 
 	switch {
 	case ti.modifierKeysPressed[ebiten.KeyAlt] && (ti.modifierKeysPressed[ebiten.KeyControl] || ti.modifierKeysPressed[ebiten.KeyMeta]):
@@ -1169,13 +1178,17 @@ func (ti *TextInput) drawText(clr color.RGBA) *ebiten.Image {
 	return textImage
 }
 
-func (ti *TextInput) Draw() *ebiten.Image {
-	if ti.hidden {
-		return ti.image
-	}
+func (ti *TextInput) Update() {
+	ti.component.Update()
 
 	if !ti.disabled {
 		ti.state = ti.state(ti)
+	}
+}
+
+func (ti *TextInput) Draw() *ebiten.Image {
+	if ti.hidden {
+		return ti.image
 	}
 
 	ti.updateSelectionBounds()
