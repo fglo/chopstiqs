@@ -86,11 +86,11 @@ func NewButton(opt *ButtonOptions) *Button {
 		if opt.Label != nil {
 			b.SetLabel(opt.Label)
 
-			b.PressedEvent.AddHandler(func(args interface{}) {
+			b.PressedEvent.AddHandler(func(args any) {
 				b.label.Inverted = true
 			})
 
-			b.ReleasedEvent.AddHandler(func(args interface{}) {
+			b.ReleasedEvent.AddHandler(func(args any) {
 				b.label.Inverted = false
 			})
 		}
@@ -153,19 +153,19 @@ func (b *Button) setUpComponent(opt *ButtonOptions) {
 }
 
 func (b *Button) AddPressedHandler(f ButtonPressedHandlerFunc) *Button {
-	b.PressedEvent.AddHandler(func(args interface{}) { f(args.(*ButtonPressedEventArgs)) })
+	b.PressedEvent.AddHandler(func(args any) { f(args.(*ButtonPressedEventArgs)) })
 
 	return b
 }
 
 func (b *Button) AddReleasedHandler(f ButtonReleasedHandlerFunc) *Button {
-	b.ReleasedEvent.AddHandler(func(args interface{}) { f(args.(*ButtonReleasedEventArgs)) })
+	b.ReleasedEvent.AddHandler(func(args any) { f(args.(*ButtonReleasedEventArgs)) })
 
 	return b
 }
 
 func (b *Button) AddClickedHandler(f ButtonClickedHandlerFunc) *Button {
-	b.ClickedEvent.AddHandler(func(args interface{}) { f(args.(*ButtonClickedEventArgs)) })
+	b.ClickedEvent.AddHandler(func(args any) { f(args.(*ButtonClickedEventArgs)) })
 
 	return b
 }

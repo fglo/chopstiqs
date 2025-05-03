@@ -185,6 +185,15 @@ func (c *Container) FireEvents() {
 	}
 }
 
+// Update updates the container's components
+func (c *Container) Update() {
+	c.component.Update()
+
+	for _, component := range c.components {
+		component.Update()
+	}
+}
+
 // Draw draws the container's components, executes deferred events and returns the image.
 func (c *Container) Draw() *ebiten.Image {
 	c.image.Fill(c.backgroundColor)

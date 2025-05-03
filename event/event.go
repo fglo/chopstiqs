@@ -1,5 +1,7 @@
 package event
 
+import "slices"
+
 // Event represents an event that can be fired.
 type Event struct {
 	idCounter uint32
@@ -15,7 +17,7 @@ type handler struct {
 
 // A HandlerFunc is a function that receives and handles an event. When firing an event using
 // EventManager.Fire, arbitrary event arguments may be passed that are in turn passed on to the handler function.
-type HandlerFunc func(args interface{})
+type HandlerFunc func(args any)
 
 // RemoveHandlerFunc is a function that removes a handler from an event.
 type RemoveHandlerFunc func()
@@ -40,7 +42,7 @@ func (e *Event) AddHandler(h HandlerFunc) RemoveHandlerFunc {
 func (e *Event) AddOneTimeHandler(handler HandlerFunc) {
 	var removeHandler RemoveHandlerFunc
 
-	oneShotHandlerWrapperFunc := func(args interface{}) {
+	oneShotHandlerWrapperFunc := func(args any) {
 		removeHandler()
 		handler(args)
 	}
@@ -61,5 +63,5 @@ func (e *Event) removeHandler(id uint32) {
 		return
 	}
 
-	e.handlers = append(e.handlers[:index], e.handlers[index+1:]...)
+	e.handlers = slices.Delete(e.handlers, index, index+1)
 }

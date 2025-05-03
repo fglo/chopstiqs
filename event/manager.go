@@ -9,7 +9,7 @@ type Manager struct {
 // Fired represents an event that has been fired.
 type Fired struct {
 	event *Event
-	args  interface{}
+	args  any
 }
 
 func NewManager() *Manager {
