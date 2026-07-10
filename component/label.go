@@ -19,6 +19,8 @@ type Label struct {
 	text  string
 	color color.RGBA
 
+	dirty bool
+
 	font    font.Face
 	metrics fontutils.Metrics
 
@@ -141,6 +143,8 @@ func (l *Label) SetText(labelText string) {
 	if l.container != nil && l.container.Width() < l.widthWithPadding {
 		l.container.SetWidth(l.widthWithPadding)
 	}
+
+	l.dirty = true
 }
 
 func (l *Label) InvertColor() {
@@ -152,7 +156,11 @@ func (l *Label) Draw() *ebiten.Image {
 		return l.image
 	}
 
-	l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
+	if l.dirty || l.image == nil {
+		l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
+		// ... draw text
+		l.dirty = false
+	}
 
 	if l.Inverted {
 		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, colorutils.Invert(l.color))
