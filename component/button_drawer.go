@@ -15,147 +15,91 @@ type DefaultButtonDrawer struct {
 	ColorPressed  color.RGBA
 	ColorHovered  color.RGBA
 	ColorDisabled color.RGBA
+
+	pixelBuf []byte
+	bgRow    []byte // background
 }
 
 func (d DefaultButtonDrawer) Draw(bttn *Button) *ebiten.Image {
-	if bttn.pressed {
-		bttn.image.WritePixels(d.drawPressed(bttn))
-	} else if bttn.hovering {
-		bttn.image.WritePixels(d.drawHovered(bttn))
-	} else if bttn.disabled {
-		bttn.image.WritePixels(d.drawDisabled(bttn))
-	} else {
-		bttn.image.WritePixels(d.draw(bttn))
+	borderColor := d.Color
+	insidesColor := &d.Color
+
+	switch {
+	case bttn.pressed:
+		borderColor = d.ColorPressed
+		insidesColor = nil
+	case bttn.hovering:
+		borderColor = d.ColorHovered
+		insidesColor = &d.ColorHovered
+	case bttn.disabled:
+		borderColor = d.ColorDisabled
+		insidesColor = &d.ColorDisabled
 	}
+
+	bttn.image.WritePixels(d.drawWithColor(bttn, borderColor, insidesColor))
 
 	return bttn.image
 }
 
-func (d *DefaultButtonDrawer) isCorner(bttn *Button, rowId, colId int) bool {
-	return (rowId == bttn.firstPixelRowId || rowId == bttn.lastPixelRowId) && (colId == bttn.firstPixelColId || colId == bttn.lastPixelColId)
-}
+func (d *DefaultButtonDrawer) getBuffer(bttn *Button) []byte {
+	size := bttn.pixelRows * bttn.pixelCols
 
-func (d *DefaultButtonDrawer) isBorder(bttn *Button, rowId, colId int) bool {
-	return rowId == bttn.firstPixelRowId || rowId == bttn.lastPixelRowId || colId == bttn.firstPixelColId || colId == bttn.lastPixelColId
-}
-
-func (d *DefaultButtonDrawer) isColored(bttn *Button, rowId, colId int) bool {
-	return colId > bttn.secondPixelColId && colId < bttn.penultimatePixelColId && rowId > bttn.secondPixelRowId && rowId < bttn.penultimatePixelRowId
-}
-
-func (d *DefaultButtonDrawer) draw(bttn *Button) []byte {
-	arr := make([]byte, bttn.pixelRows*bttn.pixelCols)
-	backgroundColor := bttn.container.GetBackgroundColor()
-
-	for rowId := bttn.firstPixelRowId; rowId <= bttn.lastPixelRowId; rowId++ {
-		rowNumber := bttn.pixelCols * rowId
-
-		for colId := bttn.firstPixelColId; colId <= bttn.lastPixelColId; colId += 4 {
-			if d.isCorner(bttn, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(bttn, rowId, colId) || d.isColored(bttn, rowId, colId) {
-				arr[colId+rowNumber] = d.Color.R
-				arr[colId+1+rowNumber] = d.Color.G
-				arr[colId+2+rowNumber] = d.Color.B
-				arr[colId+3+rowNumber] = d.Color.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			}
-		}
+	if len(d.pixelBuf) != size {
+		d.pixelBuf = make([]byte, size)
 	}
 
-	return arr
+	// zero it out for reuse
+	for i := range d.pixelBuf {
+		d.pixelBuf[i] = 0
+	}
+	return d.pixelBuf
 }
 
-func (d *DefaultButtonDrawer) drawPressed(bttn *Button) []byte {
-	arr := make([]byte, bttn.pixelRows*bttn.pixelCols)
-	backgroundColor := bttn.container.GetBackgroundColor()
-
-	for rowId := bttn.firstPixelRowId; rowId <= bttn.lastPixelRowId; rowId++ {
-		rowNumber := bttn.pixelCols * rowId
-
-		for colId := bttn.firstPixelColId; colId <= bttn.lastPixelColId; colId += 4 {
-			if d.isCorner(bttn, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(bttn, rowId, colId) {
-				arr[colId+rowNumber] = d.ColorPressed.R
-				arr[colId+1+rowNumber] = d.ColorPressed.G
-				arr[colId+2+rowNumber] = d.ColorPressed.B
-				arr[colId+3+rowNumber] = d.ColorPressed.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			}
-		}
+func (d *DefaultButtonDrawer) getBgRow(bttn *Button) []byte {
+	if len(d.bgRow) != bttn.pixelCols {
+		d.bgRow = make([]byte, bttn.pixelCols)
 	}
 
-	return arr
-}
-
-func (d *DefaultButtonDrawer) drawHovered(bttn *Button) []byte {
-	arr := make([]byte, bttn.pixelRows*bttn.pixelCols)
-	backgroundColor := bttn.container.GetBackgroundColor()
-
-	for rowId := bttn.firstPixelRowId; rowId <= bttn.lastPixelRowId; rowId++ {
-		rowNumber := bttn.pixelCols * rowId
-
-		for colId := bttn.firstPixelColId; colId <= bttn.lastPixelColId; colId += 4 {
-			if d.isCorner(bttn, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(bttn, rowId, colId) || d.isColored(bttn, rowId, colId) {
-				arr[colId+rowNumber] = d.ColorHovered.R
-				arr[colId+1+rowNumber] = d.ColorHovered.G
-				arr[colId+2+rowNumber] = d.ColorHovered.B
-				arr[colId+3+rowNumber] = d.ColorHovered.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			}
-		}
+	bgColor := bttn.container.GetBackgroundColor()
+	if d.bgRow[0] == bgColor.R &&
+		d.bgRow[1] == bgColor.G &&
+		d.bgRow[2] == bgColor.B &&
+		d.bgRow[3] == bgColor.A {
+		return d.bgRow
 	}
 
-	return arr
+	// fill it with background Color
+	for i := range d.bgRow {
+		d.bgRow[i], d.bgRow[i+1], d.bgRow[i+2], d.bgRow[i+3] = bgColor.R, bgColor.G, bgColor.B, bgColor.A
+	}
+	return d.bgRow
 }
 
-func (d *DefaultButtonDrawer) drawDisabled(bttn *Button) []byte {
-	arr := make([]byte, bttn.pixelRows*bttn.pixelCols)
-	backgroundColor := bttn.container.GetBackgroundColor()
+func (d *DefaultButtonDrawer) drawWithColor(bttn *Button, borderColor color.RGBA, insidesColor *color.RGBA) []byte {
+	arr := d.getBuffer(bttn)
+	bgRow := d.getBgRow(bttn)
 
 	for rowId := bttn.firstPixelRowId; rowId <= bttn.lastPixelRowId; rowId++ {
+		copy(arr[bttn.pixelCols*rowId:], bgRow)
+
 		rowNumber := bttn.pixelCols * rowId
+		isFirstOrLastRow := rowId == bttn.firstPixelRowId || rowId == bttn.lastPixelRowId
+		rowInsideColoredSection := rowId > bttn.secondPixelRowId && rowId < bttn.penultimatePixelRowId
 
 		for colId := bttn.firstPixelColId; colId <= bttn.lastPixelColId; colId += 4 {
-			if d.isCorner(bttn, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(bttn, rowId, colId) || d.isColored(bttn, rowId, colId) {
-				arr[colId+rowNumber] = d.ColorDisabled.R
-				arr[colId+1+rowNumber] = d.ColorDisabled.G
-				arr[colId+2+rowNumber] = d.ColorDisabled.B
-				arr[colId+3+rowNumber] = d.ColorDisabled.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
+			isFirstOrLastCol := colId == bttn.firstPixelColId || colId == bttn.lastPixelColId
+			colInsideColoredSection := colId > bttn.secondPixelColId && colId < bttn.penultimatePixelColId
+
+			if (isFirstOrLastRow || isFirstOrLastCol) && !(isFirstOrLastRow && isFirstOrLastCol) { // border
+				arr[colId+rowNumber] = borderColor.R
+				arr[colId+1+rowNumber] = borderColor.G
+				arr[colId+2+rowNumber] = borderColor.B
+				arr[colId+3+rowNumber] = borderColor.A
+			} else if rowInsideColoredSection && colInsideColoredSection && insidesColor != nil { // insides
+				arr[colId+rowNumber] = insidesColor.R
+				arr[colId+1+rowNumber] = insidesColor.G
+				arr[colId+2+rowNumber] = insidesColor.B
+				arr[colId+3+rowNumber] = insidesColor.A
 			}
 		}
 	}
