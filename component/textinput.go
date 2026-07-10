@@ -2,6 +2,7 @@ package component
 
 import (
 	"image/color"
+	"regexp"
 	"sync/atomic"
 	"time"
 
@@ -77,6 +78,13 @@ var (
 		textInputUnfocus:              "textInputUnfocus",
 	}
 )
+
+var wordSeparatorRegex *regexp.Regexp
+
+func init() {
+	var wordSeparator = `[^a-zA-Z0-9_]`
+	wordSeparatorRegex = regexp.MustCompile(wordSeparator)
+}
 
 func (action textInputAction) String() string {
 	return textInputActionName[action]

@@ -65,14 +65,9 @@ func NewLabel(text string, opt *LabelOptions) *Label {
 			l.font = opt.Font
 			l.metrics = fontutils.NewMetrics(l.font.Metrics())
 		}
-
-		l.horizontalAlignment = opt.HorizontalAlignment
-		l.verticalAlignment = opt.VerticalAlignment
 	}
 
 	l.setUpComponent(opt)
-
-	l.align()
 
 	return l
 }
@@ -82,7 +77,9 @@ func (l *Label) setUpComponent(opt *LabelOptions) {
 
 	if opt != nil {
 		componentOptions = ComponentOptions{
-			Padding: opt.Padding,
+			Padding:             opt.Padding,
+			HorizontalAlignment: opt.HorizontalAlignment,
+			VerticalAlignment:   opt.VerticalAlignment,
 		}
 	}
 

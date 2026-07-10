@@ -31,6 +31,9 @@ type ButtonOptions struct {
 
 	Label *Label
 
+	HorizontalAlignment option.HorizontalAlignment
+	VerticalAlignment   option.VerticalAlignment
+
 	Padding *Padding
 }
 
@@ -110,7 +113,9 @@ func (b *Button) setUpComponent(opt *ButtonOptions) {
 
 	if opt != nil {
 		componentOptions = ComponentOptions{
-			Padding: opt.Padding,
+			Padding:             opt.Padding,
+			HorizontalAlignment: opt.HorizontalAlignment,
+			VerticalAlignment:   opt.VerticalAlignment,
 		}
 	}
 
@@ -232,7 +237,7 @@ func (b *Button) Draw() *ebiten.Image {
 
 	if b.label != nil {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(b.label.Position())
+		op.GeoM.Translate(b.label.Position()) // TODO: properly position button's label
 		b.image.DrawImage(b.label.Draw(), op)
 	}
 
