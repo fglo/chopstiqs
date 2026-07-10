@@ -116,6 +116,7 @@ func NewScrollBar(opt *ScrollBarOptions) *ScrollBar {
 		if opt.Container != nil {
 			height = opt.Container.Height()
 		} else {
+			_ = 0 // lint
 			// TODO: errors from component constructors
 		}
 
