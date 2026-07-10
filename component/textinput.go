@@ -304,7 +304,7 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 
 	ti.SetDimensions(width, height)
 
-	ti.cursor = *newTextInputCursor(&TextInputCursorOptions{
+	ti.cursor = *newTextInputCursor(ti, &TextInputCursorOptions{
 		Width:  option.Int(1),
 		Height: option.Int(ti.height - 4),
 	})
@@ -348,7 +348,7 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		}
 
 		if options.CursorOptions != nil {
-			ti.cursor = *newTextInputCursor(options.CursorOptions)
+			ti.cursor = *newTextInputCursor(ti, options.CursorOptions)
 		}
 	}
 

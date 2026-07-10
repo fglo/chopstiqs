@@ -12,6 +12,8 @@ type TextInputCursorDrawer interface {
 
 type DefaultTextInputCursorDrawer struct {
 	Color color.RGBA
+
+	pixelBuf []byte
 }
 
 func (d *DefaultTextInputCursorDrawer) Draw(cursor *textInputCursor) *ebiten.Image {
@@ -19,8 +21,22 @@ func (d *DefaultTextInputCursorDrawer) Draw(cursor *textInputCursor) *ebiten.Ima
 	return cursor.image
 }
 
+func (d *DefaultTextInputCursorDrawer) getBuffer(cursor *textInputCursor) []byte {
+	size := cursor.pixelRows * cursor.pixelCols
+
+	if len(d.pixelBuf) != size {
+		d.pixelBuf = make([]byte, size)
+	}
+
+	for i := range d.pixelBuf {
+		d.pixelBuf[i] = 0
+	}
+
+	return d.pixelBuf
+}
+
 func (d *DefaultTextInputCursorDrawer) draw(cursor *textInputCursor) []byte {
-	arr := make([]byte, cursor.pixelRows*cursor.pixelCols)
+	arr := d.getBuffer(cursor)
 
 	if cursor.frameCount >= 40 {
 		return arr
@@ -28,7 +44,6 @@ func (d *DefaultTextInputCursorDrawer) draw(cursor *textInputCursor) []byte {
 
 	for rowId := cursor.firstPixelRowId; rowId <= cursor.lastPixelRowId; rowId++ {
 		rowNumber := cursor.pixelCols * rowId
-
 		for colId := cursor.firstPixelColId; colId <= cursor.lastPixelColId; colId += 4 {
 			arr[colId+rowNumber] = d.Color.R
 			arr[colId+1+rowNumber] = d.Color.G

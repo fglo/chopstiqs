@@ -15,45 +15,71 @@ type DefaultScrollBarDrawer struct {
 	ColorPressed  color.RGBA
 	ColorHovered  color.RGBA
 	ColorDisabled color.RGBA
+
+	pixelBuf []byte
+	bgRow    []byte
 }
 
 func (d DefaultScrollBarDrawer) Draw(ScrollBar *ScrollBar) *ebiten.Image {
-	if ScrollBar.pressed {
-		ScrollBar.image.WritePixels(d.drawPressed(ScrollBar))
-	} else if ScrollBar.hovering {
-		ScrollBar.image.WritePixels(d.drawHovered(ScrollBar))
-	} else if ScrollBar.disabled {
-		ScrollBar.image.WritePixels(d.drawDisabled(ScrollBar))
-	} else {
-		ScrollBar.image.WritePixels(d.draw(ScrollBar))
+	borderColor := d.Color
+
+	switch {
+	case ScrollBar.pressed:
+		borderColor = d.ColorPressed
+	case ScrollBar.hovering:
+		borderColor = d.ColorHovered
+	case ScrollBar.disabled:
+		borderColor = d.ColorDisabled
 	}
 
+	ScrollBar.image.WritePixels(d.drawWithColor(ScrollBar, borderColor))
 	return ScrollBar.image
 }
 
-func (d *DefaultScrollBarDrawer) draw(ScrollBar *ScrollBar) []byte {
-	arr := make([]byte, ScrollBar.pixelRows*ScrollBar.pixelCols)
-	backgroundColor := ScrollBar.container.GetBackgroundColor()
+func (d *DefaultScrollBarDrawer) getBuffer(ScrollBar *ScrollBar) []byte {
+	size := ScrollBar.pixelRows * ScrollBar.pixelCols
+
+	if len(d.pixelBuf) != size {
+		d.pixelBuf = make([]byte, size)
+	}
+
+	for i := range d.pixelBuf {
+		d.pixelBuf[i] = 0
+	}
+
+	return d.pixelBuf
+}
+
+func (d *DefaultScrollBarDrawer) getBgRow(ScrollBar *ScrollBar) []byte {
+	if len(d.bgRow) != ScrollBar.pixelCols {
+		d.bgRow = make([]byte, ScrollBar.pixelCols)
+	}
+
+	bgColor := ScrollBar.container.GetBackgroundColor()
+	if len(d.bgRow) >= 4 && d.bgRow[0] == bgColor.R && d.bgRow[1] == bgColor.G && d.bgRow[2] == bgColor.B && d.bgRow[3] == bgColor.A {
+		return d.bgRow
+	}
+
+	for i := 0; i < len(d.bgRow); i += 4 {
+		d.bgRow[i], d.bgRow[i+1], d.bgRow[i+2], d.bgRow[i+3] = bgColor.R, bgColor.G, bgColor.B, bgColor.A
+	}
+
+	return d.bgRow
+}
+
+func (d *DefaultScrollBarDrawer) drawWithColor(ScrollBar *ScrollBar, borderColor color.RGBA) []byte {
+	arr := d.getBuffer(ScrollBar)
+	bgRow := d.getBgRow(ScrollBar)
 
 	for rowId := ScrollBar.firstPixelRowId; rowId <= ScrollBar.lastPixelRowId; rowId++ {
-		rowNumber := ScrollBar.pixelCols * rowId
+		copy(arr[ScrollBar.pixelCols*rowId:], bgRow)
+		isFirstOrLastRow := rowId == ScrollBar.firstPixelRowId || rowId == ScrollBar.lastPixelRowId
 
+		rowNumber := ScrollBar.pixelCols * rowId
 		for colId := ScrollBar.firstPixelColId; colId <= ScrollBar.lastPixelColId; colId += 4 {
-			if d.isCorner(ScrollBar, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(ScrollBar, rowId, colId) {
-				arr[colId+rowNumber] = d.Color.R
-				arr[colId+1+rowNumber] = d.Color.G
-				arr[colId+2+rowNumber] = d.Color.B
-				arr[colId+3+rowNumber] = d.Color.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
+			isFirstOrLastCol := colId == ScrollBar.firstPixelColId || colId == ScrollBar.lastPixelColId
+			if isFirstOrLastRow != isFirstOrLastCol { // border without corners
+				d.setPixel(arr, rowNumber, colId, borderColor)
 			}
 		}
 	}
@@ -61,100 +87,9 @@ func (d *DefaultScrollBarDrawer) draw(ScrollBar *ScrollBar) []byte {
 	return arr
 }
 
-func (d *DefaultScrollBarDrawer) drawPressed(ScrollBar *ScrollBar) []byte {
-	arr := make([]byte, ScrollBar.pixelRows*ScrollBar.pixelCols)
-	backgroundColor := ScrollBar.container.GetBackgroundColor()
-
-	for rowId := ScrollBar.firstPixelRowId; rowId <= ScrollBar.lastPixelRowId; rowId++ {
-		rowNumber := ScrollBar.pixelCols * rowId
-
-		for colId := ScrollBar.firstPixelColId; colId <= ScrollBar.lastPixelColId; colId += 4 {
-			if d.isCorner(ScrollBar, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(ScrollBar, rowId, colId) {
-				arr[colId+rowNumber] = d.ColorPressed.R
-				arr[colId+1+rowNumber] = d.ColorPressed.G
-				arr[colId+2+rowNumber] = d.ColorPressed.B
-				arr[colId+3+rowNumber] = d.ColorPressed.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			}
-		}
-	}
-
-	return arr
-}
-
-func (d *DefaultScrollBarDrawer) drawHovered(ScrollBar *ScrollBar) []byte {
-	arr := make([]byte, ScrollBar.pixelRows*ScrollBar.pixelCols)
-	backgroundColor := ScrollBar.container.GetBackgroundColor()
-
-	for rowId := ScrollBar.firstPixelRowId; rowId <= ScrollBar.lastPixelRowId; rowId++ {
-		rowNumber := ScrollBar.pixelCols * rowId
-
-		for colId := ScrollBar.firstPixelColId; colId <= ScrollBar.lastPixelColId; colId += 4 {
-			if d.isCorner(ScrollBar, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(ScrollBar, rowId, colId) {
-				arr[colId+rowNumber] = d.ColorHovered.R
-				arr[colId+1+rowNumber] = d.ColorHovered.G
-				arr[colId+2+rowNumber] = d.ColorHovered.B
-				arr[colId+3+rowNumber] = d.ColorHovered.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			}
-		}
-	}
-
-	return arr
-}
-
-func (d *DefaultScrollBarDrawer) drawDisabled(ScrollBar *ScrollBar) []byte {
-	arr := make([]byte, ScrollBar.pixelRows*ScrollBar.pixelCols)
-	backgroundColor := ScrollBar.container.GetBackgroundColor()
-
-	for rowId := ScrollBar.firstPixelRowId; rowId <= ScrollBar.lastPixelRowId; rowId++ {
-		rowNumber := ScrollBar.pixelCols * rowId
-
-		for colId := ScrollBar.firstPixelColId; colId <= ScrollBar.lastPixelColId; colId += 4 {
-			if d.isCorner(ScrollBar, rowId, colId) {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			} else if d.isBorder(ScrollBar, rowId, colId) {
-				arr[colId+rowNumber] = d.ColorDisabled.R
-				arr[colId+1+rowNumber] = d.ColorDisabled.G
-				arr[colId+2+rowNumber] = d.ColorDisabled.B
-				arr[colId+3+rowNumber] = d.ColorDisabled.A
-			} else {
-				arr[colId+rowNumber] = backgroundColor.R
-				arr[colId+1+rowNumber] = backgroundColor.G
-				arr[colId+2+rowNumber] = backgroundColor.B
-				arr[colId+3+rowNumber] = backgroundColor.A
-			}
-		}
-	}
-
-	return arr
-}
-
-func (d DefaultScrollBarDrawer) isCorner(ScrollBar *ScrollBar, rowId, colId int) bool {
-	return (rowId == ScrollBar.firstPixelRowId || rowId == ScrollBar.lastPixelRowId) && (colId == ScrollBar.firstPixelColId || colId == ScrollBar.lastPixelColId)
-}
-
-func (d DefaultScrollBarDrawer) isBorder(ScrollBar *ScrollBar, rowId, colId int) bool {
-	return rowId == ScrollBar.firstPixelRowId || rowId == ScrollBar.lastPixelRowId || colId == ScrollBar.firstPixelColId || colId == ScrollBar.lastPixelColId
+func (d *DefaultScrollBarDrawer) setPixel(arr []byte, rowNumber, colId int, color color.RGBA) {
+	arr[colId+rowNumber] = color.R
+	arr[colId+1+rowNumber] = color.G
+	arr[colId+2+rowNumber] = color.B
+	arr[colId+3+rowNumber] = color.A
 }

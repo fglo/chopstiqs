@@ -11,6 +11,7 @@ type textInputCursor struct {
 	component
 	drawer     TextInputCursorDrawer
 	frameCount int
+	textInput  *TextInput
 }
 
 type TextInputCursorOptions struct {
@@ -20,11 +21,12 @@ type TextInputCursorOptions struct {
 	Drawer TextInputCursorDrawer
 }
 
-func newTextInputCursor(options *TextInputCursorOptions) *textInputCursor {
+func newTextInputCursor(textInput *TextInput, options *TextInputCursorOptions) *textInputCursor {
 	tic := &textInputCursor{
 		drawer: &DefaultTextInputCursorDrawer{
 			Color: color.RGBA{230, 230, 230, 255},
 		},
+		textInput: textInput,
 	}
 
 	width := 1

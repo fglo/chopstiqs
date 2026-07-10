@@ -36,7 +36,7 @@ func (d DefaultButtonDrawer) Draw(bttn *Button) *ebiten.Image {
 		insidesColor = &d.ColorDisabled
 	}
 
-	bttn.image.WritePixels(d.drawWithColor(bttn, borderColor, insidesColor))
+	bttn.image.WritePixels(d.draw(bttn, borderColor, insidesColor))
 
 	return bttn.image
 }
@@ -61,7 +61,8 @@ func (d *DefaultButtonDrawer) getBgRow(bttn *Button) []byte {
 	}
 
 	bgColor := bttn.container.GetBackgroundColor()
-	if d.bgRow[0] == bgColor.R &&
+	if len(d.bgRow) >= 4 &&
+		d.bgRow[0] == bgColor.R &&
 		d.bgRow[1] == bgColor.G &&
 		d.bgRow[2] == bgColor.B &&
 		d.bgRow[3] == bgColor.A {
@@ -75,7 +76,7 @@ func (d *DefaultButtonDrawer) getBgRow(bttn *Button) []byte {
 	return d.bgRow
 }
 
-func (d *DefaultButtonDrawer) drawWithColor(bttn *Button, borderColor color.RGBA, insidesColor *color.RGBA) []byte {
+func (d *DefaultButtonDrawer) draw(bttn *Button, borderColor color.RGBA, insidesColor *color.RGBA) []byte {
 	arr := d.getBuffer(bttn)
 	bgRow := d.getBgRow(bttn)
 
@@ -90,19 +91,20 @@ func (d *DefaultButtonDrawer) drawWithColor(bttn *Button, borderColor color.RGBA
 			isFirstOrLastCol := colId == bttn.firstPixelColId || colId == bttn.lastPixelColId
 			colInsideColoredSection := colId > bttn.secondPixelColId && colId < bttn.penultimatePixelColId
 
-			if (isFirstOrLastRow || isFirstOrLastCol) && !(isFirstOrLastRow && isFirstOrLastCol) { // border
-				arr[colId+rowNumber] = borderColor.R
-				arr[colId+1+rowNumber] = borderColor.G
-				arr[colId+2+rowNumber] = borderColor.B
-				arr[colId+3+rowNumber] = borderColor.A
+			if isFirstOrLastRow != isFirstOrLastCol { // border
+				d.setPixel(arr, rowNumber, colId, borderColor)
 			} else if rowInsideColoredSection && colInsideColoredSection && insidesColor != nil { // insides
-				arr[colId+rowNumber] = insidesColor.R
-				arr[colId+1+rowNumber] = insidesColor.G
-				arr[colId+2+rowNumber] = insidesColor.B
-				arr[colId+3+rowNumber] = insidesColor.A
+				d.setPixel(arr, rowNumber, colId, *insidesColor)
 			}
 		}
 	}
 
 	return arr
+}
+
+func (d *DefaultButtonDrawer) setPixel(arr []byte, rowNumber, colId int, color color.RGBA) {
+	arr[colId+rowNumber] = color.R
+	arr[colId+1+rowNumber] = color.G
+	arr[colId+2+rowNumber] = color.B
+	arr[colId+3+rowNumber] = color.A
 }
