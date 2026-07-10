@@ -1196,7 +1196,7 @@ func (ti *TextInput) Update() {
 
 func (ti *TextInput) Draw() *ebiten.Image {
 	if ti.hidden {
-		return ti.image
+		return ti.emptyImage
 	}
 
 	ti.updateSelectionBounds()

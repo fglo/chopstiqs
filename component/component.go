@@ -136,9 +136,12 @@ type component struct {
 	hidden   bool
 	focused  bool
 
+	dirty bool
+
 	eventManager *event.Manager
 
-	image *ebiten.Image
+	image      *ebiten.Image
+	emptyImage *ebiten.Image
 
 	pixelCols int
 	pixelRows int
@@ -254,6 +257,7 @@ func (c *component) SetDimensions(width, height int) {
 		c.width = width
 		c.height = height
 		c.recalculateDimensions()
+		c.dirty = true
 	}
 }
 
@@ -267,6 +271,7 @@ func (c *component) SetWidth(width int) {
 	if width > 0 {
 		c.width = width
 		c.recalculateWidth()
+		c.dirty = true
 	}
 }
 
@@ -280,6 +285,7 @@ func (c *component) SetHeight(height int) {
 	if height > 0 {
 		c.height = height
 		c.recalculateHeight()
+		c.dirty = true
 	}
 }
 
@@ -311,6 +317,7 @@ func (c *component) SetPadding(padding Padding) {
 	padding.Validate()
 	c.padding = padding
 	c.recalculateDimensions()
+	c.dirty = true
 }
 
 // SetPaddingTop sets the component's padding top.
@@ -321,6 +328,7 @@ func (c *component) SetPaddingTop(padding int) {
 
 	c.padding.Top = padding
 	c.recalculateHeight()
+	c.dirty = true
 }
 
 // SetPaddingBottom sets the component's padding bottom.
@@ -331,6 +339,7 @@ func (c *component) SetPaddingBottom(padding int) {
 
 	c.padding.Bottom = padding
 	c.recalculateHeight()
+	c.dirty = true
 }
 
 // SetPaddingLeft sets the component's padding left.
@@ -341,6 +350,7 @@ func (c *component) SetPaddingLeft(padding int) {
 
 	c.padding.Left = padding
 	c.recalculateWidth()
+	c.dirty = true
 }
 
 // SetPaddingRight sets the component's padding right.
@@ -351,6 +361,7 @@ func (c *component) SetPaddingRight(padding int) {
 
 	c.padding.Right = padding
 	c.recalculateWidth()
+	c.dirty = true
 }
 
 // Position returns the component's position (x and y).
@@ -446,6 +457,7 @@ func (c *component) Disable() bool {
 // SetDisabled sets the component's disabled state.
 func (c *component) SetDisabled(disabled bool) {
 	c.disabled = disabled
+	c.dirty = true
 }
 
 // Hidden returns the component's hidden state.
@@ -827,6 +839,7 @@ func (c *component) calcPixelRowIds() {
 
 func (c *component) setImage() {
 	c.image = ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
+	c.emptyImage = ebiten.NewImage(c.widthWithPadding, c.heightWithPadding)
 }
 
 func (c *component) setRect() {

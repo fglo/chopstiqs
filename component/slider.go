@@ -296,13 +296,13 @@ func (s *Slider) FireEvents() {
 
 func (s *Slider) Draw() *ebiten.Image {
 	if s.hidden {
-		return s.image
+		return s.emptyImage
 	}
 
 	s.drawer.Draw(s)
 
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(s.handle.Position())
+	op.GeoM.Translate(s.handle.Position()) // TODO: posistion handle's center at cursor, not the left edge
 	handleImg := s.handle.Draw()
 	s.image.DrawImage(handleImg, op)
 

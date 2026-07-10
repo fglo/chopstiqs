@@ -291,7 +291,7 @@ func (s *ScrollBar) FireEvents() {
 
 func (s *ScrollBar) Draw() *ebiten.Image {
 	if s.hidden {
-		return s.image
+		return s.emptyImage
 	}
 
 	s.drawer.Draw(s)

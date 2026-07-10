@@ -90,11 +90,11 @@ func NewButton(opt *ButtonOptions) *Button {
 			b.SetLabel(opt.Label)
 
 			b.PressedEvent.AddHandler(func(args any) {
-				b.label.Inverted = true
+				b.label.SetInverted(true)
 			})
 
 			b.ReleasedEvent.AddHandler(func(args any) {
-				b.label.Inverted = false
+				b.label.SetInverted(false)
 			})
 		}
 
@@ -124,16 +124,19 @@ func (b *Button) setUpComponent(opt *ButtonOptions) {
 	b.component.AddCursorEnterHandler(func(args *ComponentCursorEnterEventArgs) {
 		if !b.disabled {
 			b.hovering = true
+			b.dirty = true
 		}
 	})
 
 	b.component.AddCursorExitHandler(func(args *ComponentCursorExitEventArgs) {
 		b.hovering = false
+		b.dirty = true
 	})
 
 	b.component.AddMouseButtonPressedHandler(func(args *ComponentMouseButtonPressedEventArgs) {
 		if !b.disabled && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = true
+			b.dirty = true
 			b.eventManager.Fire(b.PressedEvent, &ButtonPressedEventArgs{
 				Button: b,
 			})
@@ -143,6 +146,7 @@ func (b *Button) setUpComponent(opt *ButtonOptions) {
 	b.component.AddMouseButtonReleasedHandler(func(args *ComponentMouseButtonReleasedEventArgs) {
 		if b.pressed && args.Button == ebiten.MouseButtonLeft {
 			b.pressed = false
+			b.dirty = true
 			b.eventManager.Fire(b.ReleasedEvent, &ButtonReleasedEventArgs{
 				Button: b,
 				Inside: args.Inside,
@@ -196,6 +200,7 @@ func (b *Button) SetLabel(label *Label) {
 	b.SetDimensions(width, height)
 
 	b.label.align()
+	b.dirty = true
 }
 
 func (b *Button) SetPosition(posX, posY float64) {
@@ -214,6 +219,7 @@ func (b *Button) RecalculateAbsPosition() {
 
 func (b *Button) SetBackgroundColor(color color.RGBA) {
 	b.container.SetBackgroundColor(color)
+	b.dirty = true
 }
 
 func (b *Button) GetBackgroundColor() color.RGBA {
@@ -230,8 +236,14 @@ func (b *Button) FireEvents() {
 
 func (b *Button) Draw() *ebiten.Image {
 	if b.hidden {
+		return b.emptyImage
+	}
+
+	if !b.dirty {
 		return b.image
 	}
+
+	b.dirty = false
 
 	b.drawer.Draw(b)
 

@@ -19,8 +19,6 @@ type Label struct {
 	text  string
 	color color.RGBA
 
-	dirty bool
-
 	font    font.Face
 	metrics fontutils.Metrics
 
@@ -149,23 +147,34 @@ func (l *Label) SetText(labelText string) {
 
 func (l *Label) InvertColor() {
 	l.Inverted = !l.Inverted
+	l.dirty = true
+}
+
+func (l *Label) SetInverted(inverted bool) {
+	l.Inverted = inverted
+	l.dirty = true
+}
+
+func (l *Label) SetColor(color color.RGBA) {
+	l.color = color
+	l.dirty = true
 }
 
 func (l *Label) Draw() *ebiten.Image {
 	if l.hidden {
-		return l.image
+		return l.emptyImage
 	}
 
 	if l.dirty || l.image == nil {
 		l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
-		// ... draw text
-		l.dirty = false
-	}
 
-	if l.Inverted {
-		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, colorutils.Invert(l.color))
-	} else {
-		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, l.color)
+		if l.Inverted {
+			text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, colorutils.Invert(l.color))
+		} else {
+			text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, l.color)
+		}
+
+		l.dirty = false
 	}
 
 	l.component.Draw()
