@@ -110,7 +110,7 @@ func (vl *VerticalListLayout) Rearrange(c *Container) {
 
 	for _, component := range c.components {
 		if component.VerticalAlignment() == option.StretchedVertically && stretchedHeight > 0 {
-			component.SetWidth(stretchedHeight)
+			component.SetHeight(stretchedHeight)
 		}
 		if component.HorizontalAlignment() == option.StretchedHorizontally {
 			component.SetWidth(width)
