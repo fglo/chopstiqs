@@ -100,6 +100,18 @@ func (gui *GUI) NewSlider(options *component.SliderOptions) *component.Slider {
 	return s
 }
 
+func (gui *GUI) NewScroller(options *component.ScrollBarOptions) *component.ScrollBar {
+	s := component.NewScrollBar(options)
+	s.SetEventManager(gui.eventManager)
+	return s
+}
+
+func (gui *GUI) NewSprite(image *ebiten.Image, options *component.SpriteOptions) *component.Sprite {
+	s := component.NewSprite(image, options)
+	s.SetEventManager(gui.eventManager)
+	return s
+}
+
 func (gui *GUI) FocusedComponent() component.Component {
 	return gui.focusedComponent
 }

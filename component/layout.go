@@ -1,5 +1,9 @@
 package component
 
+import (
+	"github.com/fglo/chopstiqs/option"
+)
+
 type Layout interface {
 	Rearrange(*Container)
 	Arrange(*Container, Component)
@@ -15,7 +19,33 @@ func (hl *HorizontalListLayout) Rearrange(c *Container) {
 
 	c.lastComponentPosX = 0
 
+	widthSet := 0
+	strechedHorizontally := 0
+
 	for _, component := range c.components {
+		if component.HeightWithPadding() > height {
+			height = component.HeightWithPadding()
+		}
+
+		if component.HorizontalAlignment() != option.StretchedHorizontally {
+			widthSet += component.Width()
+		} else {
+			strechedHorizontally += 1
+		}
+	}
+
+	stretchedWidth := 0
+	if strechedHorizontally > 0 {
+		stretchedWidth = (c.width - widthSet) / strechedHorizontally
+	}
+
+	for _, component := range c.components {
+		if component.HorizontalAlignment() == option.StretchedHorizontally && stretchedWidth > 0 {
+			component.SetWidth(stretchedWidth)
+		}
+		if component.VerticalAlignment() == option.StretchedVertically {
+			component.SetHeight(height)
+		}
 		width, height = hl.arrange(c, component, height)
 	}
 
@@ -28,12 +58,22 @@ func (hl *HorizontalListLayout) Arrange(c *Container, component Component) {
 }
 
 func (hl *HorizontalListLayout) arrange(c *Container, component Component, height int) (int, int) {
-	component.SetPosition(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top))
-	c.lastComponentPosX += component.WidthWithPadding() + hl.ColumnGap
-
 	if component.HeightWithPadding() > height {
 		height = component.HeightWithPadding()
 	}
+
+	dy := 0.
+
+	switch component.VerticalAlignment() {
+	case option.AlignmentBottom:
+		dy = float64(height - component.HeightWithPadding())
+	case option.AlignmentCenteredVertically:
+		dy = float64(height-component.HeightWithPadding()) / 2
+	}
+
+	component.SetPosition(float64(c.padding.Left+c.lastComponentPosX), float64(c.padding.Top)+dy)
+
+	c.lastComponentPosX += component.WidthWithPadding() + hl.ColumnGap
 
 	return c.lastComponentPosX, height
 }
@@ -48,7 +88,33 @@ func (vl *VerticalListLayout) Rearrange(c *Container) {
 
 	c.lastComponentPosY = 0.
 
+	heightSet := 0
+	strechedVertically := 0
+
 	for _, component := range c.components {
+		if component.WidthWithPadding() > width {
+			width = component.WidthWithPadding()
+		}
+
+		if component.VerticalAlignment() != option.StretchedVertically {
+			heightSet += component.HeightWithPadding()
+		} else {
+			strechedVertically += 1
+		}
+	}
+
+	stretchedHeight := 0
+	if strechedVertically > 0 {
+		stretchedHeight = (c.height - heightSet) / strechedVertically
+	}
+
+	for _, component := range c.components {
+		if component.VerticalAlignment() == option.StretchedVertically && stretchedHeight > 0 {
+			component.SetHeight(stretchedHeight)
+		}
+		if component.HorizontalAlignment() == option.StretchedHorizontally {
+			component.SetWidth(width)
+		}
 		width, height = vl.arrange(c, component, width)
 	}
 
@@ -61,12 +127,22 @@ func (vl *VerticalListLayout) Arrange(c *Container, component Component) {
 }
 
 func (vl *VerticalListLayout) arrange(c *Container, component Component, width int) (int, int) {
-	component.SetPosition(float64(c.padding.Left), float64(c.lastComponentPosY+c.padding.Top))
-	c.lastComponentPosY += component.HeightWithPadding() + vl.RowGap
-
 	if component.WidthWithPadding() > width {
 		width = component.WidthWithPadding()
 	}
+
+	dx := 0.
+
+	switch component.HorizontalAlignment() {
+	case option.AlignmentRight:
+		dx = float64(width - component.WidthWithPadding())
+	case option.AlignmentCenteredHorizontally:
+		dx = float64(width-component.WidthWithPadding()) / 2
+	}
+
+	component.SetPosition(float64(c.padding.Left)+dx, float64(c.lastComponentPosY+c.padding.Top))
+
+	c.lastComponentPosY += component.HeightWithPadding() + vl.RowGap
 
 	return width, c.lastComponentPosY
 }

@@ -15,28 +15,16 @@ type DefaultTextInputDrawer struct {
 	Color           color.RGBA
 	ColorDisabled   color.RGBA
 	ColorHovered    color.RGBA
-	BackgroundColor color.Color
 	backgroundColor color.RGBA
-	cornerColor     color.RGBA
-}
+	invertedBgColor color.RGBA
 
-func (d *DefaultTextInputDrawer) isCorner(textInput *TextInput, rowId, colId int) bool {
-	return (rowId == textInput.firstPixelRowId || rowId == textInput.lastPixelRowId) && (colId == textInput.firstPixelColId || colId == textInput.lastPixelColId)
-}
-
-func (d *DefaultTextInputDrawer) isBorder(textInput *TextInput, rowId, colId int) bool {
-	return rowId == textInput.firstPixelRowId || rowId == textInput.lastPixelRowId || colId == textInput.firstPixelColId || colId == textInput.lastPixelColId
+	pixelBuf []byte
+	bgRow    []byte
 }
 
 func (d *DefaultTextInputDrawer) Draw(textInput *TextInput) *ebiten.Image {
-	d.cornerColor = textInput.container.GetBackgroundColor()
-
-	if d.BackgroundColor == nil {
-		d.backgroundColor = d.cornerColor
-	} else {
-		r, g, b, a := d.BackgroundColor.RGBA()
-		d.backgroundColor = color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
-	}
+	d.backgroundColor = textInput.container.GetBackgroundColor()
+	d.invertedBgColor = colorutils.Invert(d.backgroundColor)
 
 	switch {
 	case textInput.disabled:
@@ -50,8 +38,40 @@ func (d *DefaultTextInputDrawer) Draw(textInput *TextInput) *ebiten.Image {
 	return textInput.image
 }
 
+func (d *DefaultTextInputDrawer) getBuffer(textInput *TextInput) []byte {
+	size := textInput.pixelRows * textInput.pixelCols
+
+	if len(d.pixelBuf) != size {
+		d.pixelBuf = make([]byte, size)
+	}
+
+	for i := range d.pixelBuf {
+		d.pixelBuf[i] = 0
+	}
+
+	return d.pixelBuf
+}
+
+func (d *DefaultTextInputDrawer) getBgRow(textInput *TextInput) []byte {
+	if len(d.bgRow) != textInput.pixelCols {
+		d.bgRow = make([]byte, textInput.pixelCols)
+	}
+
+	bgColor := textInput.container.GetBackgroundColor()
+	if len(d.bgRow) >= 4 && d.bgRow[0] == bgColor.R && d.bgRow[1] == bgColor.G && d.bgRow[2] == bgColor.B && d.bgRow[3] == bgColor.A {
+		return d.bgRow
+	}
+
+	for i := 0; i < len(d.bgRow); i += 4 {
+		d.bgRow[i], d.bgRow[i+1], d.bgRow[i+2], d.bgRow[i+3] = bgColor.R, bgColor.G, bgColor.B, bgColor.A
+	}
+
+	return d.bgRow
+}
+
 func (d *DefaultTextInputDrawer) draw(textInput *TextInput, borderColor color.RGBA) []byte {
-	arr := make([]byte, textInput.pixelRows*textInput.pixelCols)
+	arr := d.getBuffer(textInput)
+	bgRow := d.getBgRow(textInput)
 
 	selectingFromColId := -1
 	selectingToColId := -1
@@ -62,33 +82,29 @@ func (d *DefaultTextInputDrawer) draw(textInput *TextInput, borderColor color.RG
 	}
 
 	for rowId := textInput.firstPixelRowId; rowId <= textInput.lastPixelRowId; rowId++ {
+		copy(arr[textInput.pixelCols*rowId:], bgRow)
+		isFirstOrLastRow := rowId == textInput.firstPixelRowId || rowId == textInput.lastPixelRowId
+		insideTextInput := textInput.firstPixelRowId+1 < rowId && rowId < textInput.lastPixelRowId-1
+
 		rowNumber := textInput.pixelCols * rowId
-
 		for colId := textInput.firstPixelColId; colId <= textInput.lastPixelColId; colId += 4 {
-			bgColor := d.backgroundColor
-			if selectingFromColId < colId && colId <= selectingToColId &&
-				textInput.firstPixelRowId+1 < rowId && rowId < textInput.lastPixelRowId-1 {
-				bgColor = colorutils.Invert(bgColor)
-			}
+			isFirstOrLastCol := colId == textInput.firstPixelColId || colId == textInput.lastPixelColId
+			insideSelectedText := selectingFromColId+4 < colId && colId <= selectingToColId
 
-			if d.isCorner(textInput, rowId, colId) {
-				arr[colId+rowNumber] = d.cornerColor.R
-				arr[colId+1+rowNumber] = d.cornerColor.G
-				arr[colId+2+rowNumber] = d.cornerColor.B
-				arr[colId+3+rowNumber] = d.cornerColor.A
-			} else if d.isBorder(textInput, rowId, colId) {
-				arr[colId+rowNumber] = borderColor.R
-				arr[colId+1+rowNumber] = borderColor.G
-				arr[colId+2+rowNumber] = borderColor.B
-				arr[colId+3+rowNumber] = borderColor.A
-			} else {
-				arr[colId+rowNumber] = bgColor.R
-				arr[colId+1+rowNumber] = bgColor.G
-				arr[colId+2+rowNumber] = bgColor.B
-				arr[colId+3+rowNumber] = bgColor.A
+			if isFirstOrLastRow != isFirstOrLastCol { // border
+				d.setPixel(arr, rowNumber, colId, borderColor)
+			} else if insideSelectedText && insideTextInput { // selected text background
+				d.setPixel(arr, rowNumber, colId, d.invertedBgColor)
 			}
 		}
 	}
 
 	return arr
+}
+
+func (d *DefaultTextInputDrawer) setPixel(arr []byte, rowNumber, colId int, color color.RGBA) {
+	arr[colId+rowNumber] = color.R
+	arr[colId+1+rowNumber] = color.G
+	arr[colId+2+rowNumber] = color.B
+	arr[colId+3+rowNumber] = color.A
 }

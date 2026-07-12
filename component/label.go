@@ -65,14 +65,9 @@ func NewLabel(text string, opt *LabelOptions) *Label {
 			l.font = opt.Font
 			l.metrics = fontutils.NewMetrics(l.font.Metrics())
 		}
-
-		l.horizontalAlignment = opt.HorizontalAlignment
-		l.verticalAlignment = opt.VerticalAlignment
 	}
 
 	l.setUpComponent(opt)
-
-	l.align()
 
 	return l
 }
@@ -82,7 +77,9 @@ func (l *Label) setUpComponent(opt *LabelOptions) {
 
 	if opt != nil {
 		componentOptions = ComponentOptions{
-			Padding: opt.Padding,
+			Padding:             opt.Padding,
+			HorizontalAlignment: opt.HorizontalAlignment,
+			VerticalAlignment:   opt.VerticalAlignment,
 		}
 	}
 
@@ -144,23 +141,40 @@ func (l *Label) SetText(labelText string) {
 	if l.container != nil && l.container.Width() < l.widthWithPadding {
 		l.container.SetWidth(l.widthWithPadding)
 	}
+
+	l.dirty = true
 }
 
 func (l *Label) InvertColor() {
 	l.Inverted = !l.Inverted
+	l.dirty = true
+}
+
+func (l *Label) SetInverted(inverted bool) {
+	l.Inverted = inverted
+	l.dirty = true
+}
+
+func (l *Label) SetColor(color color.RGBA) {
+	l.color = color
+	l.dirty = true
 }
 
 func (l *Label) Draw() *ebiten.Image {
 	if l.hidden {
-		return l.image
+		return l.emptyImage
 	}
 
-	l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
+	if l.dirty || l.image == nil {
+		l.image = ebiten.NewImage(l.widthWithPadding, l.heightWithPadding)
 
-	if l.Inverted {
-		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, colorutils.Invert(l.color))
-	} else {
-		text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, l.color)
+		if l.Inverted {
+			text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, colorutils.Invert(l.color))
+		} else {
+			text.Draw(l.image, l.text, l.font, l.textOriginX+l.padding.Left, l.textOriginY+l.padding.Top, l.color)
+		}
+
+		l.dirty = false
 	}
 
 	l.component.Draw()

@@ -2,6 +2,7 @@ package component
 
 import (
 	"image/color"
+	"regexp"
 	"sync/atomic"
 	"time"
 
@@ -77,6 +78,13 @@ var (
 		textInputUnfocus:              "textInputUnfocus",
 	}
 )
+
+var wordSeparatorRegex *regexp.Regexp
+
+func init() {
+	var wordSeparator = `[^a-zA-Z0-9_]`
+	wordSeparatorRegex = regexp.MustCompile(wordSeparator)
+}
 
 func (action textInputAction) String() string {
 	return textInputActionName[action]
@@ -296,7 +304,7 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 
 	ti.SetDimensions(width, height)
 
-	ti.cursor = *newTextInputCursor(&TextInputCursorOptions{
+	ti.cursor = *newTextInputCursor(ti, &TextInputCursorOptions{
 		Width:  option.Int(1),
 		Height: option.Int(ti.height - 4),
 	})
@@ -340,7 +348,7 @@ func NewTextInput(options *TextInputOptions) *TextInput {
 		}
 
 		if options.CursorOptions != nil {
-			ti.cursor = *newTextInputCursor(options.CursorOptions)
+			ti.cursor = *newTextInputCursor(ti, options.CursorOptions)
 		}
 	}
 
@@ -1188,7 +1196,7 @@ func (ti *TextInput) Update() {
 
 func (ti *TextInput) Draw() *ebiten.Image {
 	if ti.hidden {
-		return ti.image
+		return ti.emptyImage
 	}
 
 	ti.updateSelectionBounds()

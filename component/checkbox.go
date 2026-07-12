@@ -155,6 +155,8 @@ func (cb *CheckBox) SetLabel(label *Label) {
 	cb.SetDimensions(width, height)
 
 	cb.label.align()
+
+	cb.dirty = true
 }
 
 func (cb *CheckBox) Set(checked bool) {
@@ -165,6 +167,8 @@ func (cb *CheckBox) Set(checked bool) {
 			CheckBox: cb,
 		})
 	}
+
+	cb.dirty = true
 }
 
 func (cb *CheckBox) Checked() bool {
@@ -194,6 +198,7 @@ func (cb *CheckBox) RecalculateAbsPosition() {
 
 func (cb *CheckBox) SetBackgroundColor(color color.RGBA) {
 	cb.container.SetBackgroundColor(color)
+	cb.dirty = true
 }
 
 func (cb *CheckBox) GetBackgroundColor() color.RGBA {
@@ -210,6 +215,10 @@ func (cb *CheckBox) FireEvents() {
 
 func (cb *CheckBox) Draw() *ebiten.Image {
 	if cb.hidden {
+		return cb.emptyImage
+	}
+
+	if !cb.dirty {
 		return cb.image
 	}
 

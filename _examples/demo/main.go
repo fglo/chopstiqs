@@ -81,10 +81,14 @@ func NewGame() *Game {
 
 	gui.SetRootContainer(rootContainer)
 
-	lblTitle := gui.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}, VerticalAlignment: option.AlignmentTop})
+	// rootContainerScrollBar := gui.NewScroller(&component.ScrollBarOptions{
+	// 	Container: rootContainer,
+	// })
 
-	lblInstructions := gui.NewLabel("b - show borders\np - show padding\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: option.AlignmentTop})
-	lblPressedKeys = gui.NewLabel("[]", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}, VerticalAlignment: option.AlignmentTop})
+	lblTitle := gui.NewLabel("chopstiqs demo", &component.LabelOptions{Color: color.RGBA{120, 190, 100, 255}})
+
+	lblInstructions := gui.NewLabel("b - show borders\np - show padding\nq - quit", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}})
+	lblPressedKeys = gui.NewLabel("[]", &component.LabelOptions{Color: color.RGBA{120, 120, 120, 255}})
 
 	cbOpts := &component.CheckBoxOptions{
 		Drawer: component.DefaultCheckBoxDrawer{
@@ -232,19 +236,19 @@ func NewGame() *Game {
 	abcContainer.AddComponent(gui.NewLabel("l", nil))
 
 	img, _, _ := ebitenutil.NewImageFromReader(bytes.NewReader(chopstiqsLogo))
-	sprite := component.NewSprite(img, nil)
+	sprite := gui.NewSprite(img, nil)
+
+	// rootContainer.AddComponent(rootContainerScrollBar)
+
+	// rootContainerScrollBar.SetHeight(rootContainer.Height())
+	// rootContainerScrollBar.SetPosition(float64(100), 0)
 
 	rootContainer.AddComponent(sprite)
-	lblTitle.SetPosition(5, 5)
 	rootContainer.AddComponent(lblTitle)
-	lblInstructions.SetPosition(5, 15)
 	rootContainer.AddComponent(lblInstructions)
 	rootContainer.AddComponent(lblPressedKeys)
-	checkBoxContainer.SetPosition(5, 45)
 	rootContainer.AddComponent(checkBoxContainer)
-	btn.SetPosition(5, 60)
 	rootContainer.AddComponent(btn)
-	btn2.SetPosition(5, 75)
 	rootContainer.AddComponent(btn2)
 	rootContainer.AddComponent(sliderContainer)
 	rootContainer.AddComponent(sliderContainer2)

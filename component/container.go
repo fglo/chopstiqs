@@ -30,12 +30,19 @@ type Container struct {
 }
 
 type ContainerOptions struct {
-	Layout Layout
+	Padding  *Padding
+	Disabled bool
+	Hidden   bool
+
+	HorizontalAlignment option.HorizontalAlignment
+	VerticalAlignment   option.VerticalAlignment
 
 	Width  option.OptInt
 	Height option.OptInt
 
-	Padding *Padding
+	Border *Border
+
+	Layout Layout
 }
 
 // Newcontainer creates a new simple container
@@ -53,18 +60,6 @@ func NewContainer(opt *ContainerOptions) *Container {
 			}
 			c.layout = opt.Layout
 		}
-
-		if opt.Width.IsSet() && opt.Height.IsSet() {
-			c.SetDimensions(opt.Width.Val(), opt.Height.Val())
-		} else {
-			if opt.Width.IsSet() {
-				c.SetWidth(opt.Width.Val())
-			}
-
-			if opt.Height.IsSet() {
-				c.SetHeight(opt.Height.Val())
-			}
-		}
 	}
 
 	c.setUpComponent(opt)
@@ -77,7 +72,14 @@ func (c *Container) setUpComponent(opt *ContainerOptions) {
 
 	if opt != nil {
 		componentOptions = ComponentOptions{
-			Padding: opt.Padding,
+			Width:               opt.Width,
+			Height:              opt.Height,
+			Padding:             opt.Padding,
+			Border:              opt.Border,
+			Disabled:            opt.Disabled,
+			Hidden:              opt.Hidden,
+			HorizontalAlignment: opt.HorizontalAlignment,
+			VerticalAlignment:   opt.VerticalAlignment,
 		}
 	}
 
